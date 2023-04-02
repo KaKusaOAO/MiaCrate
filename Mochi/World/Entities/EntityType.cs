@@ -2,11 +2,8 @@
 
 namespace Mochi.World.Entities;
 
-public static class EntityType
+public static partial class EntityType
 {
-    public static EntityType<Pig> Pig = Register("pig", 
-        EntityType<Pig>.Builder.Of((t, l) => new Pig(t, l), MobCategory.Creature));
-
     private static EntityType<T> Register<T>(ResourceLocation location, EntityType<T>.Builder builder) 
         where T : Entity => 
         (EntityType<T>) Registry.Register(Registry.EntityType, location, builder.Build());
@@ -14,12 +11,14 @@ public static class EntityType
 
 public interface IEntityType : IRegistryEntry<IEntityType>
 {
-    
+    public IReferenceHolder<IEntityType> BuiltinRegistryHolder { get; }
+    public Entity? Create(ILevel level);
 }
 
 public interface IEntityType<out T> : IEntityType where T : Entity
 {
-    public T? Create(ILevel level);
+    public new T? Create(ILevel level);
+    Entity? IEntityType.Create(ILevel level) => Create(level);
 }
 
 public delegate T? EntityFactoryDelegate<T>(IEntityType<T> type, ILevel level) where T : Entity;

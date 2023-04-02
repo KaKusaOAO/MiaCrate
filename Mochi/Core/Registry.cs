@@ -1,6 +1,8 @@
 ﻿using Mochi.Extensions;
 using Mochi.Resources;
 using Mochi.World.Entities;
+using Mochi.World.Entities.AI;
+using Attribute = Mochi.World.Entities.AI.Attribute;
 
 namespace Mochi.Core;
 
@@ -22,9 +24,19 @@ public static class Registry
 
     public static readonly IResourceKey<IRegistry<IEntityType>> EntityTypeRegistry =
         CreateRegistryKey<IEntityType>("entity_type");
+    
+    public static readonly IResourceKey<IRegistry<Attribute>> AttributeRegistry =
+        CreateRegistryKey<Attribute>("attribute");
 
     public static readonly IRegistry<IEntityType> EntityType = RegisterDefaulted<IEntityType>(EntityTypeRegistry,
         "pig", e => e.BuiltinRegistryHolder, r => World.Entities.EntityType.Pig);
+    
+    public static readonly IRegistry<Attribute> Attribute = 
+        RegisterSimple<Attribute>(AttributeRegistry, r => Attributes.Luck);
+    
+    private static Registry<T> RegisterSimple<T>(IResourceKey<IRegistry> key, RegistryBootstrap<T> bootstrap) 
+        where T : class =>
+        InternalRegister(key, new MappedRegistry<T>(key, null), bootstrap);
 
     private static DefaultedRegistry<T> RegisterDefaulted<T>(IResourceKey<IRegistry> key, string str,
         Func<T, IReferenceHolder<T>> provider, RegistryBootstrap<T> bootstrap) where T : class =>

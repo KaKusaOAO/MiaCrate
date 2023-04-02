@@ -1,4 +1,4 @@
-namespace Mochi.World.Entities;
+namespace Mochi.World.Entities.Animals;
 
 public abstract class Animal : AgeableMob
 {

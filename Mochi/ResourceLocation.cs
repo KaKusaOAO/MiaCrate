@@ -13,7 +13,19 @@ public class ResourceLocation
         Namespace = @namespace;
         Path = path;
         
-        // TODO: Validate namespace and path
+        // Validate namespace and path
+        if (Namespace.Contains(':')) throw new ArgumentException("Namespace cannot contain ':'");
+        if (Path.Contains(':')) throw new ArgumentException("Path cannot contain ':'");
+        
+        // Validate namespace
+        if (Namespace.Length == 0) throw new ArgumentException("Namespace cannot be empty");
+        if (Namespace.Length > 32) throw new ArgumentException("Namespace cannot be longer than 32 characters");
+        if (Namespace.Any(c => !char.IsLetterOrDigit(c) && c != '_')) throw new ArgumentException("Namespace can only contain letters, digits and underscores");
+        
+        // Validate path
+        if (Path.Length == 0) throw new ArgumentException("Path cannot be empty");
+        if (Path.Length > 256) throw new ArgumentException("Path cannot be longer than 256 characters");
+        if (Path.Any(c => !char.IsLetterOrDigit(c) && c != '_' && c != '/' && c != '.')) throw new ArgumentException("Path can only contain letters, digits, underscores, slashes and dots");
     }
 
     public static implicit operator string(ResourceLocation location) => location.ToString();

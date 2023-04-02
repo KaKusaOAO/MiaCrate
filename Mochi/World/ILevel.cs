@@ -2,5 +2,5 @@
 
 public interface ILevel
 {
-    
+    public bool IsClientSide { get; }
 }
