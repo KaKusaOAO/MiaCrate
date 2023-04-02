@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mochi", "Mochi\Mochi.csproj", "{50B10012-4DF3-4283-BACB-E5CCE8B74E16}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mochi.Client.Test", "Mochi.Client.Test\Mochi.Client.Test.csproj", "{11A2671E-9F43-4976-9748-013ABFB9AF39}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mochi.Client", "Mochi.Client\Mochi.Client.csproj", "{45330A79-E5C0-44DE-B851-A0B8FA6092AB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{50B10012-4DF3-4283-BACB-E5CCE8B74E16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50B10012-4DF3-4283-BACB-E5CCE8B74E16}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50B10012-4DF3-4283-BACB-E5CCE8B74E16}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50B10012-4DF3-4283-BACB-E5CCE8B74E16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11A2671E-9F43-4976-9748-013ABFB9AF39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11A2671E-9F43-4976-9748-013ABFB9AF39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11A2671E-9F43-4976-9748-013ABFB9AF39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11A2671E-9F43-4976-9748-013ABFB9AF39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45330A79-E5C0-44DE-B851-A0B8FA6092AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45330A79-E5C0-44DE-B851-A0B8FA6092AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45330A79-E5C0-44DE-B851-A0B8FA6092AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45330A79-E5C0-44DE-B851-A0B8FA6092AB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
