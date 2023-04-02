@@ -9,7 +9,7 @@ using MiaCrate.Platforms;
 using Mochi.Utils;
 
 Logger.Logged += Logger.LogToEmulatedTerminalAsync;
-MochiCore.Bootstrap(IPlatform.Default);
+MiaCore.Bootstrap(IPlatform.Default);
 
 var server = new SocketTranslatorServer();
 await Task.Delay(1000);
@@ -17,7 +17,7 @@ await Task.Delay(1000);
 var host = "mc.hypixel.net";
 ushort port = 25565;
 
-var client = MochiCore.Platform.CreateClient(new Uri($"ws://127.0.0.1:57142/translator/?dest={host}:{port}"));
+var client = MiaCore.Platform.CreateClient(new Uri($"ws://127.0.0.1:57142/translator/?dest={host}:{port}"));
 client.Connect();
 
 var conn = new PlayerConnectionBase(client, PacketFlow.Clientbound);

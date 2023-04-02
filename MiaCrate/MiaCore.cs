@@ -3,7 +3,7 @@ using MiaCrate.Platforms;
 
 namespace MiaCrate;
 
-public static class MochiCore
+public static class MiaCore
 {
     private static bool _bootstrapped;
     
