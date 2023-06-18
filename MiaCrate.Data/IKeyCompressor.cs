@@ -14,7 +14,7 @@ public interface IKeyCompressor<T> : IKeyCompressor
     int Compress(T key);
 }
 
-public sealed class KeyCompressor<T> : IKeyCompressor<T> where T : notnull
+public sealed class KeyCompressor<T> : IKeyCompressor<T>
 {
     private readonly Dictionary<int, T> _decompress = new();
     private readonly Dictionary<T, int> _compress = new();

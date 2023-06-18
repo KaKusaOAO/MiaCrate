@@ -4,5 +4,5 @@ namespace MiaCrate.Data;
 
 public interface IKeyable
 {
-    public IEnumerable<T> Keys<T>(IDynamicOps<T> ops);
+    public IEnumerable<T> GetKeys<T>(IDynamicOps<T> ops);
 }

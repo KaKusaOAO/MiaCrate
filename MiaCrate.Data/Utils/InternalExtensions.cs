@@ -1,3 +1,5 @@
+using Mochi.Utils;
+
 namespace MiaCrate.Data.Utils;
 
 internal static class InternalExtensions
@@ -11,4 +13,7 @@ internal static class InternalExtensions
         dict[key] = value;
         return value;
     }
+
+    public static IOptional<TOut> SelectMany<T, TOut>(this IOptional<T> self, Func<T, IOptional<TOut>> mapper) => 
+        self.IsEmpty ? Optional.Empty<TOut>() : mapper(self.Value);
 }

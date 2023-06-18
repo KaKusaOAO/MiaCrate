@@ -51,6 +51,12 @@ public static class RecordCodecBuilder
     public static IMapCodec<T> MapCodec<T>(Func<Instance<T>, IApp<IRecordCodecBuilderLeft<T>.IMu, T>> builder) => 
         Build(builder(CreateInstance<T>()));
 
+    public static RecordCodecBuilder<TLeft, TRight> Point<TLeft, TRight>(TRight instance) =>
+        new(
+            _ => instance,
+            _ => Encoder.Empty<TRight>(),
+            Decoder.Unit(instance));
+
     public static IMapCodec<T> Build<T>(IApp<IRecordCodecBuilderLeft<T>.IMu, T> builderBox)
     {
         var builder = Unbox(builderBox);
@@ -65,6 +71,16 @@ public static class RecordCodecBuilder
         {
             _builder = builder;
         }
+
+        public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => _builder.Decoder.GetKeys(ops);
+
+        public override IRecordBuilder<TOut> Encode<TOut>(T input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix) => 
+            _builder.Encoder(input).Encode(input, ops, prefix);
+
+        public override IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) => 
+            _builder.Decoder.Decode(ops, input);
+
+        public override string ToString() => $"RecordCodec[{_builder.Decoder}]";
     }
 
     public static Instance<T> CreateInstance<T>() => new();
@@ -81,10 +97,8 @@ public static class RecordCodecBuilder
             throw new NotImplementedException();
         }
 
-        public IApp<IRecordCodecBuilderLeft<T>.IMu, TValue> Point<TValue>(TValue value)
-        {
-            throw new NotImplementedException();
-        }
+        public IApp<IRecordCodecBuilderLeft<T>.IMu, TValue> Point<TValue>(TValue value) =>
+            RecordCodecBuilder.Point<T, TValue>(value);
 
         public Func<IApp<IRecordCodecBuilderLeft<T>.IMu, TArg>, IApp<IRecordCodecBuilderLeft<T>.IMu, TResult>> Lift1<TArg, TResult>(IApp<IRecordCodecBuilderLeft<T>.IMu, Func<TArg, TResult>> func)
         {

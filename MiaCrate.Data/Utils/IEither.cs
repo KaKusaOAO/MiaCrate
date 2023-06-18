@@ -26,7 +26,7 @@ public interface IEither<TLeft, TRight> : IApp<IEitherRight<TRight>.Mu, TLeft>,
     IEither<TLeft, TRight> IfRight(Action<TRight> consumer);
     IEither<TRight, TLeft> Swap() => Select(Either.Right<TRight, TLeft>, Either.Left<TRight, TLeft>);
     IEither<T, TRight> SelectLeft<T>(Func<TLeft, T> l) => Select(t => Either.Left<T, TRight>(l(t)), Either.Right<T, TRight>);
-    IEither<TLeft, T> SelectLeft<T>(Func<TRight, T> r) => Select(Either.Left<TLeft, T>, t => Either.Right<TLeft, T>(r(t)));
+    IEither<TLeft, T> SelectRight<T>(Func<TRight, T> r) => Select(Either.Left<TLeft, T>, t => Either.Right<TLeft, T>(r(t)));
     IEither<TA, TB> SelectBoth<TA, TB>(Func<TLeft, TA> l, Func<TRight, TB> r);
 }
 

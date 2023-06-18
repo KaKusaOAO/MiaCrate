@@ -11,7 +11,7 @@ public sealed class FieldDecoder<T> : IMapDecoder<T>.Impl
         _elementCodec = elementCodec;
     }
 
-    public override IEnumerable<T1> Keys<T1>(IDynamicOps<T1> ops) => new[] { ops.CreateString(_name) };
+    public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => new[] { ops.CreateString(_name) };
 
     public override IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input)
     {

@@ -4,12 +4,13 @@ namespace MiaCrate.Data.Codecs;
 
 public interface IMapDecoder : IKeyable
 {
-    
+    IDataResult Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input);
 }
 
 public interface IMapDecoder<T> : IMapDecoder
 {
-    IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input);
+    new IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input);
+    IDataResult IMapDecoder.Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) => Decode(ops, input);
 
     IMapDecoder<TOut> Select<TOut>(Func<T, TOut> func) => 
         new IMapDecoder<TOut>.MappedImpl<T>(this, func);
@@ -32,7 +33,7 @@ public interface IMapDecoder<T> : IMapDecoder
             _func = func;
         }
 
-        public override IEnumerable<T1> Keys<T1>(IDynamicOps<T1> ops) => _decoder.Keys(ops);
+        public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => _decoder.GetKeys(ops);
         public override IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) => 
             _decoder.Decode(ops, input).SelectMany(_func);
 
@@ -50,7 +51,7 @@ public interface IMapDecoder<T> : IMapDecoder
             _func = func;
         }
 
-        public override IEnumerable<T1> Keys<T1>(IDynamicOps<T1> ops) => _decoder.Keys(ops);
+        public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => _decoder.GetKeys(ops);
         public override IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) => 
             _decoder.Decode(ops, input).Select(_func);
 
