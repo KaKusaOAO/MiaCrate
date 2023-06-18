@@ -14,10 +14,10 @@ public class SynchedEntityData
     {
         if (type == null) throw new ArgumentNullException(nameof(type));
         
-        var i = 0;
-        if (_entityIdMap.ContainsKey(type))
+        int i;
+        if (_entityIdMap.TryGetValue(type, out var value))
         {
-            i = _entityIdMap[type];
+            i = value;
         } else
         {
             var j = 0;

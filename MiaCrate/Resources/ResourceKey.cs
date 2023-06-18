@@ -28,7 +28,7 @@ public class ResourceKey<T> : IResourceKey<T> where T : class
     }
     
     public static IResourceKey<T> CreateRegistryKey(ResourceLocation location) => 
-        Create(Core.Registry.RootRegistryName, location);
+        Create(BuiltinRegistries.RootRegistryName, location);
 
     public static IResourceKey<T> Create<TRegistry>(IResourceKey<TRegistry> key, ResourceLocation location) 
         where TRegistry : IRegistry<T> => 

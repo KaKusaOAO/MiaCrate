@@ -8,13 +8,7 @@ public static class EntityDataSerializers
 
     public static readonly IEntityDataSerializer<byte> Byte = EntityDataSerializer.MakeSimple(
         (s, b) => s.WriteByte(b),
-        s =>
-        {
-            var r = s.ReadByte();
-            if (r == -1)
-                throw new EndOfStreamException();
-            return (byte)r;
-        });
+        s => s.ReadByte());
     
     public static readonly IEntityDataSerializer<int> Int = EntityDataSerializer.MakeSimple(
         (s, i) => s.WriteVarInt(i),

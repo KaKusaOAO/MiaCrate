@@ -5,8 +5,7 @@ public static class CommonExtension
     public static TValue ComputeIfAbsent<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key,
         Func<TKey, TValue> resolver)
     {
-        if (dict.ContainsKey(key)) return dict[key];
-
+        if (dict.TryGetValue(key, out var value)) return value;
         var item = resolver(key);
         dict.Add(key, item);
         return item;

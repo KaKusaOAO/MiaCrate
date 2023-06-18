@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiaCrate.Client.Test", "Mia
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiaCrate.Client", "MiaCrate.Client\MiaCrate.Client.csproj", "{45330A79-E5C0-44DE-B851-A0B8FA6092AB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MiaCrate.Data", "MiaCrate.Data\MiaCrate.Data.csproj", "{ABE253B1-9FD5-430F-A3D3-EAE38774C352}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{45330A79-E5C0-44DE-B851-A0B8FA6092AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45330A79-E5C0-44DE-B851-A0B8FA6092AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{45330A79-E5C0-44DE-B851-A0B8FA6092AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABE253B1-9FD5-430F-A3D3-EAE38774C352}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABE253B1-9FD5-430F-A3D3-EAE38774C352}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABE253B1-9FD5-430F-A3D3-EAE38774C352}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABE253B1-9FD5-430F-A3D3-EAE38774C352}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

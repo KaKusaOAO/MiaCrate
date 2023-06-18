@@ -6,7 +6,7 @@ public static partial class EntityType
 {
     private static EntityType<T> Register<T>(ResourceLocation location, EntityType<T>.Builder builder) 
         where T : Entity => 
-        (EntityType<T>) Registry.Register(Registry.EntityType, location, builder.Build());
+        (EntityType<T>) Registry.Register(BuiltinRegistries.EntityType, location, builder.Build());
 }
 
 public interface IEntityType : IRegistryEntry<IEntityType>
@@ -34,7 +34,7 @@ public class EntityType<T> : IEntityType<T> where T : Entity
 
     public EntityType(EntityFactoryDelegate<T> factory, MobCategory category)
     {
-        BuiltinRegistryHolder = Registry.EntityType.CreateIntrusiveHolder(this);
+        BuiltinRegistryHolder = BuiltinRegistries.EntityType.CreateIntrusiveHolder(this);
         _factory = factory;
         _category = category;
     }

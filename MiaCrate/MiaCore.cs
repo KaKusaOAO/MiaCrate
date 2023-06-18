@@ -15,7 +15,7 @@ public static class MiaCore
         _bootstrapped = true;
         Platform = platform;
 
-        if (!Registry.Root.KeySet.Any())
+        if (!BuiltinRegistries.Root.KeySet.Any())
         {
             throw new Exception("Unable to load registries");
         }

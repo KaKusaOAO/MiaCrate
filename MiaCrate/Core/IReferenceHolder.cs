@@ -8,7 +8,8 @@ public interface IReferenceHolder : IHolder
 
     HolderKind IHolder.Kind => HolderKind.Reference;
 
-    public void Bind(IResourceKey key, object value);
+    public void BindKey(IResourceKey key);
+    public void BindValue(object value);
 }
 
 public interface IReferenceHolder<T> : IHolder<T>, IReferenceHolder where T : class
@@ -16,15 +17,18 @@ public interface IReferenceHolder<T> : IHolder<T>, IReferenceHolder where T : cl
     public new IResourceKey<T> Key { get; }
     IResourceKey IReferenceHolder.Key => Key;
 
-    public void Bind(IResourceKey<T> key, T value);
-    void IReferenceHolder.Bind(IResourceKey key, object value) => Bind((IResourceKey<T>) key, (T) value);
+    public void BindKey(IResourceKey<T> key);
+    void IReferenceHolder.BindKey(IResourceKey key) => BindKey((IResourceKey<T>)key);
+    
+    public void BindValue(T value);
+    void IReferenceHolder.BindValue(object value) => BindValue((T)value);
 }
 
 public class ReferenceHolder<T> : IReferenceHolder<T> where T : class
 {
     public T Value { get; private set; }
-    public IResourceKey<T>? Key { get; private set; }
-    public bool IsBound { get; }
+    public IResourceKey<T> Key { get; private set; }
+    public bool IsBound => Key != null! && Value != null!;
     public RefHolderType Type { get; }
     public IRegistry<T> Registry { get; }
 
@@ -33,7 +37,7 @@ public class ReferenceHolder<T> : IReferenceHolder<T> where T : class
         Type = type;
         Registry = registry;
         Value = obj!;
-        Key = key;
+        Key = key!;
     }
 
     public static IReferenceHolder<T> CreateStandalone(IRegistry<T> registry, IResourceKey<T> key) => 
@@ -44,19 +48,23 @@ public class ReferenceHolder<T> : IReferenceHolder<T> where T : class
 
     public bool Is(ResourceLocation location) => Key!.Location == location;
     
-    public void Bind(IResourceKey<T> key, T value)
+    public void BindKey(IResourceKey<T> key)
     {
         if (Key != null && Key != key)
         {
             throw new InvalidOperationException($"Can't change holder key: existing={Key}, new={key}");
         }
 
+        Key = key;
+    }
+    
+    public void BindValue(T value)
+    {
         if (Value != null && Value != value)
         {
-            throw new InvalidOperationException($"Can't change holder {key} value: existing={Value}, new={value}");
+            throw new InvalidOperationException($"Can't change holder {Key} value: existing={Value}, new={value}");
         }
 
-        Key = key;
         Value = value;
     }
 }

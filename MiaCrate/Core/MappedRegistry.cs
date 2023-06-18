@@ -7,17 +7,23 @@ namespace MiaCrate.Core;
 public class MappedRegistry<T> : WritableRegistry<T> where T : class
 {
     private int _nextId;
-    private Dictionary<int, IReferenceHolder<T>> _byId = new();
-    private Dictionary<T, int> _toId = new();
-    private Dictionary<IResourceKey<T>, IReferenceHolder<T>> _byKey = new();
-    private Dictionary<T, IReferenceHolder<T>> _byValue = new();
-    private Dictionary<ResourceLocation, IReferenceHolder<T>> _byLocation = new();
-    private Dictionary<T, IReferenceHolder<T>> _intrusiveHolderCache = new();
-    private Func<T, IReferenceHolder<T>>? _customHolderProvider;
+    private readonly IResourceKey<IRegistry> _key;
+    private readonly Dictionary<int, IReferenceHolder<T>> _byId = new();
+    private readonly Dictionary<T, int> _toId = new();
+    private readonly Dictionary<IResourceKey<T>, IReferenceHolder<T>> _byKey = new();
+    private readonly Dictionary<T, IReferenceHolder<T>> _byValue = new();
+    private readonly Dictionary<ResourceLocation, IReferenceHolder<T>> _byLocation = new();
+    private readonly Dictionary<T, IReferenceHolder<T>> _intrusiveHolderCache = new();
+    private Dictionary<T, IReferenceHolder<T>>? _unregisteredIntrusiveHolders;
 
-    public MappedRegistry(IResourceKey<IRegistry> key, Func<T, IReferenceHolder<T>>? provider) : base(key)
+    public MappedRegistry(IResourceKey<IRegistry> key, bool hasIntrusiveHolders = false) : base(key)
     {
-        _customHolderProvider = provider;
+        _key = key;
+        
+        if (hasIntrusiveHolders)
+        {
+            _unregisteredIntrusiveHolders = new Dictionary<T, IReferenceHolder<T>>();
+        }
     }
 
     public override IHolder<T> Register(IResourceKey<T> key, T obj) => 
@@ -42,25 +48,31 @@ public class MappedRegistry<T> : WritableRegistry<T> where T : class
 
         // Holders part
         IReferenceHolder<T>? reference;
-        if (_customHolderProvider != null)
+        if (_unregisteredIntrusiveHolders != null)
         {
-            reference = _customHolderProvider(obj);
-            var r = _byKey.AddOrSet(key, reference);
-            if (r != null && r != reference)
+            if (!_unregisteredIntrusiveHolders.Remove(obj, out reference)) // _customHolderProvider(obj);
             {
-                throw new InvalidOperationException($"Invalid holder present for key {key}");
+                throw new Exception($"Missing intrusive holder for {key}: {obj}");    
             }
+            
+            reference.BindKey(key);
         }
         else
         {
             reference = _byKey.ComputeIfAbsent(key, k => 
                 ReferenceHolder<T>.CreateStandalone(this, k));
         }
-        
+
+        _byKey.Add(key, reference);
         _byLocation.Add(key.Location, reference);
         _byValue.Add(obj, reference);
-        reference.Bind(key, obj);
         _byId.Add(id, reference);
+        _toId.Add(obj, id);
+        if (_nextId <= id)
+        {
+            _nextId = id + 1;
+        }
+        
         return reference;
     }
 
@@ -72,7 +84,7 @@ public class MappedRegistry<T> : WritableRegistry<T> where T : class
     public override ResourceLocation? GetKey(T obj) => _byValue.GetValueOrDefault(obj)?.Key.Location;
     public override IReferenceHolder<T> CreateIntrusiveHolder(T obj)
     {
-        if (_customHolderProvider == null)
+        if (_unregisteredIntrusiveHolders == null)
         {
             throw new InvalidOperationException("This registry can't create intrusive holders");
         }
