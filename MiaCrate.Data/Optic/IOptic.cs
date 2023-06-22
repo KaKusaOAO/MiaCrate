@@ -7,9 +7,11 @@ public interface IOpticFieldT<T> : IOptic {}
 public interface IOpticFieldA<T> : IOptic {}
 public interface IOpticFieldB<T> : IOptic {}
 
-public interface IOptic<TProof, TS, TT, TA, TB> : IOpticProof<TProof>, 
-    IOpticFieldS<TS>, IOpticFieldT<TT>,
-    IOpticFieldA<TA>, IOpticFieldB<TB> where TProof : IK1
+public interface IOpticIn<TLeft, TRight> : IOpticFieldS<TLeft>, IOpticFieldT<TRight> {}
+public interface IOpticOut<TLeft, TRight> : IOpticFieldA<TLeft>, IOpticFieldB<TRight> {}
+
+public interface IOptic<TProof, TS, TT, TA, TB> : IOpticProof<TProof>, IOpticIn<TS, TT>, IOpticOut<TA, TB> 
+    where TProof : IK1
 {
     Func<IApp2<TP, TA, TB>, IApp2<TP, TS, TT>> Eval<TP>(IApp<TProof, TP> proof) where TP : IK2;
 }

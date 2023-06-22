@@ -45,7 +45,7 @@ public interface IDataResult<T> : IDataResult, IApp<IDataResult.Mu, T>
             var second = func(value);
             return new DataResult<TOut>(Either.Right<TOut, IDataResult<TOut>.IPartialResult>(second.Get().Select(
                 l2 => new DataResult<TOut>.PartialResult(r.MessageFunc, Optional.Of(l2)),
-                r2 => new DataResult<TOut>.PartialResult(() => r.Message + "; " + r2.Message, r2.PartialResultValue)
+                r2 => new DataResult<TOut>.PartialResult(() => $"{r.Message}; {r2.Message}", r2.PartialResultValue)
             )), Lifecycle + second.Lifecycle);
         }).OrElse(() =>
             new DataResult<TOut>(
