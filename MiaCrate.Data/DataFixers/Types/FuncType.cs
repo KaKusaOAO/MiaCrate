@@ -32,6 +32,7 @@ public interface IFuncType<TIn, TOut> : IType<IFunction<TIn, TOut>>, IFuncTypeIn
     public new IBang<IFunction<TIn, TOut>> CreateBang() => Functions.Bang<IFunction<TIn, TOut>>(this);
     IBang<IFunction<TIn, TOut>> IType<IFunction<TIn, TOut>>.CreateBang() => CreateBang();
     IBang<IFunction> IType<IFunction>.CreateBang() => Unsafe.As<IBang<IFunction>>(CreateBang());
+    IBang IType.CreateBang() => CreateBang();
     
     public new IOptional<IFunction<TIn, TOut>> Point(IDynamicOps ops) => Optional.Empty<IFunction<TIn, TOut>>();
     IOptional<IFunction<TIn, TOut>> IType<IFunction<TIn, TOut>>.Point(IDynamicOps ops) => Point(ops);
@@ -87,7 +88,7 @@ public class FuncType<TIn, TOut> : DataType<IFunction<TIn, TOut>>, IFuncType<TIn
         First = first;
         Second = second;
     }
-    
+
     public override ITypeTemplate BuildTemplate() =>
         throw new NotSupportedException("No template for function types.");
 

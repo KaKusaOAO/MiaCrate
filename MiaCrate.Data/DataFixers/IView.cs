@@ -19,6 +19,9 @@ public interface IView<TLeft, TRight> : IApp2<IView.Mu, TLeft, TRight>, IViewLef
     public IOptional<IView<TLeft, TRight>> Rewrite(IPointFreeRule rule);
     public IView<TLeft, TRight> RewriteOrNop(IPointFreeRule rule);
     public IView<TLeft, TOut> SelectMany<TOut>(Func<IType<TRight>, IView<TRight, TOut>> func);
+    public IView<TOuter, TRight> Compose<TOuter>(IView<TOuter, TLeft> that);
+
+    public bool IsNop() => Functions.IsId(Function);
 }
 
 public record View<TLeft, TRight>(IPointFree<IFunction<TLeft, TRight>> Function) : IView<TLeft, TRight>
@@ -37,6 +40,15 @@ public record View<TLeft, TRight>(IPointFree<IFunction<TLeft, TRight>> Function)
     {
         var instance = func(NewType);
         return new View<TLeft, TOut>(Functions.Comp(instance.Function, Function));
+    }
+
+    private IView<TLeft, TRight> Boxed() => this;
+
+    public IView<TOuter, TRight> Compose<TOuter>(IView<TOuter, TLeft> that)
+    {
+        if (Boxed().IsNop()) return new View<TOuter, TRight>(((IView<TOuter, TRight>)that).Function);
+        if (that.IsNop()) return new View<TOuter, TRight>(((IView<TOuter, TRight>)this).Function);
+        return new View<TOuter, TRight>(Functions.Comp(Function, that.Function));
     }
 }
 

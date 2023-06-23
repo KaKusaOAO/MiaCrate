@@ -5,6 +5,8 @@ namespace MiaCrate.Data;
 
 public interface IDynamicOps
 {
+    IDynamic CreateEmptyDynamic();
+    
     object? Empty { get; }
     object? EmptyMap { get; }
     object? EmptyList { get; }
@@ -19,6 +21,9 @@ public interface IDynamicOps<T> : IDynamicOps
 {
     new T Empty { get; }
     object? IDynamicOps.Empty => Empty;
+
+    new IDynamic<T> CreateEmptyDynamic() => new Dynamic<T>(this);
+    IDynamic IDynamicOps.CreateEmptyDynamic() => CreateEmptyDynamic();
 
     IDynamicOps<TOut> ConvertTo<TOut>(IDynamicOps<TOut> outOps, T input);
     new T CreateString(string value);

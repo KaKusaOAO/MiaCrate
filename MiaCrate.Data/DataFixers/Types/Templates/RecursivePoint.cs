@@ -15,14 +15,14 @@ public sealed class RecursivePoint : ITypeTemplate
     public ITypeFamily Apply(ITypeFamily family)
     {
         var result = family.Apply(Index);
-        return new Family(result);
+        return new RecursivePointFamily(result);
     }
 
-    private class Family : ITypeFamily
+    private class RecursivePointFamily : ITypeFamily
     {
         private readonly IType _result;
 
-        public Family(IType result)
+        public RecursivePointFamily(IType result)
         {
             _result = result;
         }
@@ -32,7 +32,8 @@ public sealed class RecursivePoint : ITypeTemplate
     
     public interface IRecursivePointType : IType
     {
-        
+        public RecursiveTypeFamily Family { get; }
+        public int Index { get; }
     }
     
     public interface IRecursivePointType<T> : IRecursivePointType, IType<T>
@@ -43,20 +44,25 @@ public sealed class RecursivePoint : ITypeTemplate
     public class RecursivePointType<T> : DataType<T>, IRecursivePointType<T>
     {
         public RecursiveTypeFamily Family { get; }
-        public int Index1 { get; }
+        public int Index { get; }
         private readonly Func<IType<T>> _func;
         private IType<T>? _type;
 
         private RecursivePointType(RecursiveTypeFamily family, int index, Func<IType<T>> func)
         {
             Family = family;
-            Index1 = index;
+            Index = index;
             _func = func;
         }
 
         public IType<T> Unfold() => _type ??= _func();
 
         protected override ICodec<T> BuildCodec() => new TypeCodec(this);
+        public override bool Equals(object? obj, bool ignoreRecursionPoints, bool checkIndex)
+        {
+            if (obj is not IRecursivePointType type) return false;
+            return (ignoreRecursionPoints || Family == type.Family) && Index == type.Index;
+        }
 
         private class TypeCodec : ICodec<T>
         {
@@ -74,6 +80,6 @@ public sealed class RecursivePoint : ITypeTemplate
                 _instance.Unfold().Codec.Decode(ops, input).SetLifecycle(Lifecycle.Experimental);
         }
 
-        public override ITypeTemplate BuildTemplate() => Dsl.Id(Index1);
+        public override ITypeTemplate BuildTemplate() => Dsl.Id(Index);
     }
 }
