@@ -2,7 +2,7 @@ namespace MiaCrate.Data;
 
 public interface ITypeFamily
 {
-    IDataType Apply(int index);
+    IType Apply(int index);
 }
 
 public static class TypeFamily

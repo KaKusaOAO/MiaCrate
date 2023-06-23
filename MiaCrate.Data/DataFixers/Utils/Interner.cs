@@ -1,4 +1,4 @@
-namespace MiaCrate.Data.Utils;
+namespace MiaCrate.Data;
 
 internal class Interner<T>
 {

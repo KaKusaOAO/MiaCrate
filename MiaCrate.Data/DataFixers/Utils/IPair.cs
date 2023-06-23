@@ -1,4 +1,4 @@
-namespace MiaCrate.Data.Utils;
+namespace MiaCrate.Data;
 
 public interface IPair : IApp {}
 public interface IPairFirst<T> : IPair, IAppRight<T> {}
@@ -12,6 +12,7 @@ public interface IPair<TFirst, TSecond> : IPairFirst<TFirst>, IPairSecond<TSecon
     public TFirst First { get; }
     public TSecond Second { get; }
     public IPair<TSecond, TFirst> Swap() => Pair.Of(Second, First);
+    public IPair<TOut, TSecond> SelectFirst<TOut>(Func<TFirst, TOut> func) => Pair.Of(func(First), Second);
 }
 
 internal class Pair<TFirst, TSecond> : IPair<TFirst, TSecond>

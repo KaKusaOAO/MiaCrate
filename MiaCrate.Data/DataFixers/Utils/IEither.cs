@@ -1,6 +1,6 @@
 using Mochi.Utils;
 
-namespace MiaCrate.Data.Utils;
+namespace MiaCrate.Data;
 
 public interface IEither : IApp
 {

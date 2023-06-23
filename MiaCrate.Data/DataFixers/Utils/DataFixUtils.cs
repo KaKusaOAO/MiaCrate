@@ -1,4 +1,4 @@
-namespace MiaCrate.Data.Utils;
+namespace MiaCrate.Data;
 
 public static class DataFixUtils
 {

@@ -7,7 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Mochi" Version="1.1.6" />
+      <PackageReference Include="JetBrains.Annotations" Version="2022.3.1" />
+      <PackageReference Include="Mochi" Version="1.1.10" />
+
+
+
     </ItemGroup>
+
+
+
 
 </Project>

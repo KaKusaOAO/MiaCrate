@@ -1,3 +1,4 @@
+using System.Numerics;
 using MiaCrate.Data.Codecs;
 
 namespace MiaCrate.Data;
@@ -9,6 +10,7 @@ public interface IDynamicOps
     object? EmptyList { get; }
     object? CreateString(string value);
     IDataResult<string> GetStringValue(object? value);
+    IDataResult<decimal> GetNumberValue(object? value);
     IRecordBuilder MapBuilder { get; }
     bool CompressMaps => false;
 }
@@ -25,8 +27,14 @@ public interface IDynamicOps<T> : IDynamicOps
     IDataResult<string> GetStringValue(T value);
     IDataResult<string> IDynamicOps.GetStringValue(object? value) => GetStringValue((T)value!);
 
+    IDataResult<decimal> GetNumberValue(T value);
+    IDataResult<decimal> IDynamicOps.GetNumberValue(object? value) => GetNumberValue((T)value!);
+
     new IRecordBuilder<T> MapBuilder { get; }
     IRecordBuilder IDynamicOps.MapBuilder => MapBuilder;
+
+    IDataResult<IEnumerable<T>> GetEnumerable(T input);
+    T CreateList(IEnumerable<T> input);
 
     IDataResult<T> MergeToMap(T prefix, IDictionary<T, T> map) =>
         MergeToMap(prefix, MapLike.ForDictionary(map, this));

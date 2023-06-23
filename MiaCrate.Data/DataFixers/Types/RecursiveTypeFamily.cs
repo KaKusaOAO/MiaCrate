@@ -1,5 +1,3 @@
-using MiaCrate.Data.Utils;
-
 namespace MiaCrate.Data;
 
 public class RecursiveTypeFamily : ITypeFamily
@@ -18,7 +16,7 @@ public class RecursiveTypeFamily : ITypeFamily
         _hashCode = HashCode.Combine(template);
     }
     
-    public IDataType Apply(int index)
+    public IType Apply(int index)
     {
         throw new NotImplementedException();
     }

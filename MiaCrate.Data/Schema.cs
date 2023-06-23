@@ -1,4 +1,4 @@
-using MiaCrate.Data.Utils;
+using Mochi.Utils;
 
 namespace MiaCrate.Data;
 
@@ -12,7 +12,7 @@ public class Schema
 
     protected Dictionary<string, int> RecursiveTypes { get; } = new();
     private readonly Dictionary<string, Func<ITypeTemplate>> _typeTemplates = new();
-    private readonly Dictionary<string, IDataType> _types = new();
+    private readonly Dictionary<string, IType> _types = new();
 
     public ICollection<string> Types => _types.Keys;
 
@@ -34,9 +34,9 @@ public class Schema
         foreach (var (k, v) in BuildTypes()) _types[k] = v;
     }
 
-    protected IDictionary<string, IDataType> BuildTypes()
+    protected IDictionary<string, IType> BuildTypes()
     {
-        var types = new Dictionary<string, IDataType>();
+        var types = new Dictionary<string, IType>();
         var templates = new List<ITypeTemplate>();
 
         foreach (var (k, v) in RecursiveTypes)
@@ -79,6 +79,21 @@ public class Schema
             schema.InitializeTypes();
             return schema;
         };
+    }
+
+    public IType GetType(Dsl.ITypeReference type)
+    {
+        var name = type.TypeName;
+        var type1 = _types.ComputeIfAbsent(name, _ => 
+            throw new ArgumentException($"Unknown type: {name}"));
+
+        if (type1 is RecursivePoint.IRecursivePointType)
+        {
+            return type1.FindCheckedType(-1).OrElse(() => 
+                throw new Exception("Could not find choice type in the recursive typ"));
+        }
+        
+        return type1;
     }
 
 

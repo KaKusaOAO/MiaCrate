@@ -1,5 +1,3 @@
-using MiaCrate.Data.Utils;
-
 namespace MiaCrate.Data.Codecs;
 
 public interface IMapCodecCodec : ICodec

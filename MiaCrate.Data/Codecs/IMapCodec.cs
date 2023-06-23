@@ -21,25 +21,34 @@ public abstract class MapCodec<T> : CompressorHolder, IMapCodec<T>
     public abstract IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input);
 }
 
-internal class BasicNamedMapCodec<T> : MapCodec<T>
+public static class MapCodec
 {
-    private readonly IMapEncoder<T> _encoder;
-    private readonly IMapDecoder<T> _decoder;
-    private readonly Func<string> _nameFunc;
-
-    public BasicNamedMapCodec(IMapEncoder<T> encoder, IMapDecoder<T> decoder, Func<string> nameFunc)
-    {
-        _encoder = encoder;
-        _decoder = decoder;
-        _nameFunc = nameFunc;
-    }
-
-    public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => 
-        _encoder.GetKeys(ops).Concat(_decoder.GetKeys(ops));
+    public static IMapCodec<T> Of<T>(IMapEncoder<T> encoder, IMapDecoder<T> decoder) =>
+        Of(encoder, decoder, () => $"MapCodec[{encoder} {decoder}]");
     
-    public override IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) => 
-        _decoder.Decode(ops, input);
+    public static IMapCodec<T> Of<T>(IMapEncoder<T> encoder, IMapDecoder<T> decoder, Func<string> nameFunc) =>
+        new CompositionMapCodec<T>(encoder, decoder, nameFunc);
 
-    public override IRecordBuilder<TOut> Encode<TOut>(T input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix) =>
-        _encoder.Encode(input, ops, prefix);
+    private class CompositionMapCodec<T> : MapCodec<T>
+    {
+        private readonly IMapEncoder<T> _encoder;
+        private readonly IMapDecoder<T> _decoder;
+        private readonly Func<string> _nameFunc;
+
+        public CompositionMapCodec(IMapEncoder<T> encoder, IMapDecoder<T> decoder, Func<string> nameFunc)
+        {
+            _encoder = encoder;
+            _decoder = decoder;
+            _nameFunc = nameFunc;
+        }
+
+        public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => 
+            _encoder.GetKeys(ops).Concat(_decoder.GetKeys(ops));
+    
+        public override IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) => 
+            _decoder.Decode(ops, input);
+
+        public override IRecordBuilder<TOut> Encode<TOut>(T input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix) =>
+            _encoder.Encode(input, ops, prefix);
+    }
 }
