@@ -98,6 +98,9 @@ public sealed class DataResultInstance : IApplicative<IDataResult.Mu, DataResult
     public Func<IApp<IDataResult.Mu, TArg>, IApp<IDataResult.Mu, TResult>> Lift1<TArg, TResult>(
         IApp<IDataResult.Mu, Func<TArg, TResult>> func) =>
         fa => this.Boxed().Ap(func, fa);
+
+    public IApp<IDataResult.Mu, TResult> Ap<TArg, TResult>(IApp<IDataResult.Mu, Func<TArg, TResult>> func, IApp<IDataResult.Mu, TArg> arg) => 
+        DataResult.Unbox(arg).Ap(DataResult.Unbox(func));
 }
 
 public class DataResult<T> : IDataResult<T>

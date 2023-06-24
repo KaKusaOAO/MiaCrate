@@ -63,11 +63,11 @@ public class MappedRegistry<T> : WritableRegistry<T> where T : class
                 ReferenceHolder<T>.CreateStandalone(this, k));
         }
 
-        _byKey.Add(key, reference);
-        _byLocation.Add(key.Location, reference);
-        _byValue.Add(obj, reference);
-        _byId.Add(id, reference);
-        _toId.Add(obj, id);
+        _byKey[key] = reference;
+        _byLocation[key.Location] = reference;
+        _byValue[obj] = reference;
+        _byId[id] = reference;
+        _toId[obj] = id;
         if (_nextId <= id)
         {
             _nextId = id + 1;

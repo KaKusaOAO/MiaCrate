@@ -1,6 +1,16 @@
 namespace MiaCrate.Data.Codecs;
 
-public sealed class FieldDecoder<T> : IMapDecoder<T>.Impl
+public interface IFieldDecoder : IMapDecoder
+{
+    
+}
+
+public interface IFieldDecoder<T> : IFieldDecoder, IMapDecoder<T>
+{
+    
+}
+
+public sealed class FieldDecoder<T> : MapDecoder.Implementation<T>, IFieldDecoder<T>
 {
     private readonly string _name;
     private readonly IDecoder<T> _elementCodec;

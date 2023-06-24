@@ -7,10 +7,11 @@ public class SocketTranslatorServer
 {
     public List<TcpSocketTranslator> Translators { get; } = new();
     public HttpListener Listener { get; } = new();
+    public const ushort Port = 57142;
     
     public SocketTranslatorServer()
     {
-        Listener.Prefixes.Add("http://127.0.0.1:57142/translator/");
+        Listener.Prefixes.Add($"http://127.0.0.1:{Port}/translator/");
         Listener.Start();
         _ = StartEventLoopAsync();
     }
@@ -21,6 +22,7 @@ public class SocketTranslatorServer
         {
             Logger.Info("Waiting for request...");
             var context = await Listener.GetContextAsync();
+            
             var request = context.Request;
             var response = context.Response;
 

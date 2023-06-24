@@ -17,12 +17,7 @@ public interface IMapDecoder<T> : IMapDecoder
     IMapDecoder<TOut> SelectMany<TOut>(Func<T, IDataResult<TOut>> func) => 
         new IMapDecoder<TOut>.FlatMappedImpl<T>(this, func);
 
-    public abstract class Impl : CompressorHolder, IMapDecoder<T>
-    {
-        public abstract IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input);
-    }
-
-    private class FlatMappedImpl<TSource> : Impl
+    private class FlatMappedImpl<TSource> : MapDecoder.Implementation<T>
     {
         private IMapDecoder<TSource> _decoder;
         private readonly Func<TSource, IDataResult<T>> _func;
@@ -40,7 +35,7 @@ public interface IMapDecoder<T> : IMapDecoder
         public override string ToString() => _decoder + "[flatMapped]";
     }
     
-    private class MappedImpl<TSource> : Impl
+    private class MappedImpl<TSource> : MapDecoder.Implementation<T>
     {
         private IMapDecoder<TSource> _decoder;
         private readonly Func<TSource, T> _func;
@@ -56,5 +51,13 @@ public interface IMapDecoder<T> : IMapDecoder
             _decoder.Decode(ops, input).Select(_func);
 
         public override string ToString() => _decoder + "[mapped]";
+    }
+}
+
+public static class MapDecoder
+{
+    public abstract class Implementation<T> : CompressorHolder, IMapDecoder<T>
+    {
+        public abstract IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input);
     }
 }

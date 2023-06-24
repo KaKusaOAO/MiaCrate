@@ -13,11 +13,21 @@ public interface ICodec<T> : ICodec, IEncoder<T>, IDecoder<T>
         CoSelect(from), Select(to),
         $"{this}[xmapped]"
     );
+    
+    public new IMapCodec<T> FieldOf(string name) => MapCodec.Of(
+        new FieldEncoder<T>(name, this),
+        new FieldDecoder<T>(name, this),
+        () => $"Field[{name}: {this}]"
+    );
+    IMapEncoder<T> IEncoder<T>.FieldOf(string name) => FieldOf(name);
+    IMapDecoder<T> IDecoder<T>.FieldOf(string name) => FieldOf(name);
 }
 
 public static class Codec
 {
     public static IMapCodec<Unit> Empty { get; } = MapCodec.Of(Encoder.Empty<Unit>(), Decoder.Unit(Unit.Instance));
+    public static IPrimitiveCodec<bool> Bool { get; } = new BoolPrimitiveCodec();
+    public static IPrimitiveCodec<byte> Byte { get; } = new BytePrimitiveCodec();
     
     public static ICodec<T> Of<T>(IEncoder<T> encoder, IDecoder<T> decoder, string? name = null)
     {
@@ -45,5 +55,17 @@ public static class Codec
             _decoder.Decode(ops, input);
 
         public override string ToString() => _name;
+    }
+
+    private class BoolPrimitiveCodec : IPrimitiveCodec<bool>
+    {
+        public IDataResult<bool> Read<TIn>(IDynamicOps<TIn> ops, TIn input) => ops.GetBoolValue(input);
+        public TOut Write<TOut>(IDynamicOps<TOut> ops, bool value) => ops.CreateBool(value);
+    }
+    
+    private class BytePrimitiveCodec : IPrimitiveCodec<byte>
+    {
+        public IDataResult<byte> Read<TIn>(IDynamicOps<TIn> ops, TIn input) => ops.GetNumberValue(input).Select(d => (byte)d);
+        public TOut Write<TOut>(IDynamicOps<TOut> ops, byte value) => ops.CreateByte(value);
     }
 }

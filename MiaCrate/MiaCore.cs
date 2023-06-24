@@ -1,23 +1,26 @@
 ﻿using MiaCrate.Core;
 using MiaCrate.Platforms;
+using MiaCrate.Texts;
 
 namespace MiaCrate;
 
 public static class MiaCore
 {
     private static bool _bootstrapped;
-    
-    public static IPlatform Platform { get; private set; }
+    private static IPlatform? _platform;
+    public static IPlatform Platform => _platform ?? throw new Exception("Not bootstrapped");
 
     public static void Bootstrap(IPlatform platform)
     {
         if (_bootstrapped) return;
         _bootstrapped = true;
-        Platform = platform;
+        _platform = platform;
 
         if (!BuiltinRegistries.Root.KeySet.Any())
         {
             throw new Exception("Unable to load registries");
         }
+        
+        MiaContentTypes.Init();
     }
 }

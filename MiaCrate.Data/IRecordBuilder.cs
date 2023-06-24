@@ -27,7 +27,7 @@ public interface IRecordBuilder<T> : IRecordBuilder
         Add(key, encoder.EncodeStart(Ops, value));
 }
 
-internal abstract class AbstractBuilder<TOps, TBuilder> : IRecordBuilder<TOps>
+public abstract class AbstractBuilder<TOps, TBuilder> : IRecordBuilder<TOps>
 {
     protected IDataResult<TBuilder> Builder { get; set; }
 
@@ -71,7 +71,7 @@ internal abstract class AbstractBuilder<TOps, TBuilder> : IRecordBuilder<TOps>
     }
 }
 
-internal abstract class AbstractStringBuilder<TOps, TBuilder> : AbstractBuilder<TOps, TBuilder>, IRecordBuilder<TOps>
+public abstract class AbstractStringBuilder<TOps, TBuilder> : AbstractBuilder<TOps, TBuilder>, IRecordBuilder<TOps>
 {
     protected AbstractStringBuilder(IDynamicOps<TOps> ops, Func<TBuilder>? builder = null) : base(ops, builder) { }
 
@@ -123,7 +123,7 @@ internal abstract class AbstractStringBuilder<TOps, TBuilder> : AbstractBuilder<
     }
 }
 
-internal abstract class AbstractUniversalBuilder<TOps, TBuilder> : AbstractBuilder<TOps, TBuilder>
+public abstract class AbstractUniversalBuilder<TOps, TBuilder> : AbstractBuilder<TOps, TBuilder>
 {
     protected AbstractUniversalBuilder(IDynamicOps<TOps> ops, Func<TBuilder>? builder = null) : base(ops, builder) { }
     

@@ -22,8 +22,8 @@ public class ServerboundStatusResponsePacket : IPacket<IClientStatusPacketHandle
 
     public ServerboundStatusResponsePacket(BufferReader stream)
     {
-        Component = Text.FromJson(JsonSerializer.Deserialize<JsonNode>(stream.ReadUtf8String()))!;
-        Logger.Info(Component.ToString());
+        var payload = JsonSerializer.Deserialize<JsonNode>(stream.ReadUtf8String())!;
+        Component = Text.FromJson(payload["description"]);
     }
     
     public void Write(BufferWriter writer)

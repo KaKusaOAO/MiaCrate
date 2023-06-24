@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\MiaCrate.Client\MiaCrate.Client.csproj" />
+      <ProjectReference Include="..\MiaCrate.Data\MiaCrate.Data.csproj" />
       <ProjectReference Include="..\MiaCrate\MiaCrate.csproj" />
     </ItemGroup>
 

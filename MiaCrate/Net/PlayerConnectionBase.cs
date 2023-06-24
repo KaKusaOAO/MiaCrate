@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net.WebSockets;
 using MiaCrate.Events;
+using MiaCrate.Extensions;
 using MiaCrate.Net.Packets;
 using MiaCrate.Platforms;
 using Mochi.IO;
@@ -33,20 +34,23 @@ public class PlayerConnectionBase
     public event ReceivedPacketEventAsyncDelegate? ReceivedPacket;
     public event DisconnectedEventDelegate? Disconnected;
 
-    private Stopwatch _stopwatch = new();
+    private readonly Stopwatch _stopwatch = new();
     private PacketState _currentState;
 
-    private Dictionary<Type, Action<IPacket>> _typedPacketHandlers = new();
+    private readonly Dictionary<Type, List<Action<IPacket>>> _typedPacketHandlers = new();
 
     public void AddTypedPacketHandler<T>(Action<T> handler) where T : IPacket
     {
-        _typedPacketHandlers.Add(typeof(T), p => handler((T)p));
+        var type = typeof(T);
+        var list = _typedPacketHandlers.ComputeIfAbsent(type, _ => new List<Action<IPacket>>());
+        list.Add(p => handler((T)p));
     }
 
-    public void ClearTypedPacketHandlers()
-    {
+    public void ClearTypedPacketHandlers() => 
         _typedPacketHandlers.Clear();
-    }
+
+    public void ClearTypedPacketHandlers<T>() where T : IPacket => 
+        _typedPacketHandlers.Remove(typeof(T));
 
     public PlayerConnectionBase(IWebSocket webSocket, PacketFlow receivingFlow)
     {
@@ -70,26 +74,39 @@ public class PlayerConnectionBase
     {
         foreach (var stream in packets.Select(s => new BufferReader(s)))
         {
-            var id = stream.ReadVarInt();
-            var protocol = ConnectionProtocol.OfState(CurrentState);
-            var packet = protocol.CreatePacket(ReceivingFlow, id, stream);
-                    
-            Logger.Verbose(TranslateText.Of("Received packet: %s")
-                .AddWith(Text.RepresentType(packet.GetType(), TextColor.Gold)));
-                    
-            var handler = Handlers[CurrentState];
-            packet.Handle(handler);
+            try
+            {
+                var id = stream.ReadVarInt();
+                var protocol = ConnectionProtocol.OfState(CurrentState);
+                var packet = protocol.CreatePacket(ReceivingFlow, id, stream);
 
-            var type = packet.GetType();
-            if (_typedPacketHandlers.ContainsKey(type))
-            {
-                _typedPacketHandlers[type].Invoke(packet);
+                Logger.Verbose(TranslateText.Of("Received packet: %s")
+                    .AddWith(Text.RepresentType(packet.GetType(), TextColor.Gold)));
+
+                if (Handlers.TryGetValue(CurrentState, out var handler))
+                {
+                    packet.Handle(handler);
+                }
+
+                var type = packet.GetType();
+                foreach (var handlerType in _typedPacketHandlers.Keys.Where(handlerType => handlerType!.IsAssignableFrom(type)))
+                {
+                    foreach (var func in _typedPacketHandlers[handlerType])
+                    {
+                        func(packet);
+                    }
+                }
+
+                ReceivedPacket?.Invoke(new ReceivedPacketEventArgs
+                {
+                    Packet = packet
+                });
             }
-                    
-            ReceivedPacket?.Invoke(new ReceivedPacketEventArgs
+            catch (Exception ex)
             {
-                Packet = packet
-            });
+                Logger.Error("Exception occurred while reading packet");
+                Logger.Error(ex);
+            } 
         }
     }
     

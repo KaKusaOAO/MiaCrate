@@ -20,7 +20,7 @@ public static class MapEncoder
     public static IRecordBuilder<T> MakeCompressedBuilder<T>(IDynamicOps<T> ops, IKeyCompressor<T> compressor) => 
         new CompressedRecordBuilder<T>(ops, compressor);
 
-    internal abstract class Implementation<T> : CompressorHolder, IMapEncoder<T>
+    public abstract class Implementation<T> : CompressorHolder, IMapEncoder<T>
     {
         public abstract IRecordBuilder<TOut> Encode<TOut>(T input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix);
     }

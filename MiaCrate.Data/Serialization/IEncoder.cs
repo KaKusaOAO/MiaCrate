@@ -16,7 +16,9 @@ public interface IEncoder<T> : IEncoder
         Encode(input, ops, ops.Empty);
 
     IEncoder<TIn> CoSelect<TIn>(Func<TIn, T> func) => new CoMappedEncoder<TIn>(this, func);
-    
+
+    IMapEncoder<T> FieldOf(string name) => new FieldEncoder<T>(name, this);
+
     private class CoMappedEncoder<TOuter> : IEncoder<TOuter>
     {
         private readonly IEncoder<T> _inner;

@@ -13,7 +13,9 @@ public interface IDecoder<T> : IDecoder
     IDataResult<T> Parse<TIn>(IDynamicOps<TIn> ops, TIn input) => Decode(ops, input).Select(p => p.First);
 
     IDecoder<TOut> Select<TOut>(Func<T, TOut> func) => new MappedDecoder<TOut>(this, func);
-    
+
+    IMapDecoder<T> FieldOf(string name) => new FieldDecoder<T>(name, this);
+
     private class MappedDecoder<TOut> : IDecoder<TOut>
     {
         private readonly IDecoder<T> _inner;

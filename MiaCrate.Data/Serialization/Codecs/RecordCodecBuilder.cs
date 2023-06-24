@@ -94,7 +94,33 @@ public static class RecordCodecBuilder
 
         public IApp<IRecordCodecBuilderLeft<T>.IMu, TResult> Map<TArg, TResult>(Func<TArg, TResult> func, IApp<IRecordCodecBuilderLeft<T>.IMu, TArg> ts)
         {
-            throw new NotImplementedException();
+            var unbox = Unbox(ts);
+            var getter = unbox.Getter;
+
+            return new RecordCodecBuilder<T, TResult>(
+                o => func(getter(o)),
+                o => new MappedMapEncoder<TArg, TResult>(unbox, getter, o),
+                unbox.Decoder.Select(func));
+        }
+
+        private class MappedMapEncoder<TArg, TResult> : MapEncoder.Implementation<TResult>
+        {
+            private readonly Func<T, TArg> _getter;
+            private readonly T _o;
+            private readonly IMapEncoder<TArg> _encoder;
+
+            public MappedMapEncoder(RecordCodecBuilder<T, TArg> unbox, Func<T, TArg> getter, T o)
+            {
+                _getter = getter;
+                _o = o;
+                _encoder = unbox.Encoder(o);
+            }
+
+
+            public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => _encoder.GetKeys(ops);
+
+            public override IRecordBuilder<TOut> Encode<TOut>(TResult input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix) => 
+                _encoder.Encode(_getter(_o), ops, prefix);
         }
 
         public IApp<IRecordCodecBuilderLeft<T>.IMu, TValue> Point<TValue>(TValue value) =>
@@ -102,7 +128,67 @@ public static class RecordCodecBuilder
 
         public Func<IApp<IRecordCodecBuilderLeft<T>.IMu, TArg>, IApp<IRecordCodecBuilderLeft<T>.IMu, TResult>> Lift1<TArg, TResult>(IApp<IRecordCodecBuilderLeft<T>.IMu, Func<TArg, TResult>> func)
         {
-            throw new NotImplementedException();
+            return fa =>
+            {
+                var f = Unbox(func);
+                var a = Unbox(fa);
+
+                return new RecordCodecBuilder<T, TResult>(
+                    o => f.Getter(o)(a.Getter(o)),
+                    o =>
+                    {
+                        var fEnc = f.Encoder(o);
+                        var aEnc = a.Encoder(o);
+                        var aFromO = a.Getter(o);
+                        return new InstanceEncoder<TArg, TResult>(aEnc, aFromO, fEnc);
+                    },
+                    new InstanceDecoder<TArg, TResult>(f, a));
+            };
+        }
+
+        private class InstanceEncoder<TArg, TResult> : MapEncoder.Implementation<TResult>
+        {
+            private readonly IMapEncoder<TArg> _aEnc;
+            private readonly TArg _aFromO;
+            private readonly IMapEncoder<Func<TArg, TResult>> _fEnc;
+
+            public InstanceEncoder(IMapEncoder<TArg> aEnc, TArg aFromO, IMapEncoder<Func<TArg, TResult>> fEnc)
+            {
+                _aEnc = aEnc;
+                _aFromO = aFromO;
+                _fEnc = fEnc;
+            }
+
+            public override IEnumerable<TDynamic> GetKeys<TDynamic>(IDynamicOps<TDynamic> ops) => 
+                _aEnc.GetKeys(ops).Concat(_fEnc.GetKeys(ops));
+
+            public override IRecordBuilder<TDynamic> Encode<TDynamic>(TResult input, IDynamicOps<TDynamic> ops, IRecordBuilder<TDynamic> prefix)
+            {
+                _aEnc.Encode(_aFromO, ops, prefix);
+                _fEnc.Encode(_ => input, ops, prefix);
+                return prefix;
+            }
+
+            public override string ToString() => $"{_fEnc} * {_aEnc}";
+        }
+
+        private class InstanceDecoder<TArg, TResult> : MapDecoder.Implementation<TResult>
+        {
+            private readonly RecordCodecBuilder<T, Func<TArg, TResult>> _f;
+            private readonly RecordCodecBuilder<T, TArg> _a;
+
+            public InstanceDecoder(RecordCodecBuilder<T, Func<TArg, TResult>> f, RecordCodecBuilder<T, TArg> a)
+            {
+                _f = f;
+                _a = a;
+            }
+
+            public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => 
+                _a.Decoder.GetKeys(ops).Concat(_f.Decoder.GetKeys(ops));
+
+            public override IDataResult<TResult> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) =>
+                _a.Decoder.Decode(ops, input).SelectMany(ar =>
+                    _f.Decoder.Decode(ops, input).Select(fr => fr(ar)));
         }
     }
 
