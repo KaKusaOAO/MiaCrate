@@ -13,6 +13,8 @@ public interface IHolder<T> : IHolder where T : class
 {
     public new T Value { get; }
     object IHolder.Value => Value!;
+
+    public bool CanSerializeIn(IHolderOwner<T> owner);
 }
 
 public static class Holder

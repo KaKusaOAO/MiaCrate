@@ -2,7 +2,7 @@ namespace MiaCrate.World.Entities.Animals;
 
 public abstract class TameableAnimal : Animal, IOwnableEntity
 {
-    protected TameableAnimal(IEntityType type, ILevel level) : base(type, level)
+    protected TameableAnimal(IEntityType type, Level level) : base(type, level)
     {
     }
 

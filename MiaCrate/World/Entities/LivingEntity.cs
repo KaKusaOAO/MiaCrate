@@ -10,7 +10,7 @@ public abstract class LivingEntity : Entity
     private static readonly IEntityDataAccessor<int> _dataEffectColor =
         SynchedEntityData.DefineId<Entity, int>(EntityDataSerializers.Int);
     
-    protected LivingEntity(IEntityType type, ILevel level) : base(type, level)
+    protected LivingEntity(IEntityType type, Level level) : base(type, level)
     {
     }
 

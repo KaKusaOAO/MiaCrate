@@ -1,0 +1,119 @@
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
+
+namespace MiaCrate;
+
+public static class Util
+{
+    public static INanoTimeSource TimeSource { get; set; } = INanoTimeSource.Create(() => NanoTime);
+    public static long NanoTime => 100 * Stopwatch.GetTimestamp();
+    public static long MillisTime => NanoTime / 1000000L;
+    public static long EpochMillis => DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+    public static long GetNanos() => TimeSource.GetNanos();
+    public static long GetMillis() => GetNanos() / 1000000L;
+    
+    public static T Make<T>(Func<T> supplier) => supplier();
+    public static T Make<T>(T thing, Action<T> modifier)
+    {
+        modifier(thing);
+        return thing;
+    }
+
+    public static ArraySegment<T> CreateSegment<T>(T[] array, int startInclusive, int endExclusive)
+    {
+        var count = endExclusive - startInclusive;
+        return new ArraySegment<T>(array, startInclusive, count);
+    }
+
+    public static T[] SubArray<T>(T[] array, int startInclusive, int endExclusive) =>
+        CreateSegment(array, startInclusive, endExclusive).ToArray();
+
+    public static bool IsBlank(this string? str) => string.IsNullOrEmpty(str) || str.All(c => c.IsWhitespace());
+
+    public static bool IsWhitespace(this char c) => char.IsWhiteSpace(c);
+
+    public static int NumberOfTrailingZeros(int i)
+    {
+        i = ~i & (i - 1);
+        if (i <= 0) return i & 32;
+
+        var n = 1;
+        if (i > 1 << 16) { n += 16; i >>>= 16; }
+        if (i > 1 <<  8) { n +=  8; i >>>=  8; }
+        if (i > 1 <<  4) { n +=  4; i >>>=  4; }
+        if (i > 1 <<  2) { n +=  2; i >>>=  2; }
+        return n + (i >>> 1);
+    }
+
+    public static int NumberOfTrailingZeros(long l)
+    {
+        var x = (int) l;
+        return x == 0 ? 32 + NumberOfTrailingZeros((int) (l >>> 32)) : NumberOfTrailingZeros(x);
+    }
+    
+    public static int NumberOfTrailingZeros(uint i)
+    {
+        i = ~i & (i - 1);
+        if (i <= 0) return (int) (i & 32);
+
+        var n = 1u;
+        if (i > 1 << 16) { n += 16; i >>>= 16; }
+        if (i > 1 <<  8) { n +=  8; i >>>=  8; }
+        if (i > 1 <<  4) { n +=  4; i >>>=  4; }
+        if (i > 1 <<  2) { n +=  2; i >>>=  2; }
+        return (int) (n + (i >>> 1));
+    }
+
+    public static int NumberOfTrailingZeros(ulong l)
+    {
+        var x = (uint) l;
+        return x == 0 ? 32 + NumberOfTrailingZeros((uint) (l >>> 32)) : NumberOfTrailingZeros(x);
+    }
+
+    public static Task<List<T>> SequenceFailFast<T>(List<Task<T>> list)
+    {
+        var source = new TaskCompletionSource<List<T>>();
+        FallibleSequence(list, source.SetException).ContinueWith(task =>
+        {
+            if (task.IsFaulted) source.SetException(task.Exception!.InnerExceptions);
+            if (task.IsCompleted) source.SetResult(task.Result);
+        });
+        return source.Task;
+    }
+
+    public static Task<List<T>> FallibleSequence<T>(List<Task<T>> list, Action<Exception> handler)
+    {
+        var list2 = new List<T>(list.Count);
+        var wait = new Task[list.Count];
+        foreach (var task in list)
+        {
+            var i = list2.Count;
+            list2.Add(default!);
+            wait[i] = Task.Run(async () =>
+            {
+                try
+                {
+                    var result = await task;
+                    list2[i] = result;
+                }
+                catch (Exception ex)
+                {
+                    handler(ex);
+                }
+            });
+        }
+
+        return Task.WhenAll(wait).ContinueWith(_ => list2);
+    }
+
+    public static IExecutor BackgroundExecutor { get; } = new TaskExecutor();
+
+    private class TaskExecutor : IExecutor
+    {
+        public void Execute(IRunnable runnable)
+        {
+            Task.Run(runnable.Run);
+        }
+    }
+}

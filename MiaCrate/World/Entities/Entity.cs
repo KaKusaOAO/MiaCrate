@@ -14,7 +14,7 @@ public abstract class Entity
     protected SynchedEntityData EntityData { get; }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    protected Entity(IEntityType type, ILevel level)
+    protected Entity(IEntityType type, Level level)
     {
         Level = level;
         
@@ -26,7 +26,7 @@ public abstract class Entity
     }
     
     public Guid Uuid { get; set; }
-    public ILevel Level { get; }
+    public Level Level { get; }
     
     protected abstract void DefineSynchedData();
 

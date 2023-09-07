@@ -9,18 +9,18 @@ public interface IPairSecond<T> : IPair, IAppLeft<IPairSecond<T>.Mu>
 
 public interface IPair<TFirst, TSecond> : IPairFirst<TFirst>, IPairSecond<TSecond>, IApp<IPairSecond<TSecond>.Mu, TFirst>
 {
-    public TFirst First { get; }
-    public TSecond Second { get; }
+    public TFirst? First { get; }
+    public TSecond? Second { get; }
     public IPair<TSecond, TFirst> Swap() => Pair.Of(Second, First);
     public IPair<TOut, TSecond> SelectFirst<TOut>(Func<TFirst, TOut> func) => Pair.Of(func(First), Second);
 }
 
 internal class Pair<TFirst, TSecond> : IPair<TFirst, TSecond>
 {
-    public TFirst First { get; }
-    public TSecond Second { get; }
+    public TFirst? First { get; }
+    public TSecond? Second { get; }
 
-    public Pair(TFirst first, TSecond second)
+    public Pair(TFirst? first, TSecond? second)
     {
         First = first;
         Second = second;
@@ -29,9 +29,7 @@ internal class Pair<TFirst, TSecond> : IPair<TFirst, TSecond>
 
 public static class Pair
 {
-    public static IPair<TFirst, TSecond> Of<TFirst, TSecond>(TFirst first, TSecond second) => 
+    public static IPair<TFirst, TSecond> Of<TFirst, TSecond>(TFirst? first, TSecond? second) => 
         new Pair<TFirst, TSecond>(first, second);
-    
-    
 }
 

@@ -2,5 +2,5 @@ namespace MiaCrate.Texts;
 
 public static class MiaContentTypes
 {
-    public static void Init() {}
+    public static void Bootstrap() {}
 }

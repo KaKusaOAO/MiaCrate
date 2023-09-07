@@ -13,7 +13,7 @@ public abstract class Mob : LivingEntity
     protected GoalSelector TargetSelector { get; } = new();
     
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
-    protected Mob(IEntityType type, ILevel? level) : base(type, level!)
+    protected Mob(IEntityType type, Level? level) : base(type, level!)
     {
         if (level is { IsClientSide: false })
         {

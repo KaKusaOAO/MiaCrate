@@ -12,7 +12,7 @@ public class Pig : Animal
     private static readonly IEntityDataAccessor<int> _dataBoostTime =
         SynchedEntityData.DefineId<Entity, int>(EntityDataSerializers.Int);
     
-    public Pig(IEntityType type, ILevel level) : base(type, level)
+    public Pig(IEntityType type, Level level) : base(type, level)
     {
     }
 

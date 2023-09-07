@@ -2,7 +2,7 @@ namespace MiaCrate.World.Entities.Animals;
 
 public class Wolf : TameableAnimal, INeutralMob
 {
-    public Wolf(IEntityType type, ILevel level) : base(type, level)
+    public Wolf(IEntityType type, Level level) : base(type, level)
     {
     }
 }

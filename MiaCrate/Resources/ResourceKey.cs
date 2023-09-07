@@ -1,4 +1,5 @@
-﻿using MiaCrate.Core;
+﻿using System.Diagnostics;
+using MiaCrate.Core;
 using MiaCrate.Extensions;
 
 namespace MiaCrate.Resources;
@@ -42,4 +43,6 @@ public class ResourceKey<T> : IResourceKey<T> where T : class
         var str = $"{registry}:{location}";
         return (IResourceKey<T>) _values.ComputeIfAbsent(str, _ => new ResourceKey<T>(registry, location));
     }
+
+    public override string ToString() => $"ResourceKey[{Registry} / {Location}]";
 }

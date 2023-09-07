@@ -41,8 +41,5 @@ public class ResourceLocation
     public static bool operator ==(ResourceLocation a, ResourceLocation b) => a.ToString() == b.ToString();
     public static bool operator !=(ResourceLocation a, ResourceLocation b) => !(a == b);
 
-    public override string ToString()
-    {
-        return $"{Namespace}:{Path}";
-    }
+    public override string ToString() => $"{Namespace}:{Path}";
 }

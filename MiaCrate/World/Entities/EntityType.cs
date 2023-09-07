@@ -12,23 +12,23 @@ public static partial class EntityType
 public interface IEntityType : IRegistryEntry<IEntityType>
 {
     public IReferenceHolder<IEntityType> BuiltinRegistryHolder { get; }
-    public Entity? Create(ILevel level);
+    public Entity? Create(Level level);
 }
 
 public interface IEntityType<out T> : IEntityType where T : Entity
 {
-    public new T? Create(ILevel level);
-    Entity? IEntityType.Create(ILevel level) => Create(level);
+    public new T? Create(Level level);
+    Entity? IEntityType.Create(Level level) => Create(level);
 }
 
-public delegate T? EntityFactoryDelegate<T>(IEntityType<T> type, ILevel level) where T : Entity;
+public delegate T? EntityFactoryDelegate<T>(IEntityType<T> type, Level level) where T : Entity;
 
 public class EntityType<T> : IEntityType<T> where T : Entity
 {
     private readonly EntityFactoryDelegate<T> _factory;
     private readonly MobCategory _category;
 
-    public T? Create(ILevel level) => _factory(this, level);
+    public T? Create(Level level) => _factory(this, level);
 
     public IReferenceHolder<IEntityType> BuiltinRegistryHolder { get; }
 

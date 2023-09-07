@@ -4,7 +4,7 @@ namespace MiaCrate.World.Entities.Animals;
 
 public class Chicken : Animal
 {
-    public Chicken(IEntityType type, ILevel level) : base(type, level)
+    public Chicken(IEntityType type, Level level) : base(type, level)
     {
         
     }

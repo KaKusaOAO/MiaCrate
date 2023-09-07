@@ -30,20 +30,20 @@ public class ReferenceHolder<T> : IReferenceHolder<T> where T : class
     public IResourceKey<T> Key { get; private set; }
     public bool IsBound => Key != null! && Value != null!;
     public RefHolderType Type { get; }
-    public IRegistry<T> Registry { get; }
+    public IHolderOwner<T> Owner { get; }
 
-    private ReferenceHolder(RefHolderType type, IRegistry<T> registry, IResourceKey<T>? key, T? obj)
+    private ReferenceHolder(RefHolderType type, IHolderOwner<T> owner, IResourceKey<T>? key, T? obj)
     {
         Type = type;
-        Registry = registry;
+        Owner = owner;
         Value = obj!;
         Key = key!;
     }
 
-    public static IReferenceHolder<T> CreateStandalone(IRegistry<T> registry, IResourceKey<T> key) => 
+    public static IReferenceHolder<T> CreateStandalone(IHolderOwner<T> registry, IResourceKey<T> key) => 
         new ReferenceHolder<T>(RefHolderType.Standalone, registry, key, null);
     
-    public static IReferenceHolder<T> CreateIntrusive(IRegistry<T> registry, T obj) => 
+    public static IReferenceHolder<T> CreateIntrusive(IHolderOwner<T> registry, T obj) => 
         new ReferenceHolder<T>(RefHolderType.Intrusive, registry, null, obj);
 
     public bool Is(ResourceLocation location) => Key!.Location == location;
@@ -67,6 +67,8 @@ public class ReferenceHolder<T> : IReferenceHolder<T> where T : class
 
         Value = value;
     }
+
+    public bool CanSerializeIn(IHolderOwner<T> owner) => Owner.CanSerializeIn(owner);
 }
 
 public enum RefHolderType

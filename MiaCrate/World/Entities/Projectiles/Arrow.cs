@@ -2,7 +2,7 @@ namespace MiaCrate.World.Entities.Projectiles;
 
 public class Arrow : AbstractArrow
 {
-    public Arrow(IEntityType type, ILevel level) : base(type, level)
+    public Arrow(IEntityType type, Level level) : base(type, level)
     {
     }
 

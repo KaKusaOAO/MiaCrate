@@ -1,34 +1,25 @@
 ﻿using System.Text.Json;
-using System.Text.Json.Nodes;
 using Mochi.IO;
-using Mochi.Texts;
-using Mochi.Utils;
 
 namespace MiaCrate.Net.Packets.Status;
 
 public class ServerboundStatusResponsePacket : IPacket<IClientStatusPacketHandler>
 {
-    public IText Component { get; set; }
-    
-    public ServerboundStatusResponsePacket(JsonObject component)
+    public ServerStatus Status { get; set; }
+
+    public ServerboundStatusResponsePacket(ServerStatus status)
     {
-        Component = Text.FromJson(component);
-    }
-    
-    public ServerboundStatusResponsePacket(IText component)
-    {
-        Component = component;
+        Status = status;
     }
 
     public ServerboundStatusResponsePacket(BufferReader stream)
     {
-        var payload = JsonSerializer.Deserialize<JsonNode>(stream.ReadUtf8String())!;
-        Component = Text.FromJson(payload["description"]);
+        Status = JsonSerializer.Deserialize<ServerStatus>(stream.ReadUtf8String())!;
     }
     
     public void Write(BufferWriter writer)
     {
-        writer.WriteUtf8String(JsonSerializer.Serialize(Component.ToJson()));
+        writer.WriteUtf8String(JsonSerializer.Serialize(Status));
     }
 
     public void Handle(IClientStatusPacketHandler handler) => handler.HandleStatusResponse(this);

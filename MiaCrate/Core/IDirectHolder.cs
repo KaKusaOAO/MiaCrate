@@ -20,4 +20,6 @@ public class DirectHolder<T> : IDirectHolder<T> where T : class
     {
         Value = value;
     }
+
+    public bool CanSerializeIn(IHolderOwner<T> owner) => true;
 }

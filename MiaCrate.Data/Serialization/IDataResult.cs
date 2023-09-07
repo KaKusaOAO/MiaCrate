@@ -28,7 +28,21 @@ public interface IDataResult<T> : IDataResult, IApp<IDataResult.Mu, T>
     IEither<T, IPartialResult> Get();
     IOptional<T> Result => Get().Left;
 
-    IDataResult<TOut> Select<TOut>(Func<T, TOut> func) => new DataResult<TOut>(Get().SelectBoth(func,
+    public T GetOrThrow(bool allowPartial, Action<string> onError) => Get().Select(
+        l => l,
+        r =>
+        {
+            var message = r.MessageFunc();
+            onError(message);
+            if (allowPartial && r.PartialResultValue.IsPresent)
+            {
+                return r.PartialResultValue.Value;
+            }
+
+            throw new Exception(message);
+        });
+
+    public IDataResult<TOut> Select<TOut>(Func<T, TOut> func) => new DataResult<TOut>(Get().SelectBoth(func,
         r => (IDataResult<TOut>.IPartialResult)new DataResult<TOut>.PartialResult(r.MessageFunc,
             r.PartialResultValue.Select(func))), Lifecycle);
     IDataResult<TOut> IDataResult.Select<TOut>(Func<object, TOut> func) => Select(t => func(t!));
@@ -141,6 +155,11 @@ public static class DataResult
     public static IDataResult<T> Success<T>(T result, Lifecycle lifecycle) =>
         new DataResult<T>(Either.Left<T, IDataResult<T>.IPartialResult>(result), lifecycle);
     public static IDataResult<T> Error<T>(Func<string> message) => Error<T>(message, Lifecycle.Experimental);
+    public static IDataResult<T> Error<T>(Func<string> message, T partialResult) =>
+        Error(message, partialResult, Lifecycle.Experimental);
+    public static IDataResult<T> Error<T>(Func<string> message, T partialResult, Lifecycle lifecycle) =>
+        new DataResult<T>(Either.Right<T, IDataResult<T>.IPartialResult>(
+            new DataResult<T>.PartialResult(message, Optional.Of(partialResult))), lifecycle);
     public static IDataResult<T> Error<T>(Func<string> message, Lifecycle lifecycle) =>
         new DataResult<T>(Either.Right<T, IDataResult<T>.IPartialResult>(
             new DataResult<T>.PartialResult(message, Optional.Empty<T>())), lifecycle);

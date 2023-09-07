@@ -1,4 +1,6 @@
-﻿namespace MiaCrate.Extensions;
+﻿using Mochi.Utils;
+
+namespace MiaCrate.Extensions;
 
 public static class CommonExtension
 {
@@ -23,4 +25,16 @@ public static class CommonExtension
         dict.Add(key, value);
         return default;
     }
+
+    public static IOptional<T> Where<T>(this IOptional<T> optional, Predicate<T> predicate)
+    {
+        if (optional.IsEmpty) return optional;
+        return predicate(optional.Value) ? optional : Optional.Empty<T>();
+    }
+
+    public static IOptional<T> FindFirst<T>(this IEnumerable<T> source) => 
+        source
+            .Select(Optional.Of)
+            .Append(Optional.Empty<T>())
+            .First();
 }

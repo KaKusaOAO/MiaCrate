@@ -1,61 +1,163 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Net;
+using System.Text.Json;
+using CommandLine;
 using MiaCrate;
-using MiaCrate.Data;
-using MiaCrate.Data.Codecs;
-using MiaCrate.Nbt;
-using MiaCrate.Net;
-using MiaCrate.Net.Packets;
-using MiaCrate.Net.Packets.Handshake;
-using MiaCrate.Net.Packets.Status;
+using MiaCrate.Auth;
+using MiaCrate.Client;
+using MiaCrate.Client.Platform;
+using MiaCrate.Client.Systems;
+using MiaCrate.Client.Test;
 using Mochi.Utils;
 using IPlatform = MiaCrate.Platforms.IPlatform;
 
-Logger.Logged += Logger.LogToEmulatedTerminalAsync; // LogToEmulatedTerminalAsync;
+Logger.Logged += Logger.LogToEmulatedTerminalAsync;
 Logger.RunThreaded();
+;
+var result = new Parser(settings =>
+    {
+        settings.AutoHelp = false;
+    })
+    .ParseArguments<BootstrapOptions>(args);
 
+if (result.Tag == ParserResultType.NotParsed)
+{
+    Logger.Error("Booting up MiaCrate requires access token and version.");
+    Logger.Error("Exiting...");
+    return;
+}
+
+var options = result.Value;
+options.Username ??= "Player" + Util.GetMillis() % 1000;
+
+var proxy = new WebProxy();
+if (options.ProxyHost != null)
+{
+    var builder = new UriBuilder
+    {
+        Host = options.ProxyHost,
+        Port = options.ProxyPort
+    };
+
+    Logger.Info(builder.Uri);
+    proxy.Address = builder.Uri;
+
+    if (!string.IsNullOrEmpty(options.ProxyUser) && !string.IsNullOrEmpty(options.ProxyPass))
+    {
+        proxy.Credentials = new CredentialCache
+        {
+            { builder.Uri, "Basic", new NetworkCredential(options.ProxyUser, options.ProxyPass) }
+        };
+    }
+}
+
+var userProps = JsonSerializer.Deserialize<PropertyMap>(options.UserProperties)!;
+var profileProps = JsonSerializer.Deserialize<PropertyMap>(options.ProfileProperties)!;
+var gameDir = options.GameDirectory;
+var assetsDir = options.AssetsDirectory ?? Path.Combine(gameDir, "assets/");
+var resourcePackDir = options.ResourcePackDirectory ?? Path.Combine(gameDir, "resourcepacks/");
+
+CrashReport.Preload();
 MiaCore.Bootstrap(IPlatform.Default);
-_ = new SocketTranslatorServer();
 
-var host = "mc.hypixel.net";
-ushort port = 25565;
+var type = UserType.ByName(options.UserType);
+if (type == null)
+{
+    type = UserType.Legacy;
+    Logger.Warn($"Unrecognized user type: {options.UserType}");    
+}
 
-var client = MiaCore.Platform.CreateClient(
-    new Uri($"ws://127.0.0.1:{SocketTranslatorServer.Port}/translator/?dest={host}:{port}"));
-client.Connect();
-
-var ops = new NbtOps();
-var codec = RecordCodecBuilder.Create<TestRecord>(data =>
-    data.Group(
-            Codec.Byte.FieldOf("byte").ForGetter<TestRecord>(r => r.Byte),
-            Codec.Bool.FieldOf("flag").ForGetter<TestRecord>(r => r.Flag))
-        .Apply(data, (b, f) => new TestRecord(b, f))
+var uuid = options.Uuid ?? UuidHelper.CreateOfflinePlayerUuid(options.Username).ToString();
+var user = new User(options.Username, uuid, options.AccessToken, options.Xuid, options.ClientId, type);
+var config = new GameConfig(
+    new UserData(user, userProps, profileProps, proxy),
+    new DisplayData(options.WindowWidth, options.WindowHeight, options.FullscreenWidth, options.FullscreenHeight, options.IsFullscreen),
+    new FolderData(gameDir, resourcePackDir, assetsDir, options.AssetIndex),
+    new GameData(options.IsDemo, options.Version, options.VersionType, options.DisableMultiplayer, options.DisableChat),
+    new QuickPlayData(options.QuickPlayPath, options.QuickPlaySinglePlayer, options.QuickPlayMultiPlayer, options.QuickPlayRealms)
 );
 
-var record = new TestRecord((byte)Random.Shared.Next(byte.MaxValue), true);
-Logger.Info($"Encoding test record: {record}");
-
-var result = codec.Encode(record, ops, ops.Empty);
-result.Result.IfPresent(tag =>
+AppDomain.CurrentDomain.ProcessExit += (_, _) =>
 {
-    Logger.Info("Encoded test record:");
-    Logger.Info(tag.ToString());
-}).IfEmpty(() =>
+    var game = Game.Instance;
+    if (game == null) return;
+    
+    Logger.Info("Stopping singleplayer server");
+};
+
+Game game;
+try
 {
-    Logger.Error("Encoding failed!");
-    result.Get().IfRight(r => Logger.Error(r.Message));
-});
-
-var conn = new PlayerConnectionBase(client, PacketFlow.Clientbound);
-conn.AddTypedPacketHandler<ServerboundStatusResponsePacket>(p =>
+    Thread.CurrentThread.Name = "Render thread";
+    RenderSystem.InitRenderThread();
+    RenderSystem.BeginInitialization();
+    game = new Game(config);
+    Logger.Info(GLX.CpuInfo);
+}
+catch (SilentInitException ex)
 {
-    Logger.Info("Received status response:");
-    Logger.Info(p.Component);
-});
+    Logger.Warn($"Failed to create window");
+    Logger.Warn(ex);
+    return;
+}
+catch (Exception ex)
+{
+    var report = CrashReport.ForException(ex, "Initializing game");
+    Game.Crash(report);
+    return;
+}
 
-conn.SendPacket(new ServerboundHandshakePacket(763, host, port, PacketState.Status));
-conn.CurrentState = PacketState.Status;
-conn.SendPacket(new ServerboundStatusRequestPacket());
-await Task.Delay(-1);
+Thread? thread;
+if (game.IsRenderedOnThread)
+{
+    thread = new Thread(() =>
+    {
+        try
+        {
+            RenderSystem.InitGameThread(true);
+            game.Run();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("Exception in client thread");
+            Logger.Error(ex);
+        }
+    });
+    thread.Start();
 
-record TestRecord(byte Byte, bool Flag);
+    while (game.IsRunning)
+    {
+        
+    }
+}
+else
+{
+    thread = null;
+
+    try
+    {
+        RenderSystem.InitGameThread(false);
+        game.Run();
+    }
+    catch (Exception ex)
+    {
+        Logger.Error("Unhandled game exception");
+        Logger.Error(ex);
+    }
+}
+
+try
+{
+    game.Stop();
+    thread?.Join();
+}
+catch (ThreadInterruptedException ex)
+{
+    Logger.Error("Exception during client thread shutdown");
+    Logger.Error(ex);
+}
+finally
+{
+    game.Destroy();
+}

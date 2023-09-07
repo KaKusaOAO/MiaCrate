@@ -81,7 +81,7 @@ public class PlayerConnectionBase
                 var packet = protocol.CreatePacket(ReceivingFlow, id, stream);
 
                 Logger.Verbose(TranslateText.Of("Received packet: %s")
-                    .AddWith(Text.RepresentType(packet.GetType(), TextColor.Gold)));
+                    .AddWith(Component.RepresentType(packet.GetType(), TextColor.Gold)));
 
                 if (Handlers.TryGetValue(CurrentState, out var handler))
                 {
@@ -122,6 +122,6 @@ public class PlayerConnectionBase
         RawPacketIO.SendPacket(protocol, ReceivingFlow.Opposite(), packet);
         
         Logger.Verbose(TranslateText.Of("Sent packet: %s")
-            .AddWith(Text.RepresentType(packet.GetType(), TextColor.Gold)));
+            .AddWith(Component.RepresentType(packet.GetType(), TextColor.Gold)));
     }
 }

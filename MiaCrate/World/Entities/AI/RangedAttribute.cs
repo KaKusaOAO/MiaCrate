@@ -23,18 +23,12 @@ public class RangedAttribute : Attribute
         }
     }
 
-    public double GetMinValue()
-    {
-        return _minValue;
-    }
+    public double GetMinValue() => _minValue;
 
-    public double GetMaxValue()
-    {
-        return _maxValue;
-    }
+    public double GetMaxValue() => _maxValue;
 
-    public override double SanitizeValue(double value)
-    {
-        return double.IsNaN(value) ? _minValue : Math.Clamp(value, _minValue, _maxValue);
-    }
+    public override double SanitizeValue(double value) => 
+        double.IsNaN(value) ? _minValue : Math.Clamp(value, _minValue, _maxValue);
+    
+    
 }
