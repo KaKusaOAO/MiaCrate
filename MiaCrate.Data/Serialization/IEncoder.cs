@@ -17,6 +17,8 @@ public interface IEncoder<T> : IEncoder
 
     IEncoder<TIn> CoSelect<TIn>(Func<TIn, T> func) => new CoMappedEncoder<TIn>(this, func);
 
+    IEncoder<TIn> CoSelectMany<TIn>(Func<TIn, IDataResult<T>> func) => new FlatCoMappedEncoder<TIn>(this, func);
+
     IMapEncoder<T> FieldOf(string name) => new FieldEncoder<T>(name, this);
 
     private class CoMappedEncoder<TOuter> : IEncoder<TOuter>
@@ -35,6 +37,25 @@ public interface IEncoder<T> : IEncoder
             var inner = _converter(input);
             return _inner.Encode(inner!, ops, prefix);
         }
+
+        public override string ToString() => _inner + "[comapped]";
+    }
+
+    private class FlatCoMappedEncoder<TOuter> : IEncoder<TOuter>
+    {
+        private readonly IEncoder<T> _inner;
+        private readonly Func<TOuter, IDataResult<T>> _converter;
+        
+        public FlatCoMappedEncoder(IEncoder<T> encoder, Func<TOuter, IDataResult<T>> func)
+        {
+            _inner = encoder;
+            _converter = func;
+        }
+
+        public IDataResult<TDynamic> Encode<TDynamic>(TOuter input, IDynamicOps<TDynamic> ops, TDynamic prefix) => 
+            _converter(input).SelectMany(a => _inner.Encode(a, ops, prefix));
+
+        public override string ToString() => _inner + "[flatComapped]";
     }
 }
 

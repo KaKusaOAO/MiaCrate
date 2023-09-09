@@ -26,7 +26,8 @@ public static class Win32
 
                         for (var offset = 0L; offset < bufferSize;)
                         {
-                            var info = *allocated;
+                            var ptr = (byte*) allocated;
+                            var info = *(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) (ptr + offset);
                             list.Add(info);
                             offset += info.Size;
                         }

@@ -43,6 +43,7 @@ public class JsonOps : IDynamicOps<JsonNode>
     public JsonNode CreateString(string value) => JsonValue.Create(value)!;
 
     public IRecordBuilder<JsonNode> MapBuilder => new JsonRecordBuilder(this);
+    public IListBuilder<JsonNode> ListBuilder => new ArrayBuilder();
 
     public IDataResult<IEnumerable<JsonNode>> GetEnumerable(JsonNode input)
     {
@@ -161,5 +162,65 @@ public class JsonOps : IDynamicOps<JsonNode>
         {
             return DataResult.Error<bool>(() => $"Not a boolean: {input}"); 
         }
+    }
+}
+
+public class ArrayBuilder : IListBuilder<JsonNode>
+{
+    private IDataResult<JsonArray> _builder = DataResult.Success(new JsonArray(), Lifecycle.Stable);
+
+    public IDynamicOps<JsonNode> Ops => JsonOps.Instance;
+
+    public IListBuilder<JsonNode> Add(JsonNode value)
+    {
+        _builder = _builder.Select(b =>
+        {
+            b.Add(value);
+            return b;
+        });
+        return this;
+    }
+
+    public IListBuilder<JsonNode> Add(IDataResult<JsonNode> value)
+    {
+        _builder = _builder.Apply2Stable((b, element) =>
+        {
+            b.Add(element);
+            return b;
+        }, value);
+        return this;
+    }
+
+    public IDataResult<JsonNode> Build(JsonNode prefix)
+    {
+        var result = _builder.SelectMany(b =>
+        {
+            if (prefix is not JsonArray && prefix != null!)
+            {
+                return DataResult.Error(() => $"Cannot append a list to a not list: {prefix}", prefix);
+            }
+
+            var array = new JsonArray();
+            if (prefix != null!)
+            {
+                if (prefix is not JsonArray arr)
+                    throw new Exception("Prefix != null && not list");
+
+                foreach (var node in arr)
+                {
+                    array.Add(node);
+                }
+            }
+
+            foreach (var node in b)
+            {
+                array.Add(node);
+            }
+
+            return DataResult.Success<JsonNode>(array, Lifecycle.Stable);
+        });
+        
+        _builder = DataResult.Success(new JsonArray(), Lifecycle.Stable);
+        return result;
     }
 }

@@ -11,6 +11,9 @@ public interface IMapCodec<T> : IMapCodec, IMapEncoder<T>, IMapDecoder<T>
     ICodec IMapCodec.Codec => Codec;
 
     IRecordCodecBuilder<TLeft, T> ForGetter<TLeft>(Func<TLeft, T> getter);
+
+    public IMapCodec<TOut> CrossSelect<TOut>(Func<T, TOut> to, Func<TOut, T> from) => 
+        MapCodec.Of(CoSelect(from), Select(to), () => $"{this}[xmapped]");
 }
 
 public abstract class MapCodec<T> : CompressorHolder, IMapCodec<T>

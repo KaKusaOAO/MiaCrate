@@ -7,6 +7,7 @@ namespace MiaCrate.Data;
 public interface IDynamicOps
 {
     IDynamic CreateEmptyDynamic();
+    T ConvertTo<T>(IDynamicOps<T> outOps, object? input);
     
     object? Empty { get; }
     object? EmptyMap => CreateMap(Enumerable.Empty<IPair>());
@@ -18,6 +19,7 @@ public interface IDynamicOps
     IDataResult<string> GetStringValue(object? value);
     IDataResult<decimal> GetNumberValue(object? value);
     IRecordBuilder MapBuilder { get; }
+    IListBuilder ListBuilder { get; }
     bool CompressMaps => false;
 }
 
@@ -35,7 +37,9 @@ public interface IDynamicOps<T> : IDynamicOps
     new IDynamic<T> CreateEmptyDynamic() => new Dynamic<T>(this);
     IDynamic IDynamicOps.CreateEmptyDynamic() => CreateEmptyDynamic();
 
-    TOut ConvertTo<TOut>(IDynamicOps<TOut> outOps, T input);
+    public TOut ConvertTo<TOut>(IDynamicOps<TOut> outOps, T input);
+    TOut IDynamicOps.ConvertTo<TOut>(IDynamicOps<TOut> outOps, object? input) =>
+        ConvertTo(outOps, (T) input!);
     new T CreateString(string value);
     object? IDynamicOps.CreateString(string value) => CreateString(value);
 
@@ -58,11 +62,25 @@ public interface IDynamicOps<T> : IDynamicOps
     IDataResult<bool> GetBoolValue(T input) =>
         GetNumberValue(input).Select(n => n != 0);
 
-    new IRecordBuilder<T> MapBuilder { get; }
+    public new IRecordBuilder<T> MapBuilder { get; }
     IRecordBuilder IDynamicOps.MapBuilder => MapBuilder;
+
+    public new IListBuilder<T> ListBuilder => new IListBuilder<T>.Instance(this);
+    IListBuilder IDynamicOps.ListBuilder => ListBuilder;
 
     public IDataResult<IEnumerable<T>> GetEnumerable(T input);
     public IDataResult<IEnumerable<IPair<T, T>>> GetMapValues(T input);
+
+    public IDataResult<Action<Action<T>>> GetList(T input)
+    {
+        return GetEnumerable(input).Select<Action<Action<T>>>(source => action =>
+        {
+            foreach (var item in source)
+            {
+                action(item);
+            }
+        });
+    }
 
     public IDataResult<Action<Action<T, T>>> GetMapEntries(T input)
     {

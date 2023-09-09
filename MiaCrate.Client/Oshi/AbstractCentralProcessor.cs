@@ -5,7 +5,9 @@ namespace MiaCrate.Client.Oshi;
 
 public abstract class AbstractCentralProcessor : ICentralProcessor
 {
-    public ProcessorIdentifier ProcessorIdentifier => throw new NotImplementedException();
+    private readonly Lazy<ProcessorIdentifier> _cpuid;
+    
+    public ProcessorIdentifier ProcessorIdentifier => _cpuid.Value;
 
     public long MaxFrequency => throw new NotImplementedException();
 
@@ -18,6 +20,8 @@ public abstract class AbstractCentralProcessor : ICentralProcessor
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     protected AbstractCentralProcessor()
     {
+        _cpuid = new Lazy<ProcessorIdentifier>(QueryProcessorId);
+        
         var pair = InitProcessorCounts();
         LogicalProcessors = pair.First!;
 

@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
+using MiaCrate.Data.Codecs;
 
 namespace MiaCrate;
 
@@ -109,11 +111,38 @@ public static class Util
 
     public static IExecutor BackgroundExecutor { get; } = new TaskExecutor();
 
+    public static IDataResult<List<T>> FixedSize<T>(List<T> list, int size)
+    {
+        if (list.Count == size) return DataResult.Success(list);
+        
+        string ErrorMessage() => $"Input is not a list of {size} elements";
+        return list.Count >= size
+            ? DataResult.Error(ErrorMessage, list.Take(size).ToList())
+            : DataResult.Error<List<T>>(ErrorMessage);
+    }
+
     private class TaskExecutor : IExecutor
     {
+        private static readonly ConcurrentQueue<IRunnable> _queue = new();
+
+        public TaskExecutor()
+        {
+            _ = RunEventLoopAsync();
+        }
+
+        private async Task RunEventLoopAsync()
+        {
+            await Task.Yield();
+            SpinWait.SpinUntil(() => _queue.Any());
+            while (_queue.TryDequeue(out var runnable))
+            {
+                runnable.Run();
+            }
+        }
+
         public void Execute(IRunnable runnable)
         {
-            Task.Run(runnable.Run);
+            _queue.Enqueue(runnable);
         }
     }
 }

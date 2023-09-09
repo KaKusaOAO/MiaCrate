@@ -14,6 +14,8 @@ public interface IDecoder<T> : IDecoder
 
     IDecoder<TOut> Select<TOut>(Func<T, TOut> func) => new MappedDecoder<TOut>(this, func);
 
+    IDecoder<TOut> SelectMany<TOut>(Func<T, IDataResult<TOut>> func) => new FlatMappedDecoder<TOut>(this, func);
+
     IMapDecoder<T> FieldOf(string name) => new FieldDecoder<T>(name, this);
 
     private class MappedDecoder<TOut> : IDecoder<TOut>
@@ -29,6 +31,23 @@ public interface IDecoder<T> : IDecoder
         
         public IDataResult<IPair<TOut, TIn>> Decode<TIn>(IDynamicOps<TIn> ops, TIn input) => 
             _inner.Decode(ops, input).Select(pair => pair.SelectFirst(_converter));
+    }
+    
+    private class FlatMappedDecoder<TOut> : IDecoder<TOut>
+    {
+        private readonly IDecoder<T> _inner;
+        private readonly Func<T, IDataResult<TOut>> _converter;
+
+        public FlatMappedDecoder(IDecoder<T> inner, Func<T, IDataResult<TOut>> converter)
+        {
+            _inner = inner;
+            _converter = converter;
+        }
+        
+        public IDataResult<IPair<TOut, TIn>> Decode<TIn>(IDynamicOps<TIn> ops, TIn input) => 
+            _inner.Decode(ops, input).SelectMany(pair => _converter(pair.First!)
+                .Select(r => Pair.Of(r, pair.Second))
+            );
     }
 }
 

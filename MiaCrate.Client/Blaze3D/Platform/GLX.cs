@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using MiaCrate.Client.Oshi;
 using MiaCrate.Client.Systems;
+using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
@@ -20,9 +21,10 @@ public static unsafe class GLX
             _cpuInfo = Regex.Replace($"{processor.LogicalProcessorCount}x {processor.ProcessorIdentifier.Name}",
                 "\\s+", " ").Trim();
         }
-        catch
+        catch // (Exception ex)
         {
-            // ...
+            // Logger.Warn("Failed to fetch CPU info");
+            // Logger.Warn(ex);
         }
     }
 

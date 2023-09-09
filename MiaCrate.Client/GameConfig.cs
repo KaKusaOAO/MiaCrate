@@ -2,6 +2,8 @@
 using System.Net;
 using MiaCrate.Auth;
 using MiaCrate.Client.Platform;
+using MiaCrate.Client.Resources;
+using MiaCrate.IO;
 
 namespace MiaCrate.Client;
 
@@ -18,13 +20,10 @@ public record FolderData(
     string AssetDirectory,
     string? AssetIndex)
 {
-    public string ExternalAssetSource
-    {
-        get
-        {
-            return AssetIndex == null ? AssetDirectory : throw new NotImplementedException();
-        }
-    }    
+    public IFileSystem ExternalAssetSource =>
+        AssetIndex == null 
+            ? new RelativeRootedDefaultFileSystem(Path.GetFullPath(AssetDirectory)) 
+            : IndexedAssetSource.CreateIndexFs(Path.GetFullPath(AssetDirectory), AssetIndex);
 }
 
 public record GameData(

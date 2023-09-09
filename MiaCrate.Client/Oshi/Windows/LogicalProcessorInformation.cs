@@ -49,10 +49,10 @@ public static class LogicalProcessorInformation
         }
 
         cores = cores
-            .OrderBy(c => c.Group * 64 + MiaCrate.Util.NumberOfTrailingZeros(c.Mask))
+            .OrderBy(c => c.Group * 64 + Util.NumberOfTrailingZeros(c.Mask))
             .ToList();
         packages = packages
-            .OrderBy(p => p[0].Group * 64 + MiaCrate.Util.NumberOfTrailingZeros(p[0].Mask))
+            .OrderBy(p => p[0].Group * 64 + Util.NumberOfTrailingZeros(p[0].Mask))
             .ToList();
         numaNodes = numaNodes
             .OrderBy(n => n.NodeNumber).ToList();
@@ -75,34 +75,31 @@ public static class LogicalProcessorInformation
         var corePkgMap = new Dictionary<int, int>();
         var pkgCpuidMap = new Dictionary<int, string>();
 
-        unsafe
+        foreach (var node in numaNodes)
         {
-            foreach (var node in numaNodes)
+            var nodeNum = node.NodeNumber;
+            var group = node.Anonymous.GroupMask.Group;
+            var mask = node.Anonymous.GroupMask.Mask;
+            var lowBit = Util.NumberOfTrailingZeros(mask);
+            var hiBit = 63 - Util.NumberOfTrailingZeros(mask);
+
+            for (var lp = lowBit; lp <= hiBit; lp++)
             {
-                var nodeNum = node.NodeNumber;
-                var group = node.Anonymous.GroupMask.Group;
-                var mask = node.Anonymous.GroupMask.Mask;
-                var lowBit = MiaCrate.Util.NumberOfTrailingZeros(mask);
-                var hiBit = 63 - MiaCrate.Util.NumberOfTrailingZeros(mask);
-
-                for (var lp = lowBit; lp <= hiBit; lp++)
+                if ((mask & 1uL << lp) != 0)
                 {
-                    if ((mask & 1uL << lp) != 0)
-                    {
-                        var coreId = GetMatchingCore(cores, group, lp);
-                        var pkgId = GetMatchingPackage(packages, group, lp);
-                        corePkgMap[coreId] = pkgId;
-                        pkgCpuidMap[coreId] = processorIdMap.GetValueOrDefault(pkgId, "");
+                    var coreId = GetMatchingCore(cores, group, lp);
+                    var pkgId = GetMatchingPackage(packages, group, lp);
+                    corePkgMap[coreId] = pkgId;
+                    pkgCpuidMap[coreId] = processorIdMap.GetValueOrDefault(pkgId, "");
 
-                        var logProc = new LogicalProcessor(lp, coreId, pkgId, (int) nodeNum, group);
-                        logProcs.Add(logProc);
-                    }
+                    var logProc = new LogicalProcessor(lp, coreId, pkgId, (int) nodeNum, group);
+                    logProcs.Add(logProc);
                 }
             }
-
-            var physProcs = GetPhysProcs(cores, coreEfficiencyMap, corePkgMap, pkgCpuidMap);
-            return Pair.Of(logProcs, physProcs);
         }
+
+        var physProcs = GetPhysProcs(cores, coreEfficiencyMap, corePkgMap, pkgCpuidMap);
+        return Pair.Of(logProcs, physProcs);
     }
 
     private static List<PhysicalProcessor> GetPhysProcs(

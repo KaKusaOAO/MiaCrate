@@ -7,8 +7,8 @@ public interface IMapLike
 
 public interface IMapLike<T> : IMapLike
 {
-    T this[T key] { get; }
-    T this[string key] { get; }
+    T? this[T key] { get; }
+    T? this[string key] { get; }
     IEnumerable<(T Key, T Value)> Entries { get; }
 }
 
@@ -28,8 +28,16 @@ public static class MapLike
             _ops = ops;
         }
 
-        public T this[T key] => _dict[key];
-        public T this[string key] => _dict[_ops.CreateString(key)];
+        public T? this[T key] => _dict.TryGetValue(key, out var result) ? result : default;
+        public T? this[string key]
+        {
+            get
+            {
+                var k = _ops.CreateString(key);
+                return _dict.TryGetValue(k, out var result) ? result : default;
+            }
+        }
+
         public IEnumerable<(T Key, T Value)> Entries => _dict.Select(e => (e.Key, e.Value));
         public override string ToString() => $"MapLike[{_dict}]";
     }

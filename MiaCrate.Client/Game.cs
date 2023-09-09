@@ -16,15 +16,16 @@ using MiaCrate.World.Entities;
 using Mochi.Texts;
 using Mochi.Utils;
 using OpenTK.Windowing.Desktop;
+using ClientPackSource = MiaCrate.Client.Resources.ClientPackSource;
 using Component = MiaCrate.Texts.Component;
 
 namespace MiaCrate.Client;
 
 public class Game : ReentrantBlockableEventLoop<IRunnable>
 {
-    public static Game? Instance { get; private set; }
+	public static Game Instance { get; private set; } = null!;
     public static readonly bool OnMacOs = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
-    private const int MaxTicksPerUpdate = 10; // Redstone ticks
+    private const int MaxTicksPerUpdate = SharedConstants.TicksPerSecond / 2; // Redstone ticks
     public static readonly ResourceLocation DefaultFont = new("default");
     public static readonly ResourceLocation UniformFont = new("uniform");
     public static readonly ResourceLocation AltFont = new("alt");
@@ -34,11 +35,10 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
     public const string UpdateDriversAdvice = "Please make sure you have up-to-date drivers (see aka.ms/mcdriver for instructions).";
     private readonly string _resourcePackDirectory;
     private readonly PropertyMap _profileProperties;
-    // private readonly TextureManager _textureManager;
     private readonly IDataFixer _fixerUpper;
     private readonly VirtualScreen _virtualScreen;
     private readonly Window _window;
-    private readonly Timer _timer = new(20f, 0L);
+    private readonly Timer _timer = new(SharedConstants.TicksPerSecond, 0L);
     // private readonly RenderBuffers _renderBuffers;
 	// public readonly LevelRenderer levelRenderer;
 	// private readonly EntityRenderDispatcher _entityRenderDispatcher;
@@ -119,7 +119,6 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	public Overlay? Overlay { get; set; }
 	private bool _connectedToRealms;
 	private Thread _gameThread;
-	private bool _running;
 	private Func<CrashReport>? _delayedCrash;
 	private static int _fps;
 	public string FpsString { get; private set; } = "";
@@ -146,9 +145,12 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	private string _debugPath = "root";
     private readonly ConcurrentQueue<Action> _progressTasks = new();
     private TaskCompletionSource? _pendingReload;
+
+    public TextureManager TextureManager { get; }
+
     public bool IsWindowActive { get; set; }
 
-    public bool IsRenderedOnThread => false;
+    public bool IsRenderedOnThread => SharedConstants.MultiThreadedRendering;
     public bool IsRunning { get; private set; }
 
     public Game(GameConfig config) : base("Client")
@@ -174,8 +176,8 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         _allowsMultiplayer = !config.Game.IsMultiplayerDisabled;
         _allowsChat = !config.Game.IsChatDisabled;
         _gameThread = Thread.CurrentThread;
-        Options = new Options(this, GameDirectory);
-        _running = true;
+        Options = new Options(this, GameDirectory); 
+        IsRunning = true;
         Logger.Info($"Backend library: {RenderSystem.GetBackendDescription()}");
 
         var displayData = config.Display;
@@ -189,6 +191,11 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 
         RenderSystem.InitRenderer(0, false);
         _resourceManager = new ReloadableResourceManager(PackType.ClientResources);
+        _resourcePackRepository.Reload();
+
+        TextureManager = new TextureManager(_resourceManager);
+        _resourceManager.RegisterReloadListener(TextureManager);
+        
         _window.SetErrorSection("Startup");
 
         var list = _resourcePackRepository.OpenAllSelected();
@@ -206,30 +213,24 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 
     private void WindowOnCursorEntered()
     {
-        throw new NotImplementedException();
+        
     }
 
     private void WindowOnDisplayResized()
     {
-        throw new NotImplementedException();
+	    
     }
 
     private void WindowOnWindowActiveChanged(bool active)
     {
-        throw new NotImplementedException();
+	    
     }
 
-    protected override Thread RunningThread => throw new NotImplementedException();
+    protected override Thread RunningThread => _gameThread;
 
-    protected override IRunnable WrapRunnable(IRunnable runnable)
-    {
-        throw new NotImplementedException();
-    }
+    protected override IRunnable WrapRunnable(IRunnable runnable) => runnable;
 
-    protected override bool ShouldRun(IRunnable runnable)
-    {
-        throw new NotImplementedException();
-    }
+    protected override bool ShouldRun(IRunnable runnable) => true;
 
     public void Run()
     {
@@ -343,6 +344,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 
     private void RunTick(bool bl)
     {
+	    Task.Yield();
         _window.SetErrorSection("Pre render");
         var l = Util.GetNanos();
         if (_window.ShouldClose) Stop();
@@ -376,6 +378,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         _window.SetErrorSection("Render");
         var m = Util.GetNanos();
         bool bl2;
+        
+        
+        _window.UpdateDisplay();
         
         _window.SetErrorSection("Post render");
         

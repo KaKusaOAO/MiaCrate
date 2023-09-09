@@ -13,6 +13,27 @@ public interface IMapEncoder<T> : IMapEncoder
     IRecordBuilder<TOut> GetCompressedBuilder<TOut>(IDynamicOps<TOut> ops) => ops.CompressMaps
         ? MapEncoder.MakeCompressedBuilder(ops, GetCompressor(ops))
         : ops.MapBuilder;
+
+    public IMapEncoder<TOut> CoSelect<TOut>(Func<TOut, T> func) => new CoMappedEncoder<TOut>(this, func);
+
+    private class CoMappedEncoder<TOuter> : MapEncoder.Implementation<TOuter>
+    {
+        private readonly IMapEncoder<T> _inner;
+        private readonly Func<TOuter, T> _converter;
+
+        public CoMappedEncoder(IMapEncoder<T> inner, Func<TOuter, T> converter)
+        {
+            _inner = inner;
+            _converter = converter;
+        }
+
+        public override IEnumerable<TKey> GetKeys<TKey>(IDynamicOps<TKey> ops) => _inner.GetKeys(ops);
+
+        public override IRecordBuilder<TOut> Encode<TOut>(TOuter input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix) => 
+            _inner.Encode(_converter(input), ops, prefix);
+
+        public override string ToString() => $"{this}[comapped]";
+    }
 }
 
 public static class MapEncoder

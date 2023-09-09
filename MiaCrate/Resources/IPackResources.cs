@@ -8,6 +8,6 @@ public interface IPackResources : IDisposable
     public string PackId { get; }
     public bool IsBuiltin => false;
     public ISet<string> GetNamespaces(PackType type);
-    public T? GetMetadataSection<T>(IMetadataSectionSerializer<T> serializer);
+    public T? GetMetadataSection<T>(IMetadataSectionSerializer<T> serializer) where T : class;
     public delegate void ResourceOutputDelegate(ResourceLocation location, Func<Stream> stream);
 }

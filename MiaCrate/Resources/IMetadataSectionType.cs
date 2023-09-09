@@ -2,10 +2,14 @@
 using System.Text.Json.Nodes;
 using MiaCrate.Data;
 using MiaCrate.Data.Codecs;
-using Mochi.Texts;
-using Component = MiaCrate.Texts.Component;
 
 namespace MiaCrate.Resources;
+
+public static class MetadataSectionType
+{
+    public static IMetadataSectionType<T> FromCodec<T>(string name, ICodec<T> codec) =>
+        IMetadataSectionType<T>.FromCodec(name, codec);
+}
 
 public interface IMetadataSectionType<T> : IMetadataSectionSerializer<T>
 {
@@ -32,26 +36,5 @@ public interface IMetadataSectionType<T> : IMetadataSectionSerializer<T>
 
         public JsonObject ToJson(T obj) => _codec.EncodeStart(JsonOps.Instance, obj)
             .GetOrThrow(false, _ => { }).AsObject();
-    }
-}
-
-public class PackMetadataSectionSerializer : IMetadataSectionType<PackMetadataSection>
-{
-    public string MetadataSectionName => "pack";
-    
-    public PackMetadataSection FromJson(JsonObject obj)
-    {
-        var component = Component.FromJson(obj["description"]);
-        var version = obj["pack_format"]!.GetValue<int>();
-        return new PackMetadataSection(component, version);
-    }
-
-    public JsonObject ToJson(PackMetadataSection obj)
-    {
-        return new JsonObject
-        {
-            ["description"] = obj.Description.ToJson(),
-            ["pack_format"] = obj.PackFormat
-        };
     }
 }

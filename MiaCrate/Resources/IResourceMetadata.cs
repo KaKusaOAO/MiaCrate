@@ -1,3 +1,8 @@
-﻿namespace MiaCrate.Resources;
+﻿using Mochi.Utils;
 
-public interface IResourceMetadata {}
+namespace MiaCrate.Resources;
+
+public interface IResourceMetadata
+{
+    public IOptional<T> GetSection<T>(IMetadataSectionSerializer<T> serializer);
+}

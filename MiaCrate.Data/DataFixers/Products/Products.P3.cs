@@ -7,6 +7,8 @@ public static partial class Products
         IPField1<TLeft, TField1>, IPField2<TLeft, TField2>, IPField3<TLeft, TField3>
         where TLeft : IK1
     {
+        public IApp<TLeft, T> Apply<T>(IApplicativeLeft<TLeft> instance, Func<TField1, TField2, TField3, T> func);
+        public IApp<TLeft, T> Apply<T>(IApplicativeLeft<TLeft> instance, IApp<TLeft, Func<TField1, TField2, TField3, T>> func);
     }
 
     internal class P3<TLeft, TField1, TField2, TField3> : IP3<TLeft, TField1, TField2, TField3> where TLeft : IK1
@@ -21,5 +23,11 @@ public static partial class Products
         public IApp<TLeft, TField1> T1 { get; }
         public IApp<TLeft, TField2> T2 { get; }
         public IApp<TLeft, TField3> T3 { get; }
+        
+        public IApp<TLeft, T> Apply<T>(IApplicativeLeft<TLeft> instance, Func<TField1, TField2, TField3, T> func) =>
+            Apply(instance, instance.Point(func));
+
+        public IApp<TLeft, T> Apply<T>(IApplicativeLeft<TLeft> instance, IApp<TLeft, Func<TField1, TField2, TField3, T>> func) => 
+            instance.Ap3(func, T1, T2, T3);
     }
 }

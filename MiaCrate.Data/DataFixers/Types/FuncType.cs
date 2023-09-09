@@ -92,7 +92,7 @@ public class FuncType<TIn, TOut> : DataType<IFunction<TIn, TOut>>, IFuncType<TIn
     public override ITypeTemplate BuildTemplate() =>
         throw new NotSupportedException("No template for function types.");
 
-    protected override ICodec<IFunction<TIn, TOut>> BuildCodec() => Codecs.Codec.Of(
+    protected override ICodec<IFunction<TIn, TOut>> BuildCodec() => Data.Codec.Of(
         Encoder.Error<IFunction<TIn, TOut>>("Cannot save a function"),
         Decoder.Error<IFunction<TIn, TOut>>("Cannot read a function")
     );

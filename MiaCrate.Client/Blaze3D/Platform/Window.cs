@@ -133,6 +133,11 @@ public unsafe class Window : IDisposable
         GLFW.SetWindowFocusCallback(Handle, DelegateWindowFocusCallback);
         GLFW.SetCursorEnterCallback(Handle, DelegateCursorEnterCallback);
     }
+    
+    public void UpdateDisplay()
+    {
+        RenderSystem.FlipFrame(Handle);
+    }
 
     private void SetMode()
     {

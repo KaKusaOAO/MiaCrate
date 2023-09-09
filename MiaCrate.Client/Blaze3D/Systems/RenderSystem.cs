@@ -3,6 +3,7 @@ using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Window = OpenTK.Windowing.GraphicsLibraryFramework.Window;
 
 namespace MiaCrate.Client.Systems;
 
@@ -87,6 +88,14 @@ public static class RenderSystem
         _isReplayingQueue = false;
     }
     
+    public static unsafe void FlipFrame(Window* handle)
+    {
+        PollEvents();
+        ReplayQueue();
+        GLFW.SwapBuffers(handle);
+        PollEvents();
+    }
+
     public static void InitRenderer(int i, bool bl)
     {
         AssertInInitPhase();
@@ -99,6 +108,13 @@ public static class RenderSystem
         _isInInit = true;
     }
 
+    public static void FinishInitialization()
+    {
+        _isInInit = false;
+        if (_recordingQueue.Any()) ReplayQueue();
+        if (_recordingQueue.Any()) throw new Exception("Recorded to render queue during initialization");
+    }
+    
     public static INanoTimeSource InitBackendSystem()
     {
         AssertInInitPhase();

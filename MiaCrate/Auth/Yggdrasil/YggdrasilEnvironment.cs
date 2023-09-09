@@ -24,10 +24,11 @@ public class YggdrasilEnvironment
 
     public string Name => Environment.Name;
     
-    private YggdrasilEnvironment(string authHost, string accountsHost, string sessionHost, string servicesHost, [CallerMemberName] string name = "")
+    private YggdrasilEnvironment(string authHost, string accountsHost, string sessionHost, string servicesHost,
+        [CallerMemberName] string name = "")
     {
         _values.Add(name, this);
-        Environment = IEnvironment.Create(authHost, accountsHost, sessionHost, servicesHost, name);
+        Environment = IEnvironment.Create(authHost, accountsHost, sessionHost, servicesHost, name.ToUpper());
     }
 
     public static IOptional<IEnvironment> FromString(string? val)

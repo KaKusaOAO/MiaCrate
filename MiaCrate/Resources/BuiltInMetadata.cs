@@ -30,4 +30,6 @@ public class BuiltInMetadata
             [serializer2] = obj2!
         });
     }
+
+    public T? Get<T>(IMetadataSectionSerializer<T> serializer) => (T?) _values.GetValueOrDefault(serializer);
 }
