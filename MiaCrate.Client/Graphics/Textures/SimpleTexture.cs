@@ -70,7 +70,7 @@ public class SimpleTexture : AbstractTexture
                 TextureMetadataSection? metadata = null;
                 try
                 {
-                    metadata = resource.Metadata.GetSection(TextureMetadataSection.Serializer).OrElse(() => null!);
+                    metadata = resource.Metadata.GetSection(TextureMetadataSection.Serializer).OrElseGet(() => null!);
                 }
                 catch (Exception ex)
                 {

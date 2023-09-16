@@ -13,5 +13,5 @@ public interface IHolderGetter<T> : IHolderGetter where T : class
     public IOptional<IReferenceHolder<T>> Get(IResourceKey<T> key);
 
     public IReferenceHolder<T> GetOrThrow(IResourceKey<T> key) => 
-        Get(key).OrElse(() => throw new Exception($"Missing element {key}"));
+        Get(key).OrElseGet(() => throw new Exception($"Missing element {key}"));
 }

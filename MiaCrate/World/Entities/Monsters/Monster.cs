@@ -1,4 +1,4 @@
-namespace MiaCrate.World.Entities.Monsters;
+namespace MiaCrate.World.Entities;
 
 public abstract class Monster : PathfinderMob, IEnemy
 {

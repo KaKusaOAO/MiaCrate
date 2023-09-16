@@ -1,6 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System.Net;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using CommandLine;
 using MiaCrate;
@@ -19,6 +21,10 @@ internal static class Program
     {
         Logger.Logged += Logger.LogToEmulatedTerminalAsync;
         Logger.RunThreaded();
+     
+#if DEBUG
+        SharedConstants.IsRunningInIde = true;
+#endif
         
         SharedConstants.TryDetectVersion();
 

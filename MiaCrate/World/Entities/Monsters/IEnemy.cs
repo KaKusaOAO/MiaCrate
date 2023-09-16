@@ -1,4 +1,4 @@
-namespace MiaCrate.World.Entities.Monsters;
+namespace MiaCrate.World.Entities;
 
 public interface IEnemy
 {

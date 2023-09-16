@@ -12,5 +12,10 @@ public interface IMultiBufferSource
         {
             throw new NotImplementedException();
         }
+
+        public void EndBatch()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

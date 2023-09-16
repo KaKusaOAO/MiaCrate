@@ -41,8 +41,7 @@ public class ZipFileSystem : IFileSystem
     public string[] GetDirectories(string path)
     {
         path = ResolvePath(path);
-        var dummyBase = Path.GetFullPath("/");
-        var splitted = Path.GetRelativePath(dummyBase, Path.GetFullPath(path, dummyBase))
+        var splitted = PathHelper.Normalize(path)
             .Replace('\\', '/')
             .Split('/');
 
@@ -59,8 +58,7 @@ public class ZipFileSystem : IFileSystem
     public string[] GetFiles(string path)
     {
         path = ResolvePath(path);
-        var dummyBase = Path.GetFullPath("/");
-        var splitted = Path.GetRelativePath(dummyBase, Path.GetFullPath(path, dummyBase))
+        var splitted = PathHelper.Normalize(path)
             .Replace('\\', '/')
             .Split('/');
 

@@ -107,6 +107,8 @@ public abstract class BlockableEventLoop<T> : IExecutor, IProcessorHandle<T> whe
             runnable.Run();
         }
     }
+    
+    public void Execute(Action action) => Execute(IRunnable.Create(action));
 
     protected virtual bool ScheduleExecutables() => !IsSameThread;
 

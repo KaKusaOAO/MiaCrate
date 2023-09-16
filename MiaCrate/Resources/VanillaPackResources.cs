@@ -86,6 +86,22 @@ public class VanillaPackResources : IPackResources
     {
         
     }
+
+    public IResourceProvider AsProvider() => new Provider(this);
+
+    private class Provider : IResourceProvider
+    {
+        private readonly VanillaPackResources _resources;
+
+        public Provider(VanillaPackResources resources)
+        {
+            _resources = resources;
+        }
+
+        public IOptional<Resource> GetResource(ResourceLocation location) =>
+            Optional.OfNullable(_resources.GetResource(PackType.ClientResources, location))
+                .Select(s => new Resource(_resources, s));
+    }
     
     public void Dispose() { }
 }

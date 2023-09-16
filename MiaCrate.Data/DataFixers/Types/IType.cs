@@ -9,7 +9,7 @@ public interface IType : IApp
 
     public IBang CreateBang();
     public IType FindFieldType(string name) => 
-        FindFieldTypeOpt(name).OrElse(() => throw new ArgumentException($"Field not found: {name}"));
+        FindFieldTypeOpt(name).OrElseGet(() => throw new ArgumentException($"Field not found: {name}"));
     public IOptional<IType> FindFieldTypeOpt(string name) => Optional.Empty<IType>();
     public IType UpdateMu(RecursiveTypeFamily newFamily);
     public ITypeTemplate Template { get; }

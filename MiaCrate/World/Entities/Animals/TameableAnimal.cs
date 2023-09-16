@@ -1,4 +1,4 @@
-namespace MiaCrate.World.Entities.Animals;
+namespace MiaCrate.World.Entities;
 
 public abstract class TameableAnimal : Animal, IOwnableEntity
 {

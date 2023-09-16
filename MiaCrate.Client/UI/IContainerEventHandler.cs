@@ -1,5 +1,6 @@
 using MiaCrate.Extensions;
 using Mochi.Utils;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace MiaCrate.Client.UI;
 
@@ -29,7 +30,7 @@ public interface IContainerEventHandler : IGuiEventListener
         set {}
     }
 
-    public new bool MouseClicked(double x, double y, int button)
+    public new bool MouseClicked(double x, double y, MouseButton button)
     {
         foreach (var child in Children)
         {
@@ -41,27 +42,23 @@ public interface IContainerEventHandler : IGuiEventListener
 
         return false;
     }
+    bool IGuiEventListener.MouseClicked(double x, double y, MouseButton button) => MouseClicked(x, y, button);
 
-    bool IGuiEventListener.MouseClicked(double x, double y, int button) => MouseClicked(x, y, button);
-
-    public new bool MouseDragged(double x, double y, int button, double x2, double y2) => 
+    public new bool MouseDragged(double x, double y, MouseButton button, double x2, double y2) => 
         FocusedChild != null && IsDragging && button == 0 && FocusedChild.MouseDragged(x, y, button, x2, y2);
-
-    bool IGuiEventListener.MouseDragged(double x, double y, int button, double x2, double y2) =>
+    bool IGuiEventListener.MouseDragged(double x, double y, MouseButton button, double x2, double y2) =>
         MouseDragged(x, y, button, x2, y2);
 
     public new bool MouseScrolled(double x, double y, double amount) =>
         GetChildAt(x, y).Where(n => n.MouseScrolled(x, y, amount)).IsPresent;
-
     bool IGuiEventListener.MouseScrolled(double x, double y, double amount) => MouseScrolled(x, y, amount);
 
-    public new bool KeyPressed(int i, int j, int k) => 
-        FocusedChild != null && FocusedChild.KeyPressed(i, j, k);
+    public new bool KeyPressed(Keys key, int scancode, KeyModifiers modifiers) => 
+        FocusedChild != null && FocusedChild.KeyPressed(key, scancode, modifiers);
 
-    bool IGuiEventListener.KeyPressed(int i, int j, int k) => KeyPressed(i, j, k);
+    bool IGuiEventListener.KeyPressed(Keys key, int scancode, KeyModifiers modifiers) => KeyPressed(key, scancode, modifiers);
 
-    public new bool KeyReleased(int i, int j, int k) =>
-        FocusedChild != null && FocusedChild.KeyReleased(i, j, k);
-
-    bool IGuiEventListener.KeyReleased(int i, int j, int k) => KeyReleased(i, j, k);
+    public new bool KeyReleased(Keys key, int scancode, KeyModifiers modifiers) =>
+        FocusedChild != null && FocusedChild.KeyReleased(key, scancode, modifiers);
+    bool IGuiEventListener.KeyReleased(Keys key, int scancode, KeyModifiers modifiers) => KeyReleased(key, scancode, modifiers);
 }

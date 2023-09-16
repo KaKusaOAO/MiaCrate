@@ -45,5 +45,5 @@ public abstract class DynamicLike<T> : IDynamicLike<T>
     public double AsDouble(double def) => (double)AsNumber((decimal)def);
     public string AsString(string def) => AsString().Result.OrElse(def);
     public IEnumerable<IDynamic<T>> AsEnumerable() => 
-        AsEnumerableOpt().Result.OrElse(Enumerable.Empty<IDynamic<T>>);
+        AsEnumerableOpt().Result.OrElseGet(Enumerable.Empty<IDynamic<T>>);
 }

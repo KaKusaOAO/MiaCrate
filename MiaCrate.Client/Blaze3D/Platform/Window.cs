@@ -14,18 +14,15 @@ public delegate void CursorEnterEventHandler();
 
 public unsafe class Window : IDisposable
 {
-    private static event GLFWCallbacks.ErrorCallback? OnError;
-    private static event GLFWCallbacks.FramebufferSizeCallback? OnFramebufferResize;
-    private static event GLFWCallbacks.WindowPosCallback? OnWindowPosUpdate;
-    private static event GLFWCallbacks.WindowSizeCallback? OnWindowResize;
-    private static event GLFWCallbacks.WindowFocusCallback? OnWindowFocusUpdate;
-    private static event GLFWCallbacks.CursorEnterCallback? OnCursorEnter;
+    private static GLFWCallbacks.ErrorCallback? _delegateErrorCallback;
+    // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
+    private static GLFWCallbacks.FramebufferSizeCallback? _delegateFramebufferSizeCallback;
+    private static GLFWCallbacks.WindowPosCallback? _delegateWindowPosCallback;
+    private static GLFWCallbacks.WindowSizeCallback? _delegateWindowSizeCallback;
+    private static GLFWCallbacks.WindowFocusCallback? _delegateWindowFocusCallback;
+    private static GLFWCallbacks.CursorEnterCallback? _delegateCursorEnterCallback;
+    // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
     
-    public event WindowActiveEventHandler? WindowActiveChanged;
-    public event DisplayResizeEventHandler? DisplayResized;
-    public event CursorEnterEventHandler? CursorEntered;
-
-    public NativeWindow* Handle { get; }
     private readonly ScreenManager _screenManager;
     private string _errorSection = "";
     private VideoMode? _preferredFullscreenVideoMode;
@@ -40,8 +37,19 @@ public unsafe class Window : IDisposable
 
     private int _framebufferWidth;
     private int _framebufferHeight;
-    private int _guiScaledWidth;
-    private int _guiScaledHeight;
+
+    private int _windowedX;
+    private int _windowedY;
+    private int _x;
+    private int _y;
+
+    public event WindowActiveEventHandler? WindowActiveChanged;
+    public event DisplayResizeEventHandler? DisplayResized;
+    public event CursorEnterEventHandler? CursorEntered;
+
+    public NativeWindow* Handle { get; }
+    public int X => _x;
+    public int Y => _y;
 
     public int Width
     {
@@ -54,14 +62,12 @@ public unsafe class Window : IDisposable
         get => _framebufferHeight;
         set => _framebufferHeight = value;
     }
-    
-    private int _windowedX;
-    private int _windowedY;
-    private int _x;
-    private int _y;
 
-    public int X => _x;
-    public int Y => _y;
+    public int ScreenWidth => _width;
+    public int ScreenHeight => _height;
+    public int GuiScaledWidth { get; }
+
+    public int GuiScaledHeight { get; }
 
     public Window(ScreenManager screenManager, DisplayData displayData, string? str, string str2)
     {
@@ -110,12 +116,6 @@ public unsafe class Window : IDisposable
             _windowedX = _x;
             _windowedY = _y;
         }
-        
-        OnFramebufferResize += WindowOnFramebufferResize;
-        OnWindowPosUpdate += OnMove;
-        OnWindowResize += OnResize;
-        OnWindowFocusUpdate += OnFocus;
-        OnCursorEnter += OnEnter;
         GLFW.MakeContextCurrent(Handle);
         
         var context = new GLFWBindingsContext();
@@ -127,11 +127,18 @@ public unsafe class Window : IDisposable
         
         SetMode();
         RefreshFramebufferSize();
-        GLFW.SetFramebufferSizeCallback(Handle, DelegateFramebufferResizeCallback);
-        GLFW.SetWindowPosCallback(Handle, DelegateWindowPosCallback);
-        GLFW.SetWindowSizeCallback(Handle, DelegateWindowSizeCallback);
-        GLFW.SetWindowFocusCallback(Handle, DelegateWindowFocusCallback);
-        GLFW.SetCursorEnterCallback(Handle, DelegateCursorEnterCallback);
+        
+        _delegateFramebufferSizeCallback = WindowOnFramebufferResize;
+        _delegateWindowPosCallback = OnMove;
+        _delegateWindowSizeCallback = OnResize;
+        _delegateWindowFocusCallback = OnFocus;
+        _delegateCursorEnterCallback = OnEnter;
+        
+        GLFW.SetFramebufferSizeCallback(Handle, _delegateFramebufferSizeCallback);
+        GLFW.SetWindowPosCallback(Handle, _delegateWindowPosCallback);
+        GLFW.SetWindowSizeCallback(Handle, _delegateWindowSizeCallback);
+        GLFW.SetWindowFocusCallback(Handle, _delegateWindowFocusCallback);
+        GLFW.SetCursorEnterCallback(Handle, _delegateCursorEnterCallback);
     }
     
     public void UpdateDisplay()
@@ -216,21 +223,6 @@ public unsafe class Window : IDisposable
         _framebufferHeight = Math.Max(height, 1);
     }
 
-    private static void DelegateCursorEnterCallback(NativeWindow* window, bool entered) =>
-        OnCursorEnter?.Invoke(window, entered);
-
-    private static void DelegateWindowFocusCallback(NativeWindow* window, bool focused) => 
-        OnWindowFocusUpdate?.Invoke(window, focused);
-
-    private static void DelegateWindowSizeCallback(NativeWindow* window, int width, int height) => 
-        OnWindowResize?.Invoke(window, width, height);
-
-    private static void DelegateWindowPosCallback(NativeWindow* window, int x, int y) =>
-        OnWindowPosUpdate?.Invoke(window, x, y);
-
-    private static void DelegateFramebufferResizeCallback(NativeWindow* window, int width, int height) =>
-        OnFramebufferResize?.Invoke(window, width, height);
-
     public void SetErrorSection(string section)
     {
         _errorSection = section;
@@ -239,8 +231,8 @@ public unsafe class Window : IDisposable
     private void SetBootErrorCallback()
     {
         RenderSystem.AssertInInitPhase();
-        OnError += BootCrash;
-        GLFW.SetErrorCallback(DelegateErrorCallback);
+        _delegateErrorCallback = BootCrash;
+        GLFW.SetErrorCallback(_delegateErrorCallback);
     }
 
     private static void BootCrash(ErrorCode error, string description)
@@ -252,9 +244,6 @@ public unsafe class Window : IDisposable
         Logger.Error(str);
         throw new WindowInitFailedException(str);
     }
-
-    private static void DelegateErrorCallback(ErrorCode error, string description) =>
-        OnError?.Invoke(error, description);
 
     public void Dispose()
     {

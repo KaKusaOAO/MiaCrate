@@ -60,14 +60,7 @@ public class DetectedVersion : IWorldVersion
 
     public static IWorldVersion TryDetectVersion()
     {
-        using var stream = ResourceAssembly.GetResource("1.20.2-pre2.jar");
-        if (stream == null)
-        {
-            Logger.Warn("Cannot read JAR file! Using builtin version...");
-            return BuiltIn;
-        }
-        
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+        var archive = ResourceAssembly.GameArchive;
         var entry = archive.GetEntry("version.json");
         if (entry == null)
         {

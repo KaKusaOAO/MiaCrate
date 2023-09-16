@@ -1,7 +1,7 @@
 ﻿using MiaCrate.Net.Data;
 using MiaCrate.World.Entities.AI.Goals;
 
-namespace MiaCrate.World.Entities.Animals;
+namespace MiaCrate.World.Entities;
 
 public class Pig : Animal
 {

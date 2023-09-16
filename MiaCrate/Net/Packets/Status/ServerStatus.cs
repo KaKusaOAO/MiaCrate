@@ -4,6 +4,7 @@ using Mochi.Texts;
 
 namespace MiaCrate.Net.Packets.Status;
 
+#pragma warning disable CS8618
 public class ServerStatus
 {
     [JsonPropertyName("version")]

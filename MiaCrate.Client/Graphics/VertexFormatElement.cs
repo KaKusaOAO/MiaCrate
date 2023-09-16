@@ -103,6 +103,19 @@ public class VertexFormatElement
             GlStateManager.DisableVertexAttribArray(index);
         });
 
+        public static readonly UsageInfo Padding = new("Padding", 
+            (_, _, _, _, _, _) => { },
+            (_, _) => { });
+
+        public static readonly UsageInfo Generic = new("Generic",
+            (size, type, stride, ptr, _, attribIndex) =>
+            {
+                GlStateManager.EnableVertexAttribArray(attribIndex);
+                GlStateManager.VertexAttribPointer(attribIndex, size, type, false, stride, ptr);
+            },
+            (_, attribIndex) => GlStateManager.DisableVertexAttribArray(attribIndex)
+        );
+
         private UsageInfo(string name, SetupStateDelegate setupState, ClearStateDelegate clearState)
         {
             Name = name;

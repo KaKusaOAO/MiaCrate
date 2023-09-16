@@ -4,9 +4,9 @@ namespace MiaCrate.World.Entities;
 
 public static partial class EntityType
 {
-    private static EntityType<T> Register<T>(ResourceLocation location, EntityType<T>.Builder builder) 
+    private static EntityType<T> Register<T>(string name, EntityType<T>.Builder builder) 
         where T : Entity => 
-        (EntityType<T>) Registry.Register(BuiltinRegistries.EntityType, location, builder.Build());
+        (EntityType<T>) Registry.Register(BuiltinRegistries.EntityType, name, builder.Build());
 }
 
 public interface IEntityType : IRegistryEntry<IEntityType>
@@ -50,6 +50,20 @@ public class EntityType<T> : IEntityType<T> where T : Entity
             _category = category;
         }
 
+        public static Builder Of(MobCategory category)
+        {
+            var ctor = typeof(T).GetConstructor(new[]
+            {
+                typeof(IEntityType), typeof(Level)
+            });
+
+            if (ctor == null)
+                throw new Exception($"Type {typeof(T)} doesn't contain a standard constructor of an entity type");
+            
+            var factory = new EntityFactoryDelegate<T>((t, l) => (T) ctor.Invoke(new object[] {t, l}));
+            return new Builder(factory, category);
+        }
+        
         public static Builder Of(EntityFactoryDelegate<T> factory, MobCategory category) => new(factory, category);
         public static Builder CreateNothing(MobCategory category) => new((_, _) => null, category);
 

@@ -8,8 +8,14 @@ namespace MiaCrate.Core;
 
 public delegate T RegistryBootstrap<T>(IRegistry<T> registry) where T : class;
 
+/// <summary>
+/// The utility class for manipulating the registries.
+/// </summary>
 public static class Registry
 {
+    public static T Register<T>(IRegistry<T> registry, string name, T obj) where T : class => 
+        Register(registry, new ResourceLocation(name), obj);
+    
     public static T Register<T>(IRegistry<T> registry, ResourceLocation location, T obj) where T : class => 
         Register(registry, ResourceKey.Create<T>(registry.Key, location), obj);
 

@@ -59,6 +59,17 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
             _tickableTextures.Add(tickable);
     }
 
+    public AbstractTexture GetTexture(ResourceLocation location)
+    {
+        if (!_byPath.TryGetValue(location, out var texture))
+        {
+            texture = new SimpleTexture(location);
+            Register(location, texture);
+        }
+
+        return texture;
+    }
+
     private void SafeDispose(ResourceLocation location, AbstractTexture texture)
     {
         if (texture != MissingTextureAtlasSprite.Texture)
@@ -123,7 +134,7 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
                 {
                     var removal = new List<ResourceLocation>();
 
-                    foreach (var (location, texture) in _byPath)
+                    foreach (var (location, texture) in _byPath.ToList())
                     {
                         if (texture == MissingTextureAtlasSprite.Texture &&
                             location != MissingTextureAtlasSprite.Location)

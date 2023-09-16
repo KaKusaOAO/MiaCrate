@@ -1,24 +1,60 @@
+using System.Runtime.CompilerServices;
 using MiaCrate.Extensions;
 using MiaCrate.Resources;
+using MiaCrate.World;
+using MiaCrate.World.Blocks;
 using MiaCrate.World.Entities;
 using MiaCrate.World.Entities.AI;
+using MiaCrate.World.Items;
 using Mochi.Utils;
 using Attribute = MiaCrate.World.Entities.AI.Attribute;
 
 namespace MiaCrate.Core;
 
+/// <summary>
+/// This class holds all the built-in registries in the game.
+/// </summary>
 public static class BuiltinRegistries
 {
+    private static readonly ResourceLocation _rootRegistryName = new("root");
     private static readonly Dictionary<ResourceLocation, Func<object>> _loaders = new();
-    public static ResourceLocation RootRegistryName { get; } = new("root");
+ 
+    /// <summary>
+    /// The root registry of builtin registries.
+    /// </summary>
     private static readonly IWritableRegistry<IRegistry> _writableRegistry =
-        new MappedRegistry<IRegistry>(ResourceKey<IRegistry>.CreateRegistryKey(RootRegistryName));
-    public static IRegistry<IRegistry> Root => _writableRegistry;
+        new MappedRegistry<IRegistry>(ResourceKey<IRegistry>.CreateRegistryKey(_rootRegistryName));
 
-    public static readonly IRegistry<IEntityType> EntityType = RegisterDefaultedWithIntrusiveHolders<IEntityType>(
-        Registries.EntityType, "pig", _ => World.Entities.EntityType.Pig);
-    public static readonly IRegistry<Attribute> Attribute = RegisterSimple<Attribute>(
-        Registries.Attribute, _ => Attributes.Luck);
+    #region ## Built-in registries
+    
+    /// <summary>
+    /// The registry of all the block types.
+    /// </summary>
+    public static readonly IRegistry<Block> Block = 
+        RegisterDefaultedWithIntrusiveHolders<Block>(Registries.Block, 
+            "air", _ => World.Blocks.Block.Air);
+    
+    public static readonly IRegistry<Item> Item =
+        RegisterDefaultedWithIntrusiveHolders<Item>(Registries.Item,
+            "air", _ => World.Items.Item.Air);
+
+    /// <summary>
+    /// The registry of all the entity types.
+    /// </summary>
+    public static readonly IRegistry<IEntityType> EntityType = 
+        RegisterDefaultedWithIntrusiveHolders<IEntityType>(Registries.EntityType, 
+            "pig", _ => World.Entities.EntityType.Pig);
+    
+    /// <summary>
+    /// The registry of all the living entity attribute types.
+    /// </summary>
+    public static readonly IRegistry<Attribute> Attribute = 
+        RegisterSimple<Attribute>(Registries.Attribute, _ => Attributes.Luck);
+    
+    #endregion
+    
+    public static ResourceLocation RootRegistryName => _rootRegistryName;
+    public static IRegistry<IRegistry> Root => _writableRegistry;
 
     private static IRegistry<T> RegisterSimple<T>(IResourceKey<IRegistry> key, RegistryBootstrap<T> bootstrap) 
         where T : class =>
@@ -34,15 +70,9 @@ public static class BuiltinRegistries
         where TRegistry : IWritableRegistry<T> where T : class
     {
         var location = key.Location;
-        _loaders.AddOrSet(location, () => bootstrap(registry));
+        _loaders[location] = () => bootstrap(registry);
         _writableRegistry.Register(key, registry);
         return registry;
-    }
-
-    static BuiltinRegistries()
-    {
-        // TODO: Load all the registries and register them into the root registry
-        // TODO: and then check the root registry (e.g. to see if some of registries are empty)
     }
 
     public static void Bootstrap()

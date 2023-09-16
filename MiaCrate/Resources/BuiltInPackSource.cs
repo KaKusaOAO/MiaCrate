@@ -3,19 +3,20 @@
 public abstract class BuiltInPackSource : IRepositorySource
 {
     private readonly PackType _type;
-    private readonly VanillaPackResources _pack;
     private readonly ResourceLocation _packDir;
+
+    public VanillaPackResources VanillaPack { get; }
 
     protected BuiltInPackSource(PackType type, VanillaPackResources pack, ResourceLocation packDir)
     {
         _type = type;
-        _pack = pack;
+        VanillaPack = pack;
         _packDir = packDir;
     }
-    
+
     public void LoadPacks(Action<Pack> loader)
     {
-        var pack = CreateVanillaPack(_pack);
+        var pack = CreateVanillaPack(VanillaPack);
         if (pack != null) loader(pack);
         
         

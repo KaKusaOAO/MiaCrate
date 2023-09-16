@@ -1,4 +1,4 @@
-﻿using OpenTK.Graphics.OpenGL;
+﻿using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Shaders;
 
@@ -11,15 +11,15 @@ public sealed class ProgramType
     
     public string Name { get; }
     public string Extension { get; }
-    public ShaderType GlType { get; }
+    public ShaderType Type { get; }
     public int Ordinal { get; }
     public Dictionary<string, Program> Programs { get; } = new();
 
-    private ProgramType(string name, string extension, ShaderType glType)
+    private ProgramType(string name, string extension, ShaderType type)
     {
         Name = name;
         Extension = extension;
-        GlType = glType;
+        Type = type;
 
         var ordinal = _values.Count;
         Ordinal = ordinal;

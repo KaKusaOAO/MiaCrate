@@ -148,7 +148,7 @@ public abstract partial class GlslPreprocessor
         return k == match.Index;
     }
 
-    public abstract string? ApplyImport(bool flag, string str);
+    public abstract string? ApplyImport(bool flag, string path);
 
     private class Context
     {

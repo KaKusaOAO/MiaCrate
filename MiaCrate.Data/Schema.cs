@@ -89,7 +89,7 @@ public class Schema
 
         if (type1 is RecursivePoint.IRecursivePointType)
         {
-            return type1.FindCheckedType(-1).OrElse(() => 
+            return type1.FindCheckedType(-1).OrElseGet(() => 
                 throw new Exception("Could not find choice type in the recursive typ"));
         }
         

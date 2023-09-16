@@ -73,7 +73,7 @@ public interface IDataResult<T> : IDataResult, IApp<IDataResult.Mu, T>
                 l2 => new DataResult<TOut>.PartialResult(r.MessageFunc, Optional.Of(l2)),
                 r2 => new DataResult<TOut>.PartialResult(() => $"{r.Message}; {r2.Message}", r2.PartialResultValue)
             )), Lifecycle + second.Lifecycle);
-        }).OrElse(() =>
+        }).OrElseGet(() =>
             new DataResult<TOut>(
                 Either.Right<TOut, IDataResult<TOut>.IPartialResult>(
                     new DataResult<TOut>.PartialResult(r.MessageFunc, Optional.Empty<TOut>())), Lifecycle))

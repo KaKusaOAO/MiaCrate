@@ -10,7 +10,7 @@ public interface IResourceProvider
     
     public static IResourceProvider FromDictionary(IDictionary<ResourceLocation, Resource> map) => new Mapped(map);
     public Resource GetResourceOrThrow(ResourceLocation location) =>
-        GetResource(location).OrElse(() => throw new FileNotFoundException(location));
+        GetResource(location).OrElseGet(() => throw new FileNotFoundException(location));
 
     public Stream Open(ResourceLocation location) =>
         GetResourceOrThrow(location).Open();

@@ -88,6 +88,8 @@ public class ResourceLocation
     public static bool operator ==(ResourceLocation a, ResourceLocation b) => a.ToString() == b.ToString();
     public static bool operator !=(ResourceLocation a, ResourceLocation b) => !(a == b);
 
+    public override int GetHashCode() => HashCode.Combine(Namespace, Path);
+
     public override string ToString() => $"{Namespace}{NamespaceSeparator}{Path}";
 
     public static IDataResult<ResourceLocation> Read(string str)

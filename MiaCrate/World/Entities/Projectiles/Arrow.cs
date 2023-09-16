@@ -1,4 +1,4 @@
-namespace MiaCrate.World.Entities.Projectiles;
+namespace MiaCrate.World.Entities;
 
 public class Arrow : AbstractArrow
 {

@@ -1,6 +1,6 @@
 using MiaCrate.World.Entities.AI.Goals;
 
-namespace MiaCrate.World.Entities.Animals;
+namespace MiaCrate.World.Entities;
 
 public class Chicken : Animal
 {

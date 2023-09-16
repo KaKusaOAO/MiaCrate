@@ -5,8 +5,13 @@ using System.Net;
 using System.Runtime.InteropServices;
 using MiaCrate.Auth;
 using MiaCrate.Auth.Yggdrasil;
+using MiaCrate.Client.Colors;
 using MiaCrate.Client.Graphics;
+using MiaCrate.Client.Models;
+using MiaCrate.Client.Pipeline;
 using MiaCrate.Client.Platform;
+using MiaCrate.Client.Resources;
+using MiaCrate.Client.Sounds;
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.UI;
 using MiaCrate.Client.Utils;
@@ -37,25 +42,30 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
     private readonly PropertyMap _profileProperties;
     private readonly IDataFixer _fixerUpper;
     private readonly VirtualScreen _virtualScreen;
-    private readonly Window _window;
+    public Window Window { get; }
+
     private readonly Timer _timer = new(SharedConstants.TicksPerSecond, 0L);
-    // private readonly RenderBuffers _renderBuffers;
+    private readonly RenderBuffers _renderBuffers;
 	// public readonly LevelRenderer levelRenderer;
-	// private readonly EntityRenderDispatcher _entityRenderDispatcher;
-	// private readonly ItemRenderer _itemRenderer;
+	public EntityRenderDispatcher EntityRenderDispatcher { get; }
+
+	public ItemRenderer ItemRenderer { get; }
+
 	// public readonly ParticleEngine particleEngine;
 	// private readonly SearchRegistry _searchRegistry = new SearchRegistry();
 	private readonly User _user;
-	public readonly Font font;
+	public Font Font { get; }
 	public readonly Font fontFilterFishy;
-	// public readonly GameRenderer gameRenderer;
+
+	public GameRenderer GameRenderer { get; }
+
 	// public readonly DebugRenderer debugRenderer;
 	// private readonly AtomicReference<StoringChunkProgressListener> _progressListener = new AtomicReference();
 	// public readonly Gui gui;
 	public Options Options { get; }
 	// private readonly HotbarManager _hotbarManager;
-	// public readonly MouseHandler mouseHandler;
-	// public readonly KeyboardHandler keyboardHandler;
+	public MouseHandler MouseHandler { get; }
+	public KeyboardHandler KeyboardHandler { get; }
 	private InputType _lastInputType = InputType.None;
 	public string GameDirectory { get; }
 	private readonly string _launchedVersion;
@@ -68,16 +78,16 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	private readonly bool _allowsMultiplayer;
 	private readonly bool _allowsChat;
 	private readonly ReloadableResourceManager _resourceManager;
-	private readonly VanillaPackResources _vanillaPackResources;
+
 	// private readonly DownloadedPackSource _downloadedPackSource;
 	private readonly PackRepository _resourcePackRepository;
 	// private readonly LanguageManager _languageManager;
-	// private readonly BlockColors _blockColors;
-	// private readonly ItemColors _itemColors;
-	// private readonly RenderTarget _mainRenderTarget;
-	// private readonly SoundManager _soundManager;
+	private readonly BlockColors _blockColors;
+	private readonly ItemColors _itemColors;
+	private readonly RenderTarget _mainRenderTarget;
+	public SoundManager SoundManager { get; }
 	// private readonly MusicManager _musicManager;
-	// private readonly FontManager _fontManager;
+	private readonly FontManager _fontManager;
 	// private readonly SplashManager _splashManager;
 	// private readonly GpuWarnlistManager _gpuWarnlistManager;
 	// private readonly PeriodicNotificationManager _regionalCompliancies;
@@ -85,15 +95,17 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	private readonly IMinecraftSessionService _minecraftSessionService;
 	// private readonly UserApiService _userApiService;
 	// private readonly SkinManager _skinManager;
-	// private readonly ModelManager _modelManager;
-	// private readonly BlockRenderDispatcher _blockRenderer;
+	public ModelManager ModelManager { get; }
+
+	public BlockRenderDispatcher BlockRenderer { get; }
+
 	// private readonly PaintingTextureManager _paintingTextures;
 	// private readonly MobEffectTextureManager _mobEffectTextures;
 	// private readonly ToastComponent _toast;
 	// private readonly Tutorial _tutorial;
 	// private readonly PlayerSocialManager _playerSocialManager;
-	// private readonly EntityModelSet _entityModels;
-	// private readonly BlockEntityRenderDispatcher _blockEntityRenderDispatcher;
+	private readonly EntityModelSet _entityModels;
+	private readonly BlockEntityRenderDispatcher _blockEntityRenderDispatcher;
 	// private readonly ClientTelemetryManager _telemetryManager;
 	// private readonly ProfileKeyPairManager _profileKeyPairManager;
 	// private readonly RealmsDataFetcher _realmsDataFetcher;
@@ -145,9 +157,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	private string _debugPath = "root";
     private readonly ConcurrentQueue<Action> _progressTasks = new();
     private TaskCompletionSource? _pendingReload;
-
+    
+    public VanillaPackResources VanillaPackResources { get; }
     public TextureManager TextureManager { get; }
-
     public bool IsWindowActive { get; set; }
 
     public bool IsRenderedOnThread => SharedConstants.MultiThreadedRendering;
@@ -155,16 +167,16 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 
     public Game(GameConfig config) : base("Client")
     {
-        Instance = this;
+	    Instance = this;
         GameDirectory = config.Location.GameDirectory;
         _resourcePackDirectory = config.Location.ResourcePackDirectory;
         _launchedVersion = config.Game.LaunchVersion;
         _versionType = config.Game.VersionType;
         _profileProperties = config.User.ProfileProperties;
         
-        // TODO: ClientPackSource
         var clientPackSource = new ClientPackSource(config.Location.ExternalAssetSource);
         _resourcePackRepository = new PackRepository(clientPackSource);
+        VanillaPackResources = clientPackSource.VanillaPack;
         _proxy = config.User.Proxy;
         _authenticationService = new YggdrasilAuthenticationService(_proxy);
         // _minecraftSessionService = _authenticationService.CreateMinecraftSessionService();
@@ -183,23 +195,82 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         var displayData = config.Display;
         Util.TimeSource = RenderSystem.InitBackendSystem();
         _virtualScreen = new VirtualScreen(this);
-        _window = _virtualScreen.NewWindow(displayData, null, "11");
-        _window.WindowActiveChanged += WindowOnWindowActiveChanged;
-        _window.DisplayResized += WindowOnDisplayResized;
-        _window.CursorEntered += WindowOnCursorEntered;
+        Window = _virtualScreen.NewWindow(displayData, null, "11");
+        Window.WindowActiveChanged += WindowOnWindowActiveChanged;
+        Window.DisplayResized += WindowOnDisplayResized;
+        Window.CursorEntered += WindowOnCursorEntered;
         IsWindowActive = true;
 
+        MouseHandler = new MouseHandler(this);
+        KeyboardHandler = new KeyboardHandler(this);
+
+        unsafe
+        {
+	        MouseHandler.Setup(Window.Handle);
+	        KeyboardHandler.Setup(Window.Handle);
+        }
+
         RenderSystem.InitRenderer(0, false);
+        
+        // Initialize the main render target
+        _mainRenderTarget = new MainTarget(Window.Width, Window.Height);
+        _mainRenderTarget.SetClearColor(0f, 0f, 0f, 0f);
+        _mainRenderTarget.Clear(OnMacOs);
+        
         _resourceManager = new ReloadableResourceManager(PackType.ClientResources);
         _resourcePackRepository.Reload();
 
         TextureManager = new TextureManager(_resourceManager);
         _resourceManager.RegisterReloadListener(TextureManager);
         
-        _window.SetErrorSection("Startup");
+        SoundManager = new SoundManager(Options);
+        _resourceManager.RegisterReloadListener(SoundManager);
+        
+        _fontManager = new FontManager(TextureManager);
+        Font = _fontManager.CreateFont();
+        _resourceManager.RegisterReloadListener(_fontManager);
 
+        Window.SetErrorSection("Startup");
+        Window.SetErrorSection("Post startup");
+
+        _blockColors = BlockColors.CreateDefault();
+        _itemColors = ItemColors.CreateDefault();
+        
+        ModelManager = new ModelManager(TextureManager, _blockColors, 0); // options.mipmapLevels
+        _resourceManager.RegisterReloadListener(ModelManager);
+
+        _entityModels = new EntityModelSet();
+        _resourceManager.RegisterReloadListener(_entityModels);
+
+        _blockEntityRenderDispatcher = new BlockEntityRenderDispatcher(Font, _entityModels, () => BlockRenderer!,
+	        () => ItemRenderer!, () => EntityRenderDispatcher!);
+        _resourceManager.RegisterReloadListener(_blockEntityRenderDispatcher);
+
+        var blockEntityRenderer = new BlockEntityWithoutLevelRenderer(_blockEntityRenderDispatcher, _entityModels);
+        _resourceManager.RegisterReloadListener(blockEntityRenderer);
+
+        ItemRenderer = new ItemRenderer(this, TextureManager, ModelManager, _itemColors, blockEntityRenderer);
+        _resourceManager.RegisterReloadListener(ItemRenderer);
+        
+        _renderBuffers = new RenderBuffers();
+        
+        BlockRenderer = new BlockRenderDispatcher(ModelManager.BlockModelShaper, blockEntityRenderer, _blockColors);
+        _resourceManager.RegisterReloadListener(BlockRenderer);
+
+        EntityRenderDispatcher = new EntityRenderDispatcher(this, TextureManager, ItemRenderer, BlockRenderer, Font, Options, _entityModels);
+        _resourceManager.RegisterReloadListener(EntityRenderDispatcher);
+        
+        GameRenderer = new GameRenderer(this, EntityRenderDispatcher.ItemInHandRenderer, _resourceManager, _renderBuffers);
+        _resourceManager.RegisterReloadListener(GameRenderer.CreateReloadListener());
+
+        WindowOnDisplayResized();
+        GameRenderer.PreloadUiShader(VanillaPackResources.AsProvider());
+        
+        LoadingOverlay.RegisterTextures(this);
         var list = _resourcePackRepository.OpenAllSelected();
         _reloadStateTracker.StartReload(ResourceLoadStateTracker.ReloadReason.Initial, list);
+  
+        // Create a new reload instance and set overlay
         var reloadInstance = _resourceManager
 	        .CreateReload(Util.BackgroundExecutor, this, _resourceReloadInitialTask, list);
         Overlay = new LoadingOverlay(this, reloadInstance, x =>
@@ -345,9 +416,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
     private void RunTick(bool bl)
     {
 	    Task.Yield();
-        _window.SetErrorSection("Pre render");
+        Window.SetErrorSection("Pre render");
         var l = Util.GetNanos();
-        if (_window.ShouldClose) Stop();
+        if (Window.ShouldClose) Stop();
 
         if (_pendingReload != null && Overlay is not LoadingOverlay)
         {
@@ -375,14 +446,14 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	        }
         }
         
-        _window.SetErrorSection("Render");
+        Window.SetErrorSection("Render");
         var m = Util.GetNanos();
         bool bl2;
         
         
-        _window.UpdateDisplay();
+        Window.UpdateDisplay();
         
-        _window.SetErrorSection("Post render");
+        Window.SetErrorSection("Post render");
         
         
     }
@@ -438,7 +509,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	    finally
 	    {
 		    _virtualScreen.Dispose();
-		    _window.Dispose();
+		    Window.Dispose();
 	    }
     }
 

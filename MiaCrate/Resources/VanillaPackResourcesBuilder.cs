@@ -13,15 +13,7 @@ public class VanillaPackResourcesBuilder
     private static readonly Dictionary<PackType, FileSystemInfo> _rootDirByType = Util.Make(() =>
     {
         var dict = new Dictionary<PackType, FileSystemInfo>();
-        var stream = ResourceAssembly.GetResource("1.20.2-pre2.jar");
-
-        if (stream == null)
-        {
-            Logger.Warn("Cannot read JAR file");
-            return dict;
-        }
-        
-        var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+        var archive = ResourceAssembly.GameArchive;
         foreach (var type in PackType.Values)
         {
             var assetRootPath = $"{type.Directory}/.mcassetsroot";
