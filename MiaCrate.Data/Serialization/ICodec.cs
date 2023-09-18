@@ -20,8 +20,26 @@ public interface ICodec<T> : ICodec, IEncoder<T>, IDecoder<T>
         $"{this}[comapFlatMapped]"
     );
 
-    public ICodec<TOut> CrossSelectMany<TOut>(Func<T, IDataResult<TOut>> to, Func<TOut, IDataResult<T>> from) =>
-        Codec.Of(CoSelectMany(from), SelectMany(to), $"{this}[flatXmapped]");
+    public ICodec<TOut> FlatCrossSelect<TOut>(Func<T, IDataResult<TOut>> to, Func<TOut, IDataResult<T>> from) =>
+        Codec.Of(FlatCoSelect(from), SelectMany(to), $"{this}[flatXmapped]");
+
+    public ICodec<TOut> Cast<TOut>() =>
+        Codec.Of(
+            CoSelect((TOut t) => (T)(object)t!), 
+            Select(t => (TOut)(object)t!), $"{this}[casted]");
+
+    public ICodec<TOut> Dispatch<TOut>(Func<TOut, T> type, Func<T, ICodec<TOut>> codec) =>
+        Dispatch("type", type, codec);
+    
+    public ICodec<TOut> Dispatch<TOut>(string typeKey, Func<TOut, T> type, Func<T, ICodec<TOut>> codec) => 
+        PartialDispatch(typeKey, 
+            v => DataResult.Success(type(v)), 
+            v => DataResult.Success(codec(v)));
+
+    public ICodec<TOut> PartialDispatch<TOut>(string typeKey,
+        Func<TOut, IDataResult<T>> type,
+        Func<T, IDataResult<ICodec<TOut>>> codec) =>
+        new KeyDispatchCodec<T, TOut>(typeKey, this, type, codec).Codec;
 
     public ICodec<T> WithLifecycle(Lifecycle lifecycle) => new LifecycleCodec(this, lifecycle);
 

@@ -1,8 +1,9 @@
 using MiaCrate.Client.Graphics;
+using MiaCrate.Client.Resources;
 using MiaCrate.Resources;
 using Mochi.Utils;
 
-namespace MiaCrate.Client.UI;
+namespace MiaCrate.Client.UI.Screens;
 
 public class LoadingOverlay : Overlay
 {
@@ -12,6 +13,8 @@ public class LoadingOverlay : Overlay
     private readonly IReloadInstance _reload;
     private readonly Action<IOptional<Exception>> _onFinish;
     private readonly bool _fadeIn;
+    private long _fadeOutStart = -1;
+    private long _fadeInStart = -1;
 
     public LoadingOverlay(Game game, IReloadInstance reload, Action<IOptional<Exception>> onFinish, bool fadeIn)
     {
@@ -28,7 +31,25 @@ public class LoadingOverlay : Overlay
     
     public override void Render(GuiGraphics graphics, int mouseX, int mouseY, float f)
     {
-        // graphics.
+        var m = Util.GetMillis();
+        var g = _fadeOutStart > -1 ? (m - _fadeOutStart) / 1000f : -1;
+        var h = _fadeInStart > -1 ? (m - _fadeInStart) / 500f : -1;
+        
+        if (_fadeOutStart == -1 && _reload.IsDone) // && (!_fadeIn || h > 2))
+        {
+            try
+            {
+                _reload.CheckExceptions();
+                _onFinish(Optional.Empty<Exception>());
+            }
+            catch (Exception ex)
+            {
+                _onFinish(Optional.Of(ex));
+            }
+
+            _fadeOutStart = Util.GetMillis();
+            _game.Screen?.Init(_game, graphics.GuiWidth, graphics.GuiHeight);
+        }
     }
 
     private class LogoTexture : SimpleTexture

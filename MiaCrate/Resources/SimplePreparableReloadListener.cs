@@ -1,23 +1,17 @@
+using MiaCrate.Extensions;
+
 namespace MiaCrate.Resources;
 
 public abstract class SimplePreparableReloadListener<T> : IPreparableReloadListener
 {
-    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller profiler,
-        IProfilerFiller profile2, IExecutor executor, IExecutor executor2)
+    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager,
+        IProfilerFiller profiler, IProfilerFiller profiler2, 
+        IExecutor executor, IExecutor executor2)
     {
-        var source = new TaskCompletionSource<T>();
-        executor.Execute(() =>
-        {
-            var result = Prepare(manager, profiler);
-            source.SetResult(result);
-        });
-
-        return source.Task.ContinueWith(t =>
-            {
-                barrier.Wait(t).Wait();
-                return t.Result;
-            })
-            .ContinueWith(t => Apply(t.Result, manager, profile2));
+        return Tasks
+            .SupplyAsync(() => Prepare(manager, profiler), executor)
+            .ThenComposeAsync(barrier.Wait)
+            .ThenAcceptAsync(o => Apply(o, manager, profiler2), executor2);
     }
 
     public virtual string Name => GetType().Name;

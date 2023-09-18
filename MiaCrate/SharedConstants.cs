@@ -70,9 +70,9 @@ public static class SharedConstants
 	public const bool DebugSmallSpawn = UseDebugFeatures && false;
 	public const bool DebugDisableLiquidSpreading = UseDebugFeatures && false;
 	public const bool DebugAquifers = UseDebugFeatures && false;
-	public const bool DebugJfrProfilingEnableLevelLoading = UseDebugFeatures && false;
-	public static bool debugGenerateSquareTerrainWithoutNoise = UseDebugFeatures && false;
-	public static bool debugGenerateStripedTerrainWithoutNoise = UseDebugFeatures && false;
+	// public const bool DebugJfrProfilingEnableLevelLoading = UseDebugFeatures && false;
+	public static bool DebugGenerateSquareTerrainWithoutNoise { get; set; } = UseDebugFeatures && false;
+	public static bool DebugGenerateStripedTerrainWithoutNoise { get; set; } = UseDebugFeatures && false;
 	public const bool DebugOnlyGenerateHalfTheWorld = UseDebugFeatures && false;
 	public const bool DebugDisableFluidGeneration = UseDebugFeatures && false;
 	public const bool DebugDisableAquifers = UseDebugFeatures && false;

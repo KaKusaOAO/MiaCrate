@@ -1,4 +1,4 @@
-﻿namespace MiaCrate.Client.UI;
+﻿namespace MiaCrate.Client.UI.Screens;
 
 public abstract class Overlay : IRenderable
 {

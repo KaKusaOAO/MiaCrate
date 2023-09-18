@@ -382,4 +382,16 @@ public static class RenderSystem
         AssertOnRenderThread();
         GlStateManager.DrawElements(mode, count, type, IntPtr.Zero);
     }
+
+    public static void Clear(ClearBufferMask mask, bool clearError)
+    {
+        AssertOnGameThreadOrInit();
+        GlStateManager.Clear(mask, clearError);
+    }
+
+    public static void EnableCull()
+    {
+        AssertOnRenderThread();
+        GlStateManager.EnableCull();
+    }
 }

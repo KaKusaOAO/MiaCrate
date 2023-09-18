@@ -9,4 +9,9 @@ public class BlockRenderDispatcher : IResourceManagerReloadListener
         BlockEntityWithoutLevelRenderer blockEntityWithoutLevelRenderer, BlockColors blockColors)
     {
     }
+
+    public void OnResourceManagerReload(IResourceManager manager)
+    {
+        throw new NotImplementedException();
+    }
 }

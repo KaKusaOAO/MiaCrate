@@ -10,7 +10,9 @@ public interface IDecoder
 public interface IDecoder<T> : IDecoder
 {
     IDataResult<IPair<T, TIn>> Decode<TIn>(IDynamicOps<TIn> ops, TIn input);
-    IDataResult<T> Parse<TIn>(IDynamicOps<TIn> ops, TIn input) => Decode(ops, input).Select(p => p.First);
+    IDataResult<IPair<T, TIn>> Decode<TIn>(IDynamic<TIn> input) => Decode(input.Ops, input.Value);
+    IDataResult<T> Parse<TIn>(IDynamicOps<TIn> ops, TIn input) => Decode(ops, input).Select(p => p.First!);
+    IDataResult<T> Parse<TIn>(IDynamic<TIn> input) => Decode(input).Select(p => p.First!);
 
     IDecoder<TOut> Select<TOut>(Func<T, TOut> func) => new MappedDecoder<TOut>(this, func);
 

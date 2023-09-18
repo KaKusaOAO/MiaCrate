@@ -1,7 +1,7 @@
 ﻿using MiaCrate.Client.Graphics;
 using Mochi.Texts;
 
-namespace MiaCrate.Client.UI;
+namespace MiaCrate.Client.UI.Screens;
 
 public class TitleScreen : Screen
 {

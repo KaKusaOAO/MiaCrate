@@ -33,6 +33,7 @@ public class PackRepository
         .Select(x => _available[x])
         .Where(x => x != null).ToList();
 
+    public List<string> SelectedIds => _selected.Select(p => p.Id).ToList();
     public List<string> AvailableIds => _available.Keys.ToList();
     public List<Pack> AvailablePacks => _available.Values.ToList();
     

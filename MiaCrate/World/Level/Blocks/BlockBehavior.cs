@@ -1,4 +1,5 @@
-﻿using MiaCrate.Resources;
+﻿using MiaCrate.Data.Codecs;
+using MiaCrate.Resources;
 
 namespace MiaCrate.World.Blocks;
 
@@ -61,5 +62,17 @@ public abstract class BlockBehavior : IFeatureElement
             ExplosionResistance = resistance;
             return this;
         }
+    }
+
+    public abstract class BlockStateBase : StateHolder<Block, BlockState>
+    {
+        protected BlockStateBase(Block owner, 
+            Dictionary<IProperty, IComparable> values, IMapCodec<BlockState> propertiesCodec) 
+            : base(owner, values, propertiesCodec)
+        {
+            
+        }
+
+        protected abstract BlockState AsState();
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Resources;
 using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Systems;
+using MiaCrate.Client.UI;
 using MiaCrate.Data;
 using MiaCrate.Extensions;
 using MiaCrate.Resources;
@@ -156,6 +157,28 @@ public class GameRenderer : IDisposable
     }
 
     public IPreparableReloadListener CreateReloadListener() => new ShaderLoader(this);
+
+    public void Render(float f, long l, bool bl)
+    {
+        if (_game.NoRender) return;
+
+        var i = (int) (_game.MouseHandler.XPos * _game.Window.GuiScaledWidth / _game.Window.ScreenWidth);
+        var j = (int) (_game.MouseHandler.YPos * _game.Window.GuiScaledHeight / _game.Window.ScreenHeight);
+
+        var graphics = new GuiGraphics(_game, _renderBuffers.BufferSource);
+        if (_game.Overlay != null)
+        {
+            try
+            {
+                _game.Overlay.Render(graphics, i, j, _game.DeltaFrameTime);
+            }
+            catch (Exception ex)
+            {
+                var report = CrashReport.ForException(ex, "Rendering overlay");
+                throw new ReportedException(report);
+            }
+        }
+    }
     
     private class ShaderLoader : SimplePreparableReloadListener<ResourceCache>
     {

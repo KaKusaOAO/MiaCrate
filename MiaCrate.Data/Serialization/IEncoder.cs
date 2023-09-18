@@ -17,7 +17,7 @@ public interface IEncoder<T> : IEncoder
 
     IEncoder<TIn> CoSelect<TIn>(Func<TIn, T> func) => new CoMappedEncoder<TIn>(this, func);
 
-    IEncoder<TIn> CoSelectMany<TIn>(Func<TIn, IDataResult<T>> func) => new FlatCoMappedEncoder<TIn>(this, func);
+    IEncoder<TIn> FlatCoSelect<TIn>(Func<TIn, IDataResult<T>> func) => new FlatCoMappedEncoder<TIn>(this, func);
 
     IMapEncoder<T> FieldOf(string name) => new FieldEncoder<T>(name, this);
 

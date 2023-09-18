@@ -1,4 +1,5 @@
 using MiaCrate.Client.Platform;
+using MiaCrate.Client.Resources;
 using MiaCrate.Client.Systems;
 using MiaCrate.Resources;
 using Mochi.Utils;

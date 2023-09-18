@@ -1,5 +1,7 @@
-﻿using MiaCrate.Client.Systems;
+﻿using MiaCrate.Client.Realms;
+using MiaCrate.Client.Systems;
 using MiaCrate.Client.UI;
+using MiaCrate.Client.UI.Screens;
 using MiaCrate.Resources;
 using Mochi.Core;
 using Mochi.Utils;
@@ -99,14 +101,8 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
         
         var preloaded = new PreloadedTexture(_resourceManager, location, executor);
         _byPath[location] = preloaded;
-            
-        return preloaded.Task.ContinueWith(_ =>
-        {
-            Execute(IRunnable.Create(() =>
-            {
-                Register(location, preloaded);
-            }));
-        });
+        return preloaded.Task
+            .ThenRunAsync(() => Register(location, preloaded), IExecutor.Create(Execute));
     }
 
     private static void Execute(IRunnable runnable)
@@ -118,52 +114,44 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
     }
 
     public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller profiler,
-        IProfilerFiller profile2, IExecutor executor, IExecutor executor2)
+        IProfilerFiller profiler2, IExecutor executor, IExecutor executor2)
     {
         var source = new TaskCompletionSource();
-        _ = Task.Run(async () =>
-        {
-            try
+        TitleScreen.PreloadResourcesAsync(this, executor)
+            .ThenApplyAsync(() => barrier.Wait(Unit.Instance))
+            .ThenAcceptAsync(_ =>
             {
-                await Task.WhenAll(
-                    TitleScreen.PreloadResourcesAsync(this, executor),
-                    PreloadAsync(AbstractWidget.WidgetsLocation, executor)
-                );
-                await barrier.Wait(Unit.Instance);
-                RenderSystem.RecordRenderCall(() =>
+                var missing = MissingTextureAtlasSprite.Texture;
+                RealmsPopupScreen.UpdateCarouselImages(_resourceManager);
+                
+                var removal = new List<ResourceLocation>();
+
+                foreach (var (location, texture) in _byPath.ToList())
                 {
-                    var removal = new List<ResourceLocation>();
-
-                    foreach (var (location, texture) in _byPath.ToList())
+                    if (texture == missing &&
+                        location != MissingTextureAtlasSprite.Location)
                     {
-                        if (texture == MissingTextureAtlasSprite.Texture &&
-                            location != MissingTextureAtlasSprite.Location)
-                        {
-                            removal.Add(location);
-                        }
-                        else
-                        {
-                            texture.Reset(this, manager, location, executor2);
-                        }
+                        removal.Add(location);
                     }
-
-                    foreach (var item in removal)
+                    else
                     {
-                        _byPath.Remove(item);
+                        texture.Reset(this, manager, location, executor2);
                     }
+                }
 
-                    Game.Instance.Tell(IRunnable.Create(() =>
-                    {
-                        source.SetResult();
-                    }));
-                });
-            }
-            catch (Exception ex)
+                foreach (var item in removal)
+                {
+                    _byPath.Remove(item);
+                }
+
+                Game.Instance.Tell(IRunnable.Create(() =>
+                {
+                    source.SetResult();
+                }));
+            }, IExecutor.Create(r =>
             {
-                Logger.Error(ex);
-                source.SetException(ex);
-            }
-        });
+                RenderSystem.RecordRenderCall(r.Run);
+            }));
         
         return source.Task;
     }

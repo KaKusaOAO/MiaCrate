@@ -4,8 +4,8 @@ public interface IResourceManager : IResourceProvider
 {
     public HashSet<string> Namespaces { get; }
     public List<Resource> GetResourceStack(ResourceLocation location);
-    public Dictionary<ResourceLocation, Resource> ListResources(string str, Predicate<ResourceLocation> predicate);
-    public Dictionary<ResourceLocation, List<Resource>> ListResourceStacks(string str,
+    public Dictionary<ResourceLocation, Resource> ListResources(string path, Predicate<ResourceLocation> predicate);
+    public Dictionary<ResourceLocation, List<Resource>> ListResourceStacks(string path,
         Predicate<ResourceLocation> predicate);
-    public List<IPackResources> Packs { get; }
+    public IEnumerable<IPackResources> Packs { get; }
 }

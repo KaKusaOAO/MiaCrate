@@ -11,6 +11,10 @@ public class MouseHandler
 {
     private readonly Game _game;
     private bool _mouseGrabbed;
+    private bool _ignoreFirstMove = true;
+
+    public double XPos { get; private set; }
+    public double YPos { get; private set; }
 
     public MouseHandler(Game game)
     {
@@ -46,6 +50,18 @@ public class MouseHandler
     private unsafe void OnMove(NativeWindow* handle, double x, double y)
     {
         if (handle != Game.Instance.Window.Handle) return;
+        if (_ignoreFirstMove)
+        {
+            XPos = x;
+            YPos = y;
+            _ignoreFirstMove = false;
+        }
+
+        var screen = _game.Screen;
+        if (screen != null && _game.Overlay == null)
+        {
+            // ...
+        }
     }
     
     private unsafe void OnPress(NativeWindow* handle, MouseButton button, InputAction action, KeyModifiers mods)

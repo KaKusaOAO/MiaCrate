@@ -28,6 +28,9 @@ public static class Codec
         return new CompositionCodec<T>(encoder, decoder, name);
     }
 
+    public static IMapCodec<T> Of<T>(IMapEncoder<T> encoder, IMapDecoder<T> decoder, Func<string> name) => 
+        MapCodec.Of(encoder, decoder, name);
+
     public static IMapCodec<IOptional<T>> OptionalField<T>(string name, ICodec<T> elementCodec) =>
         new OptionalFieldCodec<T>(name, elementCodec);
 

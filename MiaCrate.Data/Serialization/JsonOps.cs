@@ -94,13 +94,13 @@ public class JsonOps : IDynamicOps<JsonNode>
         var missed = new List<JsonNode>();
         foreach (var entry in mapLike.Entries)
         {
-            var key = entry.Key;
+            var key = entry.First!;
             if (key is JsonValue)
             {
                 try
                 {
                     var k = key.GetValue<string>();
-                    output.Add(k, entry.Value);
+                    output.Add(k, entry.Second);
                 }
                 catch
                 {

@@ -582,4 +582,10 @@ public static class GlStateManager
         public static int Width { get; set; }
         public static int Height { get; set; }
     }
+
+    public static void EnableCull()
+    {
+        RenderSystem.AssertOnRenderThread();
+        _cull.State.Enable();
+    }
 }

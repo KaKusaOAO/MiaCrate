@@ -100,4 +100,31 @@ public static class Either
 
     public static IEither<TLeft, TRight> Left<TLeft, TRight>(TLeft value) => new LeftValue<TLeft, TRight>(value);
     public static IEither<TLeft, TRight> Right<TLeft, TRight>(TRight value) => new RightValue<TLeft, TRight>(value);
+
+    public static LeftBuilder<T> CreateLeft<T>(T value) => new(value);
+    public static RightBuilder<T> CreateRight<T>(T value) => new(value);
+    
+    public class LeftBuilder<T>
+    {
+        private readonly T _value;
+
+        public LeftBuilder(T value)
+        {
+            _value = value;
+        }
+        
+        public IEither<T, TRight> Right<TRight>() => Left<T, TRight>(_value);
+    }
+    
+    public class RightBuilder<T>
+    {
+        private readonly T _value;
+
+        public RightBuilder(T value)
+        {
+            _value = value;
+        }
+        
+        public IEither<TLeft, T> Left<TLeft>() => Right<TLeft, T>(_value);
+    }
 }

@@ -57,7 +57,7 @@ public interface IDataResult<T> : IDataResult, IApp<IDataResult.Mu, T>
     public IDataResult<TOut> Select<TOut>(Func<T, TOut> func) => new DataResult<TOut>(Get().SelectBoth(func,
         r => (IDataResult<TOut>.IPartialResult) new DataResult<TOut>.PartialResult(r.MessageFunc,
             r.PartialResultValue.Select(func))), Lifecycle);
-
+    
     IDataResult<TOut> IDataResult.Select<TOut>(Func<object, TOut> func) => Select(t => func(t!));
 
     IDataResult<TOut> SelectMany<TOut>(Func<T, IDataResult<TOut>> func) => Get().Select(

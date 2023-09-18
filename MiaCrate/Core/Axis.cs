@@ -1,13 +1,14 @@
 namespace MiaCrate.Core;
 
-public sealed class Axis : IStringRepresentable
+public sealed class Axis : IEnumLike<Axis>, IStringRepresentable
 {
     private static readonly Dictionary<int, Axis> _values = new();
 
     public static readonly Axis X = new("x", AxisComponent.X);
     public static readonly Axis Y = new("y", AxisComponent.Y);
     public static readonly Axis Z = new("z", AxisComponent.Z);
-    
+
+    public static readonly IStringRepresentable.EnumCodec<Axis> Codec = IStringRepresentable.FromEnum(GetAxes);
     private readonly AxisComponent _component;
     
     public int Ordinal { get; }
@@ -25,6 +26,8 @@ public sealed class Axis : IStringRepresentable
         Ordinal = ordinal;
         _values[ordinal] = this;
     }
+
+    public static Axis[] GetAxes() => _values.Values.ToArray();
 
     public bool Test(Direction? direction) => direction != null && direction.Axis == this;
 

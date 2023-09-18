@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using MiaCrate.Extensions;
 using Mochi.Utils;
 
 namespace MiaCrate.Resources;
@@ -11,7 +12,7 @@ public class ProfiledReloadInstance : SimpleReloadInstance<ProfiledReloadInstanc
         IExecutor executor2, Task task) : base(executor, executor2, manager, list, ProfiledStateFactory, task)
     {
         _total.Start();
-        _allDone = _allDone.ContinueWith(t => Finish(t.Result));
+        _allDone = _allDone.ThenApplyAsync(Finish, executor2);
     }
 
     private List<State> Finish(List<State> list)
@@ -57,11 +58,11 @@ public class ProfiledReloadInstance : SimpleReloadInstance<ProfiledReloadInstanc
                     l2 += Util.GetNanos() - l;
                 });
             })
-        ).ContinueWith(_ =>
+        ).ThenApplyAsync(() =>
         {
             Logger.Verbose($"Finished reloading {listener.Name}");
             return new State(listener.Name, profiler.Results, profiler2.Results, l1, l2);
-        });
+        }, executor2);
     }
 
     public class State

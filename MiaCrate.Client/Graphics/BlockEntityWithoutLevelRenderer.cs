@@ -10,4 +10,9 @@ public class BlockEntityWithoutLevelRenderer : IResourceManagerReloadListener
     {
         
     }
+
+    public void OnResourceManagerReload(IResourceManager manager)
+    {
+        throw new NotImplementedException();
+    }
 }

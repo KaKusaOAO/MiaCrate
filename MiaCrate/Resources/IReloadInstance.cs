@@ -10,7 +10,14 @@ public interface IReloadInstance
     {
         if (!Task.IsCompletedSuccessfully)
         {
-            throw Task.Exception!;
+            const string message = "An exception occurred while reloading.";
+            
+            var ex = Task.Exception!;
+            var list = ex.InnerExceptions;
+            if (list.Count == 1)
+                throw new Exception(message, list.First());
+
+            throw new Exception(message, ex);
         }
     }
 }

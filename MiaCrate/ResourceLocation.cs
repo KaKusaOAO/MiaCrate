@@ -3,7 +3,7 @@ using MiaCrate.Data.Codecs;
 
 namespace MiaCrate;
 
-public class ResourceLocation
+public class ResourceLocation : IComparable<ResourceLocation>
 {
     public static readonly ICodec<ResourceLocation> Codec = Data.Codec.String
         .CoSelectSelectMany(Read, x => x.ToString())
@@ -13,8 +13,8 @@ public class ResourceLocation
     public const string DefaultNamespace = "minecraft";
     public const string RealmsNamespace = "realms";
     
-    public string Namespace { get; }
     public string Path { get; }
+    public string Namespace { get; }
 
     protected static string[] Decompose(string str, char delimiter)
     {
@@ -85,8 +85,14 @@ public class ResourceLocation
         return new ResourceLocation(split[0], split[1]);
     }
 
-    public static bool operator ==(ResourceLocation a, ResourceLocation b) => a.ToString() == b.ToString();
-    public static bool operator !=(ResourceLocation a, ResourceLocation b) => !(a == b);
+    public override bool Equals(object? obj)
+    {
+        if (obj is not ResourceLocation other) return false;
+        return Namespace == other.Namespace && Path == other.Path;
+    }
+
+    public static bool operator ==(ResourceLocation? a, ResourceLocation? b) => a?.Equals(b) ?? false;
+    public static bool operator !=(ResourceLocation? a, ResourceLocation? b) => !(a == b);
 
     public override int GetHashCode() => HashCode.Combine(Namespace, Path);
 
@@ -117,4 +123,13 @@ public class ResourceLocation
 
     // ReSharper disable once ClassNeverInstantiated.Global
     protected record Dummy;
+
+    public int CompareTo(ResourceLocation? other)
+    {
+        if (ReferenceEquals(this, other)) return 0;
+        if (ReferenceEquals(null, other)) return 1;
+        var pathComparison = string.Compare(Path, other.Path, StringComparison.Ordinal);
+        if (pathComparison != 0) return pathComparison;
+        return string.Compare(Namespace, other.Namespace, StringComparison.Ordinal);
+    }
 }

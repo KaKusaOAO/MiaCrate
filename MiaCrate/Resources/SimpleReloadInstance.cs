@@ -1,4 +1,5 @@
-﻿using Mochi.Core;
+﻿using MiaCrate.Extensions;
+using Mochi.Core;
 
 namespace MiaCrate.Resources;
 
@@ -6,7 +7,7 @@ public static class SimpleReloadInstance
 {
     public static SimpleReloadInstance<Unit> Of(IResourceManager manager, List<IPreparableReloadListener> list,
         IExecutor executor, IExecutor executor2, Task task) =>
-        SimpleReloadInstance<Unit>.Of(manager, list, executor, executor2, task, _ => Unit.Instance);
+        SimpleReloadInstance<Unit>.Of(manager, list, executor, executor2, task, () => Unit.Instance);
     
     public static IReloadInstance Create(IResourceManager manager, List<IPreparableReloadListener> list,
         IExecutor executor, IExecutor executor2, Task task, bool bl)
@@ -39,7 +40,7 @@ public class SimpleReloadInstance<T> : IReloadInstance
     {
         _listenerCount = list.Count;
         _startedTaskCounter++;
-        task.ContinueWith(_ => _doneTaskCounter++);
+        task.ThenRunAsync(() => _doneTaskCounter++);
 
         var list2 = new List<Task<T>>();
         var task2 = task;
@@ -124,11 +125,11 @@ public class SimpleReloadInstance<T> : IReloadInstance
     }
 
     public static SimpleReloadInstance<T> Of(IResourceManager manager, List<IPreparableReloadListener> list,
-        IExecutor executor, IExecutor executor2, Task task, Func<Task, T> continuation)
+        IExecutor executor, IExecutor executor2, Task task, Func<T> continuation)
     {
         return new SimpleReloadInstance<T>(executor, executor2, manager, list,
             (barrier, resourceManager, listener, _, executor3) =>
                 listener.ReloadAsync(barrier, resourceManager, InactiveProfiler.Instance, InactiveProfiler.Instance,
-                    executor, executor3).ContinueWith(continuation), task);
+                    executor, executor3).ThenApplyAsync(continuation), task);
     }
 }

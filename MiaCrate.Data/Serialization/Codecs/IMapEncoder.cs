@@ -1,3 +1,5 @@
+using Mochi.Utils;
+
 namespace MiaCrate.Data.Codecs;
 
 public interface IMapEncoder : IKeyable
@@ -16,6 +18,32 @@ public interface IMapEncoder<T> : IMapEncoder
 
     public IMapEncoder<TOut> CoSelect<TOut>(Func<TOut, T> func) => new CoMappedEncoder<TOut>(this, func);
 
+    public IMapEncoder<TOut> FlatCoSelect<TOut>(Func<TOut, IDataResult<T>> func) =>
+        new FlatCoMappedEncoder<TOut>(this, func); 
+
+    private class FlatCoMappedEncoder<TOuter> : MapEncoder.Implementation<TOuter>
+    {
+        private readonly IMapEncoder<T> _inner;
+        private readonly Func<TOuter, IDataResult<T>> _converter;
+
+        public FlatCoMappedEncoder(IMapEncoder<T> inner, Func<TOuter, IDataResult<T>> converter)
+        {
+            _inner = inner;
+            _converter = converter;
+        }
+
+        public override IEnumerable<TKey> GetKeys<TKey>(IDynamicOps<TKey> ops) => _inner.GetKeys(ops);
+
+        public override IRecordBuilder<TOut> Encode<TOut>(TOuter input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix)
+        {
+            var result = _converter(input);
+            var builder = prefix.WithErrorsFrom(result);
+            return result.Select(r => _inner.Encode(r, ops, builder)).Result.OrElse(builder);
+        }
+
+        public override string ToString() => $"{this}[flatComapped]";
+    }
+    
     private class CoMappedEncoder<TOuter> : MapEncoder.Implementation<TOuter>
     {
         private readonly IMapEncoder<T> _inner;

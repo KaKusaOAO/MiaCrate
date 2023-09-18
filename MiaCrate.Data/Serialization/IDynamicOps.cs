@@ -71,6 +71,22 @@ public interface IDynamicOps<T> : IDynamicOps
     public IDataResult<IEnumerable<T>> GetEnumerable(T input);
     public IDataResult<IEnumerable<IPair<T, T>>> GetMapValues(T input);
 
+#pragma warning disable CS8714
+    public IDataResult<IMapLike<T>> GetMap(T input) =>
+        GetMapValues(input).SelectMany(s =>
+        {
+            try
+            {
+                return DataResult.Success(MapLike.ForDictionary(
+                    s.ToDictionary(p => p.First!, p => p.Second)!, this));
+            }
+            catch (Exception ex)
+            {
+                return DataResult.Error<IMapLike<T>>(() => $"Error while building map: {ex.Message}");
+            }
+        });
+#pragma warning restore CS8714
+    
     public IDataResult<Action<Action<T>>> GetList(T input)
     {
         return GetEnumerable(input).Select<Action<Action<T>>>(source => action =>

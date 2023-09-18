@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace MiaCrate.Data.Codecs;
 
 public interface IMapCodec : IMapEncoder, IMapDecoder
@@ -14,6 +16,15 @@ public interface IMapCodec<T> : IMapCodec, IMapEncoder<T>, IMapDecoder<T>
 
     public IMapCodec<TOut> CrossSelect<TOut>(Func<T, TOut> to, Func<TOut, T> from) => 
         MapCodec.Of(CoSelect(from), Select(to), () => $"{this}[xmapped]");
+    
+    public IMapCodec<TOut> Cast<TOut>() =>
+        MapCodec.Of(
+            CoSelect((TOut t) => (T)(object)t!), 
+            Select(t => (TOut)(object)t!), 
+            () => $"{this}[casted]");
+    
+    public IMapCodec<TOut> FlatCrossSelect<TOut>(Func<T, IDataResult<TOut>> to, Func<TOut, IDataResult<T>> from) =>
+        MapCodec.Of(FlatCoSelect(from), SelectMany(to), () => $"{this}[flatXmapped]");
 }
 
 public abstract class MapCodec<T> : CompressorHolder, IMapCodec<T>
@@ -53,5 +64,7 @@ public static class MapCodec
 
         public override IRecordBuilder<TOut> Encode<TOut>(T input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix) =>
             _encoder.Encode(input, ops, prefix);
+
+        public override string ToString() => _nameFunc();
     }
 }

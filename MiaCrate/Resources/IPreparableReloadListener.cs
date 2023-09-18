@@ -3,7 +3,7 @@
 public interface IPreparableReloadListener
 {
     public Task ReloadAsync(IPreparationBarrier barrier, IResourceManager manager,
-        IProfilerFiller profiler, IProfilerFiller profile2,
+        IProfilerFiller profiler, IProfilerFiller profiler2,
         IExecutor executor, IExecutor executor2);
 
     public string Name => GetType().Name;

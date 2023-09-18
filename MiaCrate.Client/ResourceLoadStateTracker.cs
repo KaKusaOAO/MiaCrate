@@ -29,6 +29,17 @@ public class ResourceLoadStateTracker
 
         _reloadState._finished = true;
     }
+
+    public void StartRecovery(Exception ex)
+    {
+        if (_reloadState == null)
+        {
+            Logger.Warn("Trying to signal reload recovery, but nothing was started");
+            _reloadState = new ReloadState(ReloadReason.Unknown, new List<string>());
+        }
+
+        _reloadState._recoveryReloadInfo = new RecoveryInfo(ex);
+    }
 	
     public enum ReloadReason
     {
@@ -52,5 +63,10 @@ public class ResourceLoadStateTracker
     private class RecoveryInfo
     {
         private readonly Exception _exception;
+
+        public RecoveryInfo(Exception exception)
+        {
+            _exception = exception;
+        }
     }
 }

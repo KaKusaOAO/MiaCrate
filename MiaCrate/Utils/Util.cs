@@ -2,15 +2,19 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using MiaCrate.Data.Codecs;
+using MiaCrate.Extensions;
+using Mochi.Utils;
 
 namespace MiaCrate;
 
-public static class Util
+public static partial class Util
 {
     public static INanoTimeSource TimeSource { get; set; } = INanoTimeSource.Create(() => NanoTime);
     public static long NanoTime => 100 * Stopwatch.GetTimestamp();
     public static long MillisTime => NanoTime / 1000000L;
     public static long EpochMillis => DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+    public static IExecutor BackgroundExecutor { get; } = new TaskExecutor();
 
     public static long GetNanos() => TimeSource.GetNanos();
     public static long GetMillis() => GetNanos() / 1000000L;
@@ -73,15 +77,19 @@ public static class Util
         return x == 0 ? 32 + NumberOfTrailingZeros((uint) (l >>> 32)) : NumberOfTrailingZeros(x);
     }
 
+    public static Task<List<T>> Sequence<T>(List<Task<T>> list)
+    {
+        if (!list.Any()) return Task.FromResult(new List<T>());
+        return list.Count == 1
+            ? list.First().ThenApplyAsync(t => new List<T> {t})
+            : Task.WhenAll(list).ThenApplyAsync(t => t.ToList());
+    }
+
     public static Task<List<T>> SequenceFailFast<T>(List<Task<T>> list)
     {
         var source = new TaskCompletionSource<List<T>>();
-        FallibleSequence(list, source.SetException).ContinueWith(task =>
-        {
-            if (task.IsFaulted) source.SetException(task.Exception!.InnerExceptions);
-            if (task.IsCompleted) source.SetResult(task.Result);
-        });
-        return source.Task;
+        return FallibleSequence(list, source.SetException)
+            .ApplyToEitherAsync(source.Task, t => t);
     }
 
     public static Task<List<T>> FallibleSequence<T>(List<Task<T>> list, Action<Exception> handler)
@@ -92,24 +100,25 @@ public static class Util
         {
             var i = list2.Count;
             list2.Add(default!);
-            wait[i] = Task.Run(async () =>
+            wait[i] = task.ContinueWith(t =>
             {
-                try
+                if (t.IsFaulted)
                 {
-                    var result = await task;
-                    list2[i] = result;
+                    var ex = t.Exception!;
+                    var exceptions = ex.InnerExceptions;
+                    if (exceptions.Count == 1)
+                        handler(exceptions.First());
+                    else
+                        handler(ex);
                 }
-                catch (Exception ex)
-                {
-                    handler(ex);
-                }
+                else list2[i] = t.Result;
             });
         }
 
-        return Task.WhenAll(wait).ContinueWith(_ => list2);
+        return Task.WhenAll(wait).ThenApplyAsync(() => list2);
     }
 
-    public static IExecutor BackgroundExecutor { get; } = new TaskExecutor();
+    public static int LowestOneBit(int i) => i & -i;
 
     public static IDataResult<List<T>> FixedSize<T>(List<T> list, int size)
     {
@@ -132,12 +141,34 @@ public static class Util
 
         private async Task RunEventLoopAsync()
         {
-            await Task.Yield();
-            SpinWait.SpinUntil(() => _queue.Any());
-            while (_queue.TryDequeue(out var runnable))
+            while (true)
             {
-                runnable.Run();
+                await Task.Yield();
+                IRunnable runnable = null!;
+                SpinWait.SpinUntil(() => _queue.TryDequeue(out runnable));
+
+                void Run()
+                {
+                    try
+                    {
+                        runnable.Run();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"--> Unhandled exception in: {runnable}");
+                        Logger.Error(ex);
+                    }
+                }
+
+                Run();
+                
+                while (_queue.TryDequeue(out runnable))
+                {
+                    Run();
+                }
             }
+            
+            // ReSharper disable once FunctionNeverReturns
         }
 
         public void Execute(IRunnable runnable)

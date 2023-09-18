@@ -9,7 +9,7 @@ public interface IMapLike<T> : IMapLike
 {
     T? this[T key] { get; }
     T? this[string key] { get; }
-    IEnumerable<(T Key, T Value)> Entries { get; }
+    IEnumerable<IPair<T, T>> Entries { get; }
 }
 
 public static class MapLike
@@ -38,7 +38,7 @@ public static class MapLike
             }
         }
 
-        public IEnumerable<(T Key, T Value)> Entries => _dict.Select(e => (e.Key, e.Value));
+        public IEnumerable<IPair<T, T>> Entries => _dict.Select(e => Pair.Of(e.Key, e.Value));
         public override string ToString() => $"MapLike[{_dict}]";
     }
 }

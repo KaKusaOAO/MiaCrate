@@ -4,10 +4,7 @@ using System.Text.RegularExpressions;
 namespace MiaCrate.Client.Preprocessor;
 
 public abstract partial class GlslPreprocessor
-{    
-    [StringSyntax("Regex")]
-    private const string BackslashH = "[ \t\xA0\u1680\u180e\u2000-\u200a\u202f\u205f\u3000]";
-
+{
     [StringSyntax("Regex")]
     private const string RegexMojImportPattern =
         "(#(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|[ \t\xA0\u1680\u180e\u2000-\u200a\u202f\u205f\u3000])*moj_import(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|[ \t\xA0\u1680\u180e\u2000-\u200a\u202f\u205f\u3000])*(?:\"(.*)\"|<(.*)>))";
@@ -18,7 +15,7 @@ public abstract partial class GlslPreprocessor
 
     [StringSyntax("Regex")]
     private const string RegexEndsWithWhitespacePattern =
-        "(?:^|\\v)(?:\\s|/\\*(?:[^*]|\\*+[^*/])*\\*+/|(//[^\\v]*))*\\z";
+        "(?:^|[\n\x0B\f\r\x85\u2028\u2029])(?:[ \t\n\x0B\f\r]|/\\*(?:[^*]|\\*+[^*/])*\\*+/|(//[^[\n\x0B\f\r\x85\u2028\u2029]]*))*\\z";
 
     private static readonly Regex _regexMojImport = GenerateMojImportRegex();
     private static readonly Regex _regexVersion = GenerateVersionRegex();
@@ -156,10 +153,10 @@ public abstract partial class GlslPreprocessor
         public int SourceId { get; set; }
     };
 
-    [GeneratedRegex("(#(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|[ \t  ᠎ -   　])*moj_import(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|[ \t  ᠎ -   　])*(?:\"(.*)\"|<(.*)>))")]
+    [GeneratedRegex(RegexMojImportPattern)]
     private static partial Regex GenerateMojImportRegex();
-    [GeneratedRegex("(#(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|[ \t  ᠎ -   　])*version(?:/\\*(?:[^*]|\\*+[^*/])*\\*+/|[ \t  ᠎ -   　])*(\\d+))\\b")]
+    [GeneratedRegex(RegexVersionPattern)]
     private static partial Regex GenerateVersionRegex();
-    [GeneratedRegex("(?:^|\\v)(?:\\s|/\\*(?:[^*]|\\*+[^*/])*\\*+/|(//[^\\v]*))*\\z")]
+    [GeneratedRegex(RegexEndsWithWhitespacePattern)]
     private static partial Regex GenerateEndsWithWhitespaceRegex();
 }

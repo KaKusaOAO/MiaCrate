@@ -10,16 +10,19 @@ using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Models;
 using MiaCrate.Client.Pipeline;
 using MiaCrate.Client.Platform;
+using MiaCrate.Client.Realms;
 using MiaCrate.Client.Resources;
 using MiaCrate.Client.Sounds;
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.UI;
+using MiaCrate.Client.UI.Screens;
 using MiaCrate.Client.Utils;
 using MiaCrate.Data;
 using MiaCrate.Resources;
 using MiaCrate.World.Entities;
 using Mochi.Texts;
 using Mochi.Utils;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 using ClientPackSource = MiaCrate.Client.Resources.ClientPackSource;
 using Component = MiaCrate.Texts.Component;
@@ -53,7 +56,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 
 	// public readonly ParticleEngine particleEngine;
 	// private readonly SearchRegistry _searchRegistry = new SearchRegistry();
-	private readonly User _user;
+	public User User { get; }
 	public Font Font { get; }
 	public readonly Font fontFilterFishy;
 
@@ -126,7 +129,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	private long _lastNanoTime = Util.GetNanos();
 	private long _lastTime;
 	private int _frames;
-	public bool noRender;
+	public bool NoRender { get; set; }
 	public Screen? Screen { get; set; }
 	public Overlay? Overlay { get; set; }
 	private bool _connectedToRealms;
@@ -180,9 +183,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         _proxy = config.User.Proxy;
         _authenticationService = new YggdrasilAuthenticationService(_proxy);
         // _minecraftSessionService = _authenticationService.CreateMinecraftSessionService();
-        _user = config.User.User;
-        Logger.Info($"Setting user: {_user.Name}");
-        Logger.Verbose($"(Session ID is {_user.SessionId})");
+        User = config.User.User;
+        Logger.Info($"Setting user: {User.Name}");
+        Logger.Verbose($"(Session ID is {User.SessionId})");
 
         _demo = config.Game.IsDemo;
         _allowsMultiplayer = !config.Game.IsMultiplayerDisabled;
@@ -263,6 +266,10 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         GameRenderer = new GameRenderer(this, EntityRenderDispatcher.ItemInHandRenderer, _resourceManager, _renderBuffers);
         _resourceManager.RegisterReloadListener(GameRenderer.CreateReloadListener());
 
+        var realmsClient = RealmsClient.Create(this);
+        
+        // RenderSystem.SetErrorCallback(...);
+
         WindowOnDisplayResized();
         GameRenderer.PreloadUiShader(VanillaPackResources.AsProvider());
         
@@ -271,15 +278,39 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         _reloadStateTracker.StartReload(ResourceLoadStateTracker.ReloadReason.Initial, list);
   
         // Create a new reload instance and set overlay
+        var cookie = new GameLoadCookie(realmsClient, config.QuickPlay);
         var reloadInstance = _resourceManager
 	        .CreateReload(Util.BackgroundExecutor, this, _resourceReloadInitialTask, list);
-        Overlay = new LoadingOverlay(this, reloadInstance, x =>
+        Overlay = new LoadingOverlay(this, reloadInstance, exception =>
         {
-	        x.IfEmpty(() =>
-	        {
-		        _reloadStateTracker.FinishReload();
-	        });
+	        exception
+		        .IfPresent(ex =>
+		        {
+			        RollbackResourcePacks(ex, cookie);
+		        })
+		        .IfEmpty(() =>
+		        {
+			        _reloadStateTracker.FinishReload();
+		        });
         }, false);
+    }
+
+    private void RollbackResourcePacks(Exception ex, GameLoadCookie? cookie)
+    {
+	    if (_resourcePackRepository.SelectedIds.Count > 1)
+	    {
+		    ClearResourcePacksOnError(ex, null, cookie);
+	    }
+	    else
+	    {
+		    throw ex;
+	    }
+    }
+
+    public void ClearResourcePacksOnError(Exception ex, IComponent? component, GameLoadCookie? cookie)
+    {
+	    Logger.Info("Caught error loading resourcepacks, removing all selected resourcepacks");
+	    _reloadStateTracker.StartRecovery(ex);
     }
 
     private void WindowOnCursorEntered()
@@ -298,6 +329,8 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
     }
 
     protected override Thread RunningThread => _gameThread;
+
+    public float DeltaFrameTime => _timer.TickDelta;
 
     protected override IRunnable WrapRunnable(IRunnable runnable) => runnable;
 
@@ -366,9 +399,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	    Environment.Exit(-1);
     }
 
-    public Task ReloadResourcePacksAsync() => ReloadResourcePacksAsync(false);
+    public Task ReloadResourcePacksAsync() => ReloadResourcePacksAsync(false, null);
     
-    private Task ReloadResourcePacksAsync(bool bl)
+    private Task ReloadResourcePacksAsync(bool bl, GameLoadCookie? cookie)
     {
         if (_pendingReload != null) return _pendingReload.Task;
 
@@ -376,7 +409,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         if (!bl && Overlay is LoadingOverlay)
         {
 	        _pendingReload = source;
-	        return _pendingReload.Task;
+	        return source.Task;
         }
 
         _resourcePackRepository.Reload();
@@ -389,7 +422,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         Overlay = new LoadingOverlay(this, _resourceManager.CreateReload(Util.BackgroundExecutor, this, _resourceReloadInitialTask, list),
 	        x =>
 	        {
-		        x.IfPresent(x =>
+		        x.IfPresent(ex =>
 		        {
 			        if (bl)
 			        {
@@ -397,11 +430,12 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 			        }
 			        else
 			        {
-				        // TODO: Rollback
+				        RollbackResourcePacks(ex, cookie);
 			        }
 		        }).IfEmpty(() =>
 		        {
-					source.SetResult();
+			        _reloadStateTracker.FinishReload();
+			        source.SetResult();
 		        });
 	        }, true);
         return source.Task;
@@ -424,10 +458,8 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         {
 	        var source = _pendingReload;
 	        _pendingReload = null;
-	        ReloadResourcePacksAsync().ContinueWith(_ =>
-	        {
-		        source.SetResult();
-	        });
+	        ReloadResourcePacksAsync()
+		        .ThenRunAsync(() => source.SetResult());
         }
 
         while (_progressTasks.TryDequeue(out var action))
@@ -447,10 +479,22 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         }
         
         Window.SetErrorSection("Render");
+        
+        // _profiler.Push("render");
         var m = Util.GetNanos();
         bool bl2;
+
+        RenderSystem.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit, OnMacOs);
+        _mainRenderTarget.BindWrite(true);
+        RenderSystem.EnableCull();
+        
+        if (!NoRender)
+        {
+	        GameRenderer.Render(_pause ? _pausePartialTick : _timer.PartialTick, l, bl);
+        }
         
         
+        // _profiler.PopPush("updateDisplay");
         Window.UpdateDisplay();
         
         Window.SetErrorSection("Post render");
@@ -524,4 +568,6 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 		    if (_delayedCrash == null) Environment.Exit(0);
 	    }
     }
+
+    public record GameLoadCookie(RealmsClient RealmsClient, QuickPlayData QuickPlayData);
 }

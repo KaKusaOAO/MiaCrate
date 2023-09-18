@@ -35,14 +35,14 @@ public class ReloadableResourceManager : IDisposableResourceManager
 
     public List<Resource> GetResourceStack(ResourceLocation location) => _resources.GetResourceStack(location);
 
-    public Dictionary<ResourceLocation, Resource> ListResources(string str, Predicate<ResourceLocation> predicate) => 
-        _resources.ListResources(str, predicate);
+    public Dictionary<ResourceLocation, Resource> ListResources(string path, Predicate<ResourceLocation> predicate) => 
+        _resources.ListResources(path, predicate);
 
-    public Dictionary<ResourceLocation, List<Resource>> ListResourceStacks(string str,
+    public Dictionary<ResourceLocation, List<Resource>> ListResourceStacks(string path,
         Predicate<ResourceLocation> predicate) =>
-        _resources.ListResourceStacks(str, predicate);
+        _resources.ListResourceStacks(path, predicate);
 
-    public List<IPackResources> Packs => _resources.Packs;
+    public IEnumerable<IPackResources> Packs => _resources.Packs;
     
     public void Dispose()
     {

@@ -10,4 +10,9 @@ public class BlockEntityRenderDispatcher : IResourceManagerReloadListener
     {
         
     }
+
+    public void OnResourceManagerReload(IResourceManager manager)
+    {
+        throw new NotImplementedException();
+    }
 }

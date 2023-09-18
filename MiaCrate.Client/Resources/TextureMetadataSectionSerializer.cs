@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using MiaCrate.Resources;
 
-namespace MiaCrate.Client.Graphics;
+namespace MiaCrate.Client.Resources;
 
 public class TextureMetadataSectionSerializer : IMetadataSectionSerializer<TextureMetadataSection>
 {

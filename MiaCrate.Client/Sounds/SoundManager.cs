@@ -16,13 +16,12 @@ public class SoundManager : SimplePreparableReloadListener<SoundManager.Preparat
 
     protected override Preparations Prepare(IResourceManager manager, IProfilerFiller profiler)
     {
-        var preparations = new Preparations();
-        throw new NotImplementedException();
+        return new Preparations();
     }
 
     protected override void Apply(Preparations obj, IResourceManager manager, IProfilerFiller profiler)
     {
-        throw new NotImplementedException();
+        
     }
     
     public class Preparations

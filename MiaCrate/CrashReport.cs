@@ -59,12 +59,13 @@ public class CrashReport
             stackTrace = wrapped.InnerException!.StackTrace;
         }
 
-        var sb = new StringBuilder();
-        sb.Append(exType.FullName);
-        sb.Append(": ");
-        sb.AppendLine(ex.Message);
-        sb.AppendLine(stackTrace);
-        return sb.ToString();
+        // var sb = new StringBuilder();
+        // sb.Append(exType.FullName);
+        // sb.Append(": ");
+        // sb.AppendLine(ex.Message);
+        // sb.AppendLine(stackTrace);
+        // return sb.ToString();
+        return ex.ToString();
     }
 
     public string GetFriendlyReport()
