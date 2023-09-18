@@ -1,10 +1,14 @@
 using MiaCrate.Client.Systems;
 using MiaCrate.Resources;
+using MiaCrate.World.Inventories;
 
 namespace MiaCrate.Client.Graphics;
 
 public class TextureAtlas : AbstractTexture, IDumpable, ITickable
 {
+    public static readonly ResourceLocation LocationBlocks = InventoryMenu.BlockAtlas;
+    public static readonly ResourceLocation LocationParticles = new("textures/atlas/particles.png");
+    
     public ResourceLocation Location { get; }
     public int MaxSupportedTextureSize { get; }
     public int Width { get; private set; }

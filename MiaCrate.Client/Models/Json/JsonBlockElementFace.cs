@@ -11,8 +11,14 @@ public class JsonBlockElementFace
     public Direction? CullFace { get; set; }
 
     [JsonPropertyName("tintindex")] 
-    public int TintIndex { get; set; } = -1;
+    public int TintIndex { get; set; } = BlockElementFace.NoTint;
 
     [JsonPropertyName("texture")] 
     public string Texture { get; set; }
+
+    [JsonPropertyName("uv")]
+    public List<float>? Uv { get; set; }
+    
+    [JsonPropertyName("rotation")]
+    public int Rotation { get; set; }
 }

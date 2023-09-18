@@ -11,8 +11,11 @@ public class JsonBlockModel
     [JsonPropertyName("elements")] 
     public List<JsonBlockElement> Elements { get; set; } = new();
 
+    [JsonPropertyName("textures")]
+    public Dictionary<string, string> Textures { get; set; } = new();
+
     [JsonPropertyName("ambientocclusion")] 
-    public bool AmbientOcclusion { get; set; }
+    public bool? AmbientOcclusion { get; set; }
 
     [JsonPropertyName("display")]
     public JsonItemTransforms Display { get; set; } = new();

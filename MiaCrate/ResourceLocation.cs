@@ -1,4 +1,5 @@
-﻿using MiaCrate.Data;
+﻿using System.Diagnostics.CodeAnalysis;
+using MiaCrate.Data;
 using MiaCrate.Data.Codecs;
 
 namespace MiaCrate;
@@ -120,6 +121,20 @@ public class ResourceLocation : IComparable<ResourceLocation>
     
     public ResourceLocation WithSuffix(string suffix) =>
         WithPath(Path + suffix);
+
+    public static bool TryParse(string str, [MaybeNullWhen(false)] out ResourceLocation result)
+    {
+        try
+        {
+            result = new ResourceLocation(str);
+            return true;
+        }
+        catch (ResourceLocationException)
+        {
+            result = null;
+            return false;
+        }
+    }
 
     // ReSharper disable once ClassNeverInstantiated.Global
     protected record Dummy;

@@ -29,6 +29,8 @@ public sealed class Axis : IEnumLike<Axis>, IStringRepresentable
 
     public static Axis[] GetAxes() => _values.Values.ToArray();
 
+    public static Axis? ByName(string name) => Codec.ByName(name);
+
     public bool Test(Direction? direction) => direction != null && direction.Axis == this;
 
     public int Choose(int x, int y, int z)

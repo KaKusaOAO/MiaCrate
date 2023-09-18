@@ -3,6 +3,7 @@
 using System.Net;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using CommandLine;
 using MiaCrate;
@@ -69,9 +70,23 @@ internal static class Program
         var profileProps = JsonSerializer.Deserialize<PropertyMap>(options.ProfileProperties)!;
         var gameDir = options.GameDirectory;
 
-        options.AssetsDirectory = Path.Combine(
+        var appData = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            ".minecraft", 
+            ".minecraft"
+        );
+        
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            appData = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Library",
+                "Application Support",
+                "minecraft"
+            );
+        }
+        
+        options.AssetsDirectory = Path.Combine(
+            appData,
             "assets/"
         );
         
