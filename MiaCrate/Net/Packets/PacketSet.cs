@@ -1,24 +1,25 @@
+using System.Diagnostics.CodeAnalysis;
 using Mochi.IO;
 
 namespace MiaCrate.Net.Packets;
 
 public class PacketSet
 {
-    private Dictionary<int, Type> _packetMap = new();
-    private Dictionary<Type, int> _packetIdMap = new();
-    private Dictionary<int, Func<BufferReader, IPacket>> _deserializers = new();
+    private readonly Dictionary<int, Type> _packetMap = new();
+    private readonly Dictionary<Type, int> _packetIdMap = new();
+    private readonly Dictionary<int, Func<BufferReader, IPacket>> _deserializers = new();
 
-    [Obsolete("Using this is not supported on some platforms.")]
-    public PacketSet AddPacket<T>() where T : IPacket => AddPacket(typeof(T));
+    public PacketSet AddPacket
+        <[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]T>() 
+        where T : IPacket => AddPacketAndDefaultDeserializer(typeof(T));
 
     public PacketSet AddPacket<T>(Func<BufferReader, T> deserializer) where T : IPacket
     {
-        AddPacket<T>();
+        AddPacket(typeof(T));
         _deserializers.Add(_packetIdMap[typeof(T)], s => deserializer(s));
         return this;
     }
 
-    [Obsolete("Using this is not supported on some platforms.")]
     public PacketSet AddPacket(Type type)
     {
         if (!typeof(IPacket).IsAssignableFrom(type))
@@ -30,6 +31,21 @@ public class PacketSet
         _packetMap.Add(id, type);
         _packetIdMap.Add(type, id);
         return this;
+    }
+    
+    public PacketSet AddPacketAndDefaultDeserializer(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type)
+    {
+        var set = AddPacket(type);
+        var ctor = type.GetConstructor(new[] { typeof(BufferReader) });
+        if (ctor == null)
+        {
+            throw new NotSupportedException($"The MemoryStream constructor in type {type} is not defined");
+        }
+
+        var id = _packetIdMap[type];
+        _deserializers.Add(id, stream => (IPacket) ctor.Invoke(new object[] { stream }));
+        return set;
     }
 
     public Type GetPacketTypeById(int id)
@@ -44,19 +60,10 @@ public class PacketSet
     
     public Func<BufferReader, IPacket> GetDeserializerById(int id)
     {
-        if (_deserializers.ContainsKey(id))
-        {
-            return _deserializers[id];
-        }
-        
-        var type = GetPacketTypeById(id);
-        var ctor = type.GetConstructor(new[] { typeof(BufferReader) });
-        if (ctor == null)
-        {
-            throw new NotSupportedException($"The MemoryStream constructor in type {type} is not defined");
-        }
+        if (_deserializers.TryGetValue(id, out var byId))
+            return byId;
 
-        return stream => (IPacket) ctor.Invoke(new[] { stream });
+        throw new InvalidOperationException("The deserializer of the type is not registered");
     }
 
     public int GetPacketId(IPacket packet)

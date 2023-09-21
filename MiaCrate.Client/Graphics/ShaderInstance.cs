@@ -59,7 +59,7 @@ public class ShaderInstance : IShader, IDisposable
         try
         {
             using var stream = provider.Open(location);
-            var json = JsonSerializer.Deserialize<JsonObject>(stream)!;
+            var json = JsonNode.Parse(stream)!;
             var vertex = json["vertex"]!.GetValue<string>();
             var fragment = json["fragment"]!.GetValue<string>();
 

@@ -1,22 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.1</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>11</LangVersion>
+        <PublishAot>true</PublishAot>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="CommandLineParser" Version="2.9.1" />
       <PackageReference Include="Mochi.Brigadier" Version="1.1.4" />
       <PackageReference Include="Mochi.Nbt" Version="1.1.4" />
+      <PackageReference Include="OpenTK.Mathematics" Version="4.8.0" />
       <PackageReference Include="System.Text.Json" Version="7.0.2" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\MiaCrate.Data\MiaCrate.Data.csproj" />
       <ProjectReference Include="..\MiaCrate.Resources\MiaCrate.Resources.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Net\Packets\Common\" />
+      <Folder Include="Net\Packets\Configure\" />
     </ItemGroup>
 
 </Project>

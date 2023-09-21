@@ -1,3 +1,4 @@
+using MiaCrate.Core;
 using MiaCrate.World.Entities;
 using MiaCrate.World.Phys;
 
@@ -26,6 +27,11 @@ public abstract class EntityRenderer<T> : IEntityRenderer<T> where T : Entity
     }
 
     public Vec3 GetRenderOffset(T entity, float f)
+    {
+        throw new NotImplementedException();
+    }
+
+    protected virtual int GetBlockLightLevel(T entity, BlockPos pos)
     {
         throw new NotImplementedException();
     }

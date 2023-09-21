@@ -7,14 +7,19 @@ public interface IStateHolder
 {
     public const string NameTag = "Name";
     public const string PropertiesTag = "Properties";
+    
+    public IComparable GetValue(IProperty property);
+    public TProp GetValue<TProp>(IProperty<TProp> property) where TProp : IComparable, IComparable<TProp> =>
+        (TProp) GetValue((IProperty) property);
 }
 
 public interface IStateHolderState<T> : IStateHolder
 {
     public Dictionary<IProperty, IComparable> Values { get; }
 
-    public T SetValue<TProp>(IProperty<TProp> property, TProp value) where TProp : IComparable, IComparable<TProp>;
-    public TProp GetValue<TProp>(IProperty<TProp> property) where TProp : IComparable, IComparable<TProp>;
+    public T SetValue(IProperty property, IComparable value);
+    public T SetValue<TProp>(IProperty<TProp> property, TProp value) where TProp : IComparable, IComparable<TProp> =>
+        SetValue((IProperty) property, value);
     public void PopulateNeighbors(Dictionary<Dictionary<IProperty, IComparable>, T> map);
 }
 
@@ -44,12 +49,12 @@ public class StateHolder<TOwner, TState> : IStateHolder<TOwner, TState> where TS
         Owner = owner;
         Values = values;
     }
+    
+    public IComparable GetValue(IProperty property) =>
+        Values.GetValueOrDefault(property)! ??
+        throw new ArgumentException($"Cannot get property {property} as it does not exist in {Owner}");
 
-    public TProp GetValue<TProp>(IProperty<TProp> property) where TProp : IComparable, IComparable<TProp> =>
-        (TProp) Values.GetValueOrDefault(property) ??
-            throw new ArgumentException($"Cannot get property {property} as it does not exist in {Owner}");
-
-    public TState SetValue<TProp>(IProperty<TProp> property, TProp value) where TProp : IComparable, IComparable<TProp>
+    public TState SetValue(IProperty property, IComparable value)
     {
         var oldValue = Values.GetValueOrDefault(property) ?? 
                        throw new ArgumentException($"Cannot set property {property} as it does not exist in {Owner}");

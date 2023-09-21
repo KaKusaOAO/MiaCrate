@@ -54,7 +54,7 @@ public class PropertyMap : Multimap<string, Property>
                 obj["signature"] = property.Signature;
             }
             
-            result.Add(obj);
+            result.Add((JsonNode) obj);
         }
 
         return result;

@@ -5,5 +5,6 @@ public enum PacketState
     Handshake,
     Status,
     Login,
-    Play
+    Play,
+    Configuration
 }

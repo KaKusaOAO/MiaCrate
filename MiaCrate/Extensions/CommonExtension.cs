@@ -50,6 +50,8 @@ public static class CommonExtension
 
     public static IEnumerable<T> AsEnumerable<T>(this IOptional<T> source) => new OptionalEnumerable<T>(source);
 
+    public static Predicate<T> Negate<T>(this Predicate<T> source) => o => !source(o);
+
     private class OptionalEnumerable<T> : IEnumerable<T>
     {
         private readonly IOptional<T> _optional;

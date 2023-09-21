@@ -33,6 +33,10 @@ public static class Codec
 
     public static IMapCodec<IOptional<T>> OptionalField<T>(string name, ICodec<T> elementCodec) =>
         new OptionalFieldCodec<T>(name, elementCodec);
+    
+    public static IMapCodec<IPair<TFirst, TSecond>> MapPair<TFirst, TSecond>
+        (IMapCodec<TFirst> first, IMapCodec<TSecond> second) =>
+        new PairMapCodec<TFirst, TSecond>(first, second);
 
     private class CompositionCodec<T> : ICodec<T>
     {

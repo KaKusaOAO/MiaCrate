@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using MiaCrate.World.Entities;
 
 namespace MiaCrate.Client.Graphics;
@@ -11,7 +12,9 @@ public static partial class EntityRenderers
         _providers[type] = IEntityRendererProvider.Of(provider);
     }
 
-    private static void Register<TEntity, TRenderer>(IEntityType<TEntity> type) 
+    private static void Register
+        <TEntity, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TRenderer>(
+        IEntityType<TEntity> type) 
         where TEntity : Entity where TRenderer : EntityRenderer<TEntity>
     {
         var ctor = typeof(TRenderer).GetConstructor(new[] {typeof(EntityRendererContext)});

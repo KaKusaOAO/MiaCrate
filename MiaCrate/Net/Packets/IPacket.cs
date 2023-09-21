@@ -6,6 +6,7 @@ public interface IPacket
 {
     public void Write(BufferWriter writer);
     public void Handle(IPacketHandler handler);
+    public ConnectionProtocol? NextProtocol => null;
 }
 
 public interface IPacket<in T> : IPacket where T: IPacketHandler

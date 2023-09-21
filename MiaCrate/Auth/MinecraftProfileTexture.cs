@@ -10,7 +10,7 @@ public class MinecraftProfileTexture
         Skin, Cape, Elytra
     }
 
-    public static readonly int ProfileTextureCount = Enum.GetValues(typeof(TextureType)).Length;
+    public static readonly int ProfileTextureCount = Enum.GetValues<TextureType>().Length;
 
     public MinecraftProfileTexture(string url, Dictionary<string, string>? metadata)
     {

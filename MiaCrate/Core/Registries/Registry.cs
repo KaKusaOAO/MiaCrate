@@ -1,4 +1,5 @@
-﻿using MiaCrate.Resources;
+﻿using JetBrains.Annotations;
+using MiaCrate.Resources;
 using MiaCrate.World.Entities;
 using MiaCrate.World.Entities.AI;
 using MiaCrate.Extensions;

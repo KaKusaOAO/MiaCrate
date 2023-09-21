@@ -49,6 +49,9 @@ public class AtlasSet : IDisposable
         private readonly TextureAtlas _atlas;
         private readonly SpriteLoader.Preparations _preparations;
 
+        public TextureAtlasSprite Missing => _preparations.Missing;
+        public Task ReadyForUpload => _preparations.ReadyForUpload;
+
         public StitchResult(TextureAtlas atlas, SpriteLoader.Preparations preparations)
         {
             _atlas = atlas;
@@ -59,5 +62,8 @@ public class AtlasSet : IDisposable
         {
             
         }
+
+        public TextureAtlasSprite? GetSprite(ResourceLocation location) => 
+            _preparations.Regions.GetValueOrDefault(location);
     }
 }

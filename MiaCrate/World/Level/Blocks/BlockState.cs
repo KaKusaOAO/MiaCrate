@@ -8,6 +8,9 @@ public class BlockState : BlockBehavior.BlockStateBase
         : base(owner, values, propertiesCodec)
     {
     }
-    
+
+    public static StateDefinition<Block, BlockState>.Factory CreateFactory() =>
+        (owner, map, codec) => new BlockState(owner, map, codec);
+
     protected override BlockState AsState() => this;
 }

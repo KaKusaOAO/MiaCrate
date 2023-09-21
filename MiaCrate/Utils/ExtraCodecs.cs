@@ -24,7 +24,7 @@ public static class ExtraCodecs
     {
         try
         {
-            var node = JsonSerializer.Deserialize<JsonNode>(str);
+            var node = JsonNode.Parse(str);
             return DataResult.Success(Mochi.Texts.Component.FromJson(node));
         }
         catch (Exception ex)
@@ -36,7 +36,7 @@ public static class ExtraCodecs
         try
         {
             var node = comp.ToJson();
-            return DataResult.Success(JsonSerializer.Serialize(node));
+            return DataResult.Success(node.ToJsonString());
         }
         catch (Exception ex)
         {

@@ -38,20 +38,7 @@ public class PlayerConnectionBase
     private PacketState _currentState;
 
     private readonly Dictionary<Type, List<Action<IPacket>>> _typedPacketHandlers = new();
-
-    public void AddTypedPacketHandler<T>(Action<T> handler) where T : IPacket
-    {
-        var type = typeof(T);
-        var list = _typedPacketHandlers.ComputeIfAbsent(type, _ => new List<Action<IPacket>>());
-        list.Add(p => handler((T)p));
-    }
-
-    public void ClearTypedPacketHandlers() => 
-        _typedPacketHandlers.Clear();
-
-    public void ClearTypedPacketHandlers<T>() where T : IPacket => 
-        _typedPacketHandlers.Remove(typeof(T));
-
+    
     public PlayerConnectionBase(IWebSocket webSocket, PacketFlow receivingFlow)
     {
         WebSocket = webSocket;
@@ -70,6 +57,19 @@ public class PlayerConnectionBase
         IsConnected = true;
     }
 
+    public void AddTypedPacketHandler<T>(Action<T> handler) where T : IPacket
+    {
+        var type = typeof(T);
+        var list = _typedPacketHandlers.ComputeIfAbsent(type, _ => new List<Action<IPacket>>());
+        list.Add(p => handler((T)p));
+    }
+
+    public void ClearTypedPacketHandlers() => 
+        _typedPacketHandlers.Clear();
+
+    public void ClearTypedPacketHandlers<T>() where T : IPacket => 
+        _typedPacketHandlers.Remove(typeof(T));
+
     private void RawPacketIOOnOnPacketReceived(List<MemoryStream> packets)
     {
         foreach (var stream in packets.Select(s => new BufferReader(s)))
@@ -86,6 +86,9 @@ public class PlayerConnectionBase
                 if (Handlers.TryGetValue(CurrentState, out var handler))
                 {
                     packet.Handle(handler);
+                    
+                    var next = packet.NextProtocol;
+                    if (next != null) CurrentState = next.PacketState;
                 }
 
                 var type = packet.GetType();

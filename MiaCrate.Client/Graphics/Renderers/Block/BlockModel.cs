@@ -1,10 +1,11 @@
 ﻿using System.Text.Json;
-using MiaCrate.Client.Graphics;
+using MiaCrate.Client.Models;
 using MiaCrate.Client.Models.Json;
+using MiaCrate.Client.Resources;
 using MiaCrate.Data;
 using Mochi.Utils;
 
-namespace MiaCrate.Client.Models;
+namespace MiaCrate.Client.Graphics;
 
 public class BlockModel : IUnbakedModel
 {
@@ -28,6 +29,8 @@ public class BlockModel : IUnbakedModel
     public bool IsResolved => ParentLocation != null || Parent is { IsResolved: true };
     public List<ItemOverride> Overrides { get; }
     public BlockModel RootModel => Parent?.RootModel ?? this;
+
+    public IEnumerable<ResourceLocation> Dependencies => throw new NotImplementedException();
 
     public BlockModel(ResourceLocation? parentLocation, List<BlockElement> elements,
         Dictionary<string, IEither<Material, string>> textureMap, bool? hasAmbientOcclusion, GuiLightType? guiLight,
@@ -114,7 +117,13 @@ public class BlockModel : IUnbakedModel
     
     public static BlockModel FromStream(Stream stream)
     {
-        var json = JsonSerializer.Deserialize<JsonBlockModel>(stream)!;
+        var json = JsonSerializer.Deserialize(stream, JsonBlockModelContext.Default.JsonBlockModel)!;
+        return FromJson(json);
+    }
+
+    public static BlockModel FromString(string str)
+    {
+        var json = JsonSerializer.Deserialize(str, JsonBlockModelContext.Default.JsonBlockModel)!;
         return FromJson(json);
     }
 
@@ -137,8 +146,10 @@ public class BlockModel : IUnbakedModel
             _values[Ordinal] = this;
         }
 
-        public static GuiLightType GetByName(string name)
+        public static GuiLightType? GetByName(string? name)
         {
+            if (name == null) return null;
+            
             foreach (var type in _values.Values.Where(t => t._name == name))
             {
                 return type;
@@ -148,5 +159,15 @@ public class BlockModel : IUnbakedModel
         }
 
         public bool LightLikeBlock => this == Side;
+    }
+
+    public void ResolveParents(Func<ResourceLocation, IUnbakedModel> func)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IBakedModel? Bake(IModelBaker modelBaker, Func<Material, TextureAtlasSprite> func, IModelState modelState, ResourceLocation location)
+    {
+        throw new NotImplementedException();
     }
 }

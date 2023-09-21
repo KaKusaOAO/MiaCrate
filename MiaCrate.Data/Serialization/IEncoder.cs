@@ -68,6 +68,7 @@ public static class Encoder
     {
         public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => Enumerable.Empty<T1>();
         public override IRecordBuilder<TOut> Encode<TOut>(T input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix) => prefix;
+        public override string ToString() => "EmptyEncoder";
     }
 
     private class ErrorEncoder<T> : IEncoder<T>

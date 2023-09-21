@@ -18,7 +18,7 @@ public interface IStateDefinitionOwner<T> : IStateDefinition
 public interface IStateDefinitionState<T> : IStateDefinition where T : IStateHolderState<T>
 {
     public List<T> PossibleStates { get; }
-    public T Any => PossibleStates.First();
+    public T Any() => PossibleStates.First();
 }
 
 public interface IStateDefinition<TOwner, TState> : IStateDefinitionOwner<TOwner>, IStateDefinitionState<TState> where TState : IStateHolder<TOwner, TState>
@@ -58,18 +58,16 @@ public class StateDefinition<TOwner, TState> : StateDefinitionBase, IStateDefini
 
         var map = new Dictionary<Dictionary<IProperty, IComparable>, TState>();
         var list = new List<TState>();
-        var stream = Enumerable.Empty<List<IPair<IProperty, IComparable>>>();
+        IEnumerable<List<IPair<IProperty, IComparable>>> stream = new [] { new List<IPair<IProperty, IComparable>>() };
 
         foreach (var property in _propertiesByName.Values)
         {
             stream = stream.SelectMany(l => property.PossibleValues.Select(c =>
-            {
-                var result = new List<IPair<IProperty, IComparable>>(l)
+                new List<IPair<IProperty, IComparable>>(l)
                 {
                     Pair.Of(property, c)
-                };
-                return result;
-            }));
+                }
+            ));
         }
         
         foreach (var pairs in stream.ToList())
@@ -92,7 +90,11 @@ public class StateDefinition<TOwner, TState> : StateDefinitionBase, IStateDefini
     private static IMapCodec<TState> AppendPropertyCodec(IMapCodec<TState> codec, Func<TState> func, string str,
         IProperty property)
     {
-        throw new NotImplementedException();
+        // TODO: orElseGet
+        return Codec.MapPair(codec, property.ValueCodec.FieldOf(str))
+            .CrossSelect(
+                p => p.First!.SetValue(property, p.Second!.Value),
+                s => Pair.Of(s, property.OfValue(s)));
     }
 
     public override IProperty? GetProperty(string name) => _propertiesByName.GetValueOrDefault(name);

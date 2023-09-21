@@ -46,7 +46,7 @@ public class SpriteSourceList
             try
             {
                 using var stream = resource.Open();
-                var dyn = new Dynamic<JsonNode>(JsonOps.Instance, JsonSerializer.Deserialize<JsonNode>(stream));
+                var dyn = new Dynamic<JsonNode>(JsonOps.Instance, JsonNode.Parse(stream));
                 list.AddRange(SpriteSources.FileCodec.Parse(dyn)
                     .GetOrThrow(false, s => Logger.Error(s))
                 );

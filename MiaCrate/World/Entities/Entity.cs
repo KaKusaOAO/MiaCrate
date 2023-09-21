@@ -1,16 +1,21 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using MiaCrate.Core;
 using MiaCrate.Net.Data;
 
 namespace MiaCrate.World.Entities;
 
-public abstract class Entity
+public abstract class Entity : IEntityAccess
 {
-    protected static readonly IEntityDataAccessor<byte> DataSharedFlags =
+    protected static IEntityDataAccessor<byte> DataSharedFlags { get; } =
         SynchedEntityData.DefineId<Entity, byte>(EntityDataSerializers.Byte);
-
-    private static readonly IEntityDataAccessor<int> _dataAirSupply =
+    private static IEntityDataAccessor<int> DataAirSupply { get; } =
         SynchedEntityData.DefineId<Entity, int>(EntityDataSerializers.Int);
+    
+    public int Id => throw new NotImplementedException();
 
+    public Uuid Uuid { get; set; }
+    public BlockPos BlockPosition => throw new NotImplementedException();
+    public Level Level { get; }
     protected SynchedEntityData EntityData { get; }
 
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
@@ -21,12 +26,9 @@ public abstract class Entity
         // Synched data
         EntityData = new SynchedEntityData();
         EntityData.Define(DataSharedFlags, (byte)0);
-        EntityData.Define(_dataAirSupply, MaxAirSupply);
+        EntityData.Define(DataAirSupply, MaxAirSupply);
         DefineSynchedData();
     }
-    
-    public Guid Uuid { get; set; }
-    public Level Level { get; }
     
     protected abstract void DefineSynchedData();
 

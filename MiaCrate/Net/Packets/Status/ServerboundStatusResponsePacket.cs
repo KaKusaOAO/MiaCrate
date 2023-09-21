@@ -14,12 +14,12 @@ public class ServerboundStatusResponsePacket : IPacket<IClientStatusPacketHandle
 
     public ServerboundStatusResponsePacket(BufferReader stream)
     {
-        Status = JsonSerializer.Deserialize<ServerStatus>(stream.ReadUtf8String())!;
+        Status = JsonSerializer.Deserialize(stream.ReadUtf8String(), JsonServerStatusContext.Default.ServerStatus)!;
     }
     
     public void Write(BufferWriter writer)
     {
-        writer.WriteUtf8String(JsonSerializer.Serialize(Status));
+        writer.WriteUtf8String(JsonSerializer.Serialize(Status, JsonServerStatusContext.Default.ServerStatus));
     }
 
     public void Handle(IClientStatusPacketHandler handler) => handler.HandleStatusResponse(this);

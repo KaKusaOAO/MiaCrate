@@ -106,6 +106,7 @@ public static class Decoder
         public IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => Enumerable.Empty<T1>();
 
         public IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) => DataResult.Success(_func());
+        public override string ToString() => $"UnitDecoder[{_func()}]";
     }
 
     private class ErrorDecoder<T> : IDecoder<T>

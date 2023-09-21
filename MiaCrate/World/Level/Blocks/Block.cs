@@ -1,21 +1,41 @@
 ﻿using MiaCrate.Core;
 using MiaCrate.World.Items;
+using Mochi.Utils;
 
 namespace MiaCrate.World.Blocks;
 
-public partial class Block : BlockBehavior, IItemLike
+public partial class Block : BlockBehavior, IItemLike, IRegistryEntry<Block>
 {
     public const float Indestructible = -1f;
     public const float Instant = 0f;
     public const int UpdateLimit = 512;
     public const int CacheSize = 2048;
 
-    private readonly IReferenceHolder<Block> _builtInRegistryHolder;
+    public IReferenceHolder<Block> BuiltinRegistryHolder { get; }
 
-    
+    public IStateDefinition<Block, BlockState> StateDefinition { get; }
+    public BlockState DefaultBlockState { get; protected set; }
+
     public Block(BlockProperties properties) : base(properties)
     {
-        _builtInRegistryHolder = BuiltinRegistries.Block.CreateIntrusiveHolder(this);
+        BuiltinRegistryHolder = BuiltinRegistries.Block.CreateIntrusiveHolder(this);
+
+        var builder = new StateDefinition<Block, BlockState>.Builder(this);
+        CreateBlockStateDefinition(builder);
+        StateDefinition = builder.Create(b => b.DefaultBlockState, BlockState.CreateFactory());
+        DefaultBlockState = StateDefinition.Any();
+
+        if (!SharedConstants.IsRunningInIde) return;
+        
+        var name = GetType().Name;
+        if (name.EndsWith("Block")) return;
+        
+        Logger.Error($"Block classes should end with Block and {name} doesn't.");
+    }
+
+    protected virtual void CreateBlockStateDefinition(StateDefinition<Block, BlockState>.Builder builder)
+    {
+        
     }
 
     public Item AsItem()

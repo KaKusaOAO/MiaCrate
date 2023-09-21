@@ -53,3 +53,10 @@ public class ServerStatus
         public string Id { get; set; }
     }
 }
+
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(ServerStatus))]
+internal partial class JsonServerStatusContext : JsonSerializerContext
+{
+    
+}

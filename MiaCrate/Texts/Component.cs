@@ -55,7 +55,7 @@ public static class Component
     }
 
     public static IMutableComponent FromJson(string json) => 
-        FromJson(JsonSerializer.Deserialize<JsonNode>(json));
+        FromJson(JsonNode.Parse(json));
 
     public static IMutableComponent FromLegacyText(string message)
     {

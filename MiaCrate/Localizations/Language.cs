@@ -54,7 +54,7 @@ public abstract class Language
 
     public static void LoadFromJson(Stream stream, Action<string, string> consumer)
     {
-        var obj = JsonSerializer.Deserialize<JsonObject>(stream)!;
+        var obj = JsonNode.Parse(stream)!.AsObject();
         foreach (var (key, value) in obj)
         {
             var content = _unsupportedFormatRegex.Replace(value!.GetValue<string>(), "%$1s");

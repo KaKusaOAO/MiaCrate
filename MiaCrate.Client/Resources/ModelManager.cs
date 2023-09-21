@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using MiaCrate.Client.Colors;
 using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Models;
+using MiaCrate.Core;
 using MiaCrate.Extensions;
 using MiaCrate.Resources;
 using MiaCrate.World.Blocks;
@@ -72,7 +73,52 @@ public class ModelManager : IPreparableReloadListener, IDisposable
     private ReloadState LoadModels(IProfilerFiller profiler, Dictionary<ResourceLocation, AtlasSet.StitchResult> dict,
         ModelBakery modelBakery)
     {
-        throw new NotImplementedException();
+        profiler.Push("load");
+        
+        // ?
+        
+        profiler.PopPush("baking");
+        
+        var multimap = new Multimap<ResourceLocation, Material>();
+        modelBakery.BakeModels((location, material) =>
+        {
+            var stitchResult = dict[material.AtlasLocation];
+            var textureAtlasSprite = stitchResult.GetSprite(material.Texture);
+            if (textureAtlasSprite != null)
+                return textureAtlasSprite;
+
+            multimap.Add(location, material);
+            return stitchResult.Missing;
+        });
+
+        foreach (var (resourceLocation, materials) in multimap)
+        {
+            var missing = string.Join('\n', materials.Order(Material.Comparer).Select(m => $"    {m.AtlasLocation}:{m.Texture}"));
+            Logger.Warn($"Missing textures in model {resourceLocation}:\n{missing}");
+        }
+        
+        profiler.PopPush("dispatch");
+
+        var dict2 = modelBakery.BakedTopLevelModels;
+        var bakedModel = dict2[ModelBakery.MissingModelLocation];
+
+        var dict3 = new Dictionary<BlockState, IBakedModel>();
+        
+        foreach (var block in BuiltinRegistries.Block)
+        {
+            foreach (var state in block.StateDefinition.PossibleStates)
+            {
+                var location = state.Block.BuiltinRegistryHolder.Key.Location;
+                var model = dict2.GetValueOrDefault(BlockModelShaper.StateToModelLocation(location, state), bakedModel);
+                dict3[state] = model;
+            }
+        }
+
+        var task = Task.WhenAll(dict.Values.Select(r => r.ReadyForUpload));
+        profiler.Pop();
+        profiler.EndTick();
+        
+        return new ReloadState(modelBakery, bakedModel, dict3, dict, task);
     }
 
     private record ReloadState(ModelBakery ModelBakery, IBakedModel MissingModel,
@@ -135,7 +181,7 @@ public class ModelManager : IPreparableReloadListener, IDisposable
                             try
                             {
                                 using var stream = resource.Open();
-                                var node = JsonSerializer.Deserialize<JsonObject>(stream)!;
+                                var node = JsonNode.Parse(stream)!.AsObject();
                                 loaded.Add(new ModelBakery.LoadedJson(resource.SourcePackId, node));
                             }
                             catch (Exception ex)

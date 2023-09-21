@@ -21,7 +21,7 @@ public abstract class AbstractPackResources : IPackResources
         JsonObject obj;
         try
         {
-            obj = JsonSerializer.Deserialize<JsonObject>(stream)!;
+            obj = JsonNode.Parse(stream)!.AsObject();
         }
         catch (Exception ex)
         {

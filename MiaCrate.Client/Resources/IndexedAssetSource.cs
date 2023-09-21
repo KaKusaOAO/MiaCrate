@@ -14,7 +14,7 @@ public class IndexedAssetSource
         var fs = new LinkFileSystem();
         
         using var stream = File.Open(indexFile, FileMode.Open, FileAccess.Read);
-        var payload = JsonSerializer.Deserialize<JsonNode>(stream)!;
+        var payload = JsonNode.Parse(stream)!;
         var list = payload["objects"]?.AsObject();
         
         if (list != null)

@@ -1,6 +1,6 @@
 ﻿using CommandLine;
 
-namespace MiaCrate.Client.Test;
+namespace MiaCrate.Client;
 
 public class BootstrapOptions
 {

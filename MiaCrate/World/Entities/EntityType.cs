@@ -1,17 +1,26 @@
-﻿using MiaCrate.Core;
+﻿using System.Diagnostics.CodeAnalysis;
+using MiaCrate.Core;
+using Mochi.Utils;
 
 namespace MiaCrate.World.Entities;
 
 public static partial class EntityType
 {
-    private static EntityType<T> Register<T>(string name, EntityType<T>.Builder builder) 
-        where T : Entity => 
-        (EntityType<T>) Registry.Register(BuiltinRegistries.EntityType, name, builder.Build());
+    private static EntityType<T> Register
+        <[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>
+        (string name, EntityType<T>.Builder builder) where T : Entity
+    {
+        var type = builder.Build();
+        var registered = Registry.Register(BuiltinRegistries.EntityType, name, type);
+        if (type == registered) return type;
+        
+        Logger.Warn($"Registered EntityType not equal to the passed type? {type} != {registered}");
+        return (EntityType<T>) registered;
+    }
 }
 
 public interface IEntityType : IRegistryEntry<IEntityType>
 {
-    public IReferenceHolder<IEntityType> BuiltinRegistryHolder { get; }
     public Entity? Create(Level level);
 }
 
@@ -23,7 +32,8 @@ public interface IEntityType<out T> : IEntityType where T : Entity
 
 public delegate T? EntityFactoryDelegate<T>(IEntityType<T> type, Level level) where T : Entity;
 
-public class EntityType<T> : IEntityType<T> where T : Entity
+public class EntityType<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T> 
+    : IEntityType<T> where T : Entity
 {
     private readonly EntityFactoryDelegate<T> _factory;
     private readonly MobCategory _category;

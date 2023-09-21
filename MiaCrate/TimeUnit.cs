@@ -2,42 +2,39 @@ namespace MiaCrate;
 
 public sealed class TimeUnit
 {
-    /**
-     * Time unit representing one thousandth of a microsecond.
-     */
+    /// <summary>
+    /// Time unit representing one thousandth of a microsecond.
+    /// </summary>
     public static readonly TimeUnit Nanoseconds = new(NanoScale);
 
-    /**
-     * Time unit representing one thousandth of a millisecond.
-     */
+    /// <summary>
+    /// Time unit representing one thousandth of a millisecond.
+    /// </summary>
     public static readonly TimeUnit Microseconds = new(MicroScale);
 
-    /**
-     * Time unit representing one thousandth of a second.
-     */
+    /// <summary>
+    /// Time unit representing one thousandth of a second.
+    /// </summary>
     public static readonly TimeUnit Milliseconds = new(MilliScale);
 
-    /**
-     * Time unit representing one second.
-     */
+    /// <summary>
+    /// Time unit representing one second.
+    /// </summary>
     public static readonly TimeUnit Seconds = new(SecondScale);
 
-    /**
-     * Time unit representing sixty seconds.
-     * @since 1.6
-     */
+    /// <summary>
+    /// Time unit representing sixty seconds.
+    /// </summary>
     public static readonly TimeUnit Minutes = new(MinuteScale);
 
-    /**
-     * Time unit representing sixty minutes.
-     * @since 1.6
-     */
+    /// <summary>
+    /// Time unit representing sixty minutes.
+    /// </summary>
     public static readonly TimeUnit Hours = new(HourScale);
 
-    /**
-     * Time unit representing twenty four hours.
-     * @since 1.6
-     */
+    /// <summary>
+    /// Time unit representing twenty four hours.
+    /// </summary>
     public static readonly TimeUnit Days = new(DayScale);
 
     // Scales as constants
@@ -100,24 +97,30 @@ public sealed class TimeUnit
         return d * r;
     }
 
-    /**
-     * Converts the given time duration in the given unit to this unit.
-     * Conversions from finer to coarser granularities truncate, so
-     * lose precision. For example, converting {@code 999} milliseconds
-     * to seconds results in {@code 0}. Conversions from coarser to
-     * finer granularities with arguments that would numerically
-     * overflow saturate to {@code long.MinValue} if negative or
-     * {@code long.MaxValue} if positive.
-     *
-     * <p>For example, to convert 10 minutes to milliseconds, use:
-     * {@code TimeUnit.MILLISECONDS.convert(10L, TimeUnit.MINUTES)}
-     *
-     * @param sourceDuration the time duration in the given {@code sourceUnit}
-     * @param sourceUnit the unit of the {@code sourceDuration} argument
-     * @return the converted duration in this unit,
-     * or {@code long.MinValue} if conversion would negatively overflow,
-     * or {@code long.MaxValue} if it would positively overflow.
-     */
+    /// <summary>
+    /// Converts the given time duration in the given unit to this unit.
+    /// Conversions from finer to coarser granularities truncate, so
+    /// lose precision. For example, converting <c>999</c> milliseconds
+    /// to seconds results in <c>0</c>. Conversions from coarser to
+    /// finer granularities with arguments that would numerically
+    /// overflow saturate to <see cref="long.MinValue"/> if negative or
+    /// <see cref="long.MaxValue"/> if positive.
+    ///
+    /// <example>
+    /// To convert 10 minutes to milliseconds, use:
+    /// <code>
+    /// TimeUnit.Milliseconds.Convert(10L, TimeUnit.Minutes)
+    /// </code>
+    /// </example>
+    ///
+    /// <param name="sourceDuration">the time duration in the given <paramref name="sourceUnit"/></param> 
+    /// <param name="sourceUnit">the unit of the <paramref name="sourceDuration"/> argument</param>
+    /// <returns>
+    /// The converted duration in this unit,
+    /// or <see cref="long.MinValue"/> if conversion would negatively overflow,
+    /// or <see cref="long.MaxValue"/> if it would positively overflow.
+    /// </returns>
+    /// </summary>
     public long Convert(long sourceDuration, TimeUnit sourceUnit)
     {
         if (this == Nanoseconds)

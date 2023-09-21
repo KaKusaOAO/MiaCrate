@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Windows.Win32;
 using Windows.Win32.System.SystemInformation;
 
@@ -7,6 +8,7 @@ namespace MiaCrate.Client.Oshi.Windows;
 
 public static class Win32
 {
+    [SupportedOSPlatform("windows6.1")]
     internal static SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX[] GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP type)
     {
         unsafe

@@ -66,6 +66,8 @@ public abstract class BlockBehavior : IFeatureElement
 
     public abstract class BlockStateBase : StateHolder<Block, BlockState>
     {
+        public Block Block => Owner;
+        
         protected BlockStateBase(Block owner, 
             Dictionary<IProperty, IComparable> values, IMapCodec<BlockState> propertiesCodec) 
             : base(owner, values, propertiesCodec)

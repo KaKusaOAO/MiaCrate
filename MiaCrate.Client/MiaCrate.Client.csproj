@@ -6,6 +6,8 @@
         <Nullable>enable</Nullable>
         <LangVersion>11</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PublishAot>true</PublishAot>
+        <OutputType>Exe</OutputType>
     </PropertyGroup>
 
     <ItemGroup>

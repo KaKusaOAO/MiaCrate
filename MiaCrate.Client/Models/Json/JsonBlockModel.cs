@@ -1,7 +1,6 @@
 ﻿using System.Text.Json.Serialization;
-using MiaCrate.Client.Models.Json;
 
-namespace MiaCrate.Client.Models;
+namespace MiaCrate.Client.Models.Json;
 
 public class JsonBlockModel
 {

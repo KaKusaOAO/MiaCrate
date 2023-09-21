@@ -69,7 +69,7 @@ public class DetectedVersion : IWorldVersion
         }
 
         using var versionStream = entry.Open();
-        var obj = JsonSerializer.Deserialize<JsonObject>(versionStream);
-        return new DetectedVersion(obj!);
+        var obj = JsonNode.Parse(versionStream)!.AsObject();
+        return new DetectedVersion(obj);
     }
 }

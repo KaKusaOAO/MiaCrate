@@ -47,7 +47,7 @@ public class EffectInstance : IEffect, IDisposable
         try
         {
             using var stream = resource.Open();
-            var json = JsonSerializer.Deserialize<JsonObject>(stream)!;
+            var json = JsonNode.Parse(stream)!;
             var vertex = json["vertex"]!.GetValue<string>();
             var fragment = json["fragment"]!.GetValue<string>();
 

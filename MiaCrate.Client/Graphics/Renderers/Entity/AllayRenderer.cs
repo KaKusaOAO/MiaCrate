@@ -1,4 +1,5 @@
 using MiaCrate.Client.Models;
+using MiaCrate.Core;
 using MiaCrate.World.Entities;
 
 namespace MiaCrate.Client.Graphics;
@@ -14,4 +15,6 @@ public class AllayRenderer : MobRenderer<Allay, AllayModel>
     }
 
     public override ResourceLocation GetTextureLocation(Allay entity) => _texture;
+
+    protected override int GetBlockLightLevel(Allay entity, BlockPos pos) => 15;
 }

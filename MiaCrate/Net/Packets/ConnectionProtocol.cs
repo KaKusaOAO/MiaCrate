@@ -10,16 +10,16 @@ public class ConnectionProtocol
 
     public static readonly ConnectionProtocol Handshake = new(PacketState.Handshake, Protocol()
         .AddFlow(PacketFlow.Serverbound, new PacketSet()
-            .AddPacket(s => new ServerboundHandshakePacket(s))
+            .AddPacket<ServerboundHandshakePacket>()
         )
     );
     
     public static readonly ConnectionProtocol Status = new(PacketState.Status, Protocol()
         .AddFlow(PacketFlow.Clientbound, new PacketSet()
-            .AddPacket(s => new ServerboundStatusResponsePacket(s))
+            .AddPacket<ServerboundStatusResponsePacket>()
         )
         .AddFlow(PacketFlow.Serverbound, new PacketSet()
-            .AddPacket(s => new ServerboundStatusRequestPacket(s))
+            .AddPacket<ServerboundStatusRequestPacket>()
         )
     );
 
@@ -29,6 +29,11 @@ public class ConnectionProtocol
     );
     
     public static readonly ConnectionProtocol Play = new(PacketState.Play, Protocol()
+        .AddFlow(PacketFlow.Clientbound, new PacketSet())
+        .AddFlow(PacketFlow.Serverbound, new PacketSet())
+    );
+
+    public static readonly ConnectionProtocol Configuration = new(PacketState.Configuration, Protocol()
         .AddFlow(PacketFlow.Clientbound, new PacketSet())
         .AddFlow(PacketFlow.Serverbound, new PacketSet())
     );

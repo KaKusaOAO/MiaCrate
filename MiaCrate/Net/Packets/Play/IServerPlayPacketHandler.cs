@@ -1,6 +1,6 @@
 namespace MiaCrate.Net.Packets.Play;
 
-public interface IServerPlayPacketHandler : IServerPacketHandler
+public interface IServerPlayPacketHandler : IServerPacketHandler, IServerPingPacketHandler
 {
     
 }
