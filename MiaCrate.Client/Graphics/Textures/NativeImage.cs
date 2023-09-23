@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
+using MiaCrate.Client.Utils;
 using OpenTK.Graphics.OpenGL4;
 using SkiaSharp;
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
@@ -129,19 +130,19 @@ public sealed class NativeImage : IDisposable
         }
     }
 
-    private static void SetFilter(bool bl, bool bl2)
+    private static void SetFilter(bool blur, bool mipmap)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        if (bl)
+        if (blur)
         {
             GlStateManager.TexMinFilter(TextureTarget.Texture2D, 
-                bl2 ? TextureMinFilter.LinearMipmapLinear : TextureMinFilter.Linear);
+                mipmap ? TextureMinFilter.LinearMipmapLinear : TextureMinFilter.Linear);
             GlStateManager.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Linear);
         }
         else
         {
             GlStateManager.TexMinFilter(TextureTarget.Texture2D, 
-                bl2 ? TextureMinFilter.NearestMipmapLinear : TextureMinFilter.Nearest);
+                mipmap ? TextureMinFilter.NearestMipmapLinear : TextureMinFilter.Nearest);
             GlStateManager.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Nearest);
         }
     }
@@ -150,34 +151,23 @@ public sealed class NativeImage : IDisposable
         Upload(level, xOffset, yOffset, 0, 0, Width, Height, false, dispose);
 
     public void Upload(int level, int xOffset, int yOffset, int skipPixels, int skipRows, int width,
-        int height, bool bl3, bool dispose) =>
-        Upload(level, xOffset, yOffset, skipPixels, skipRows, width, height, false, false, bl3, dispose);
+        int height, bool mipmap, bool dispose) =>
+        Upload(level, xOffset, yOffset, skipPixels, skipRows, width, height, false, false, mipmap, dispose);
 
     public void Upload(int level, int xOffset, int yOffset, int skipPixels, int skipRows, int width,
-        int height, bool isBlur, bool isClamp, bool bl3, bool dispose)
+        int height, bool isBlur, bool isClamp, bool mipmap, bool dispose)
     {
-        void ExecuteRenderCall()
-        {
-            InternalUpload(level, xOffset, yOffset, skipPixels, skipRows, width, height, isBlur, isClamp, bl3, dispose);
-        }
-
-        if (!RenderSystem.IsOnRenderThreadOrInit)
-        {
-            RenderSystem.RecordRenderCall(ExecuteRenderCall);
-        }
-        else
-        {
-            ExecuteRenderCall();
-        }
+        RenderSystem.EnsureOnRenderThreadOrInit(() => 
+            InternalUpload(level, xOffset, yOffset, skipPixels, skipRows, width, height, isBlur, isClamp, mipmap, dispose));
     }
     
     private void InternalUpload(int level, int xOffset, int yOffset, int skipPixels, int skipRows, int width,
-        int height, bool isBlur, bool isClamp, bool bl3, bool dispose)
+        int height, bool isBlur, bool isClamp, bool mipmap, bool dispose)
     {
         try
         {
             RenderSystem.AssertOnRenderThreadOrInit();
-            SetFilter(isBlur, bl3);
+            SetFilter(isBlur, mipmap);
             if (width == Width)
             {
                 GlStateManager.PixelStore(PixelStoreParameter.UnpackRowLength, 0);
@@ -191,8 +181,23 @@ public sealed class NativeImage : IDisposable
             GlStateManager.PixelStore(PixelStoreParameter.UnpackSkipRows, skipRows);
             Format.SetUnpackPixelStoreState();
 
+            // SKColor is stored in ARGB format, but the buffer data required that int to be ABGR,
+            // which is the reverse of RGBA, the order represents in the buffer.
+            
+            // Rearrange the pixel to the correct order: ARGB => ABGR (reversed form of RGBA)
+            
+            var pixels = Enumerable.Range(0, _bitmap.Height)
+                .Select(y => Enumerable.Range(0, _bitmap.Width)
+                    .Select(x => (x, y)))
+                .SelectMany(e => 
+                    e.Select(n => _bitmap.GetPixel(n.x, n.y))
+                )
+                .Select(c => new Rgba32(c.Red, c.Green, c.Blue, c.Alpha).RGBA)
+                .ToArray();
+
             GlStateManager.TexSubImage2D(TextureTarget.Texture2D, level, xOffset, yOffset, width, height, Format.Format,
-                PixelType.UnsignedByte, _bitmap.GetPixels());
+                PixelType.UnsignedByte, pixels);
+
             if (isClamp)
             {
                 GlStateManager.TexWrapS(TextureTarget.Texture2D, TextureWrapMode.ClampToEdge);

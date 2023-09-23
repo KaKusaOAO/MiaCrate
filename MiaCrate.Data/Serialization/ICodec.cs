@@ -19,6 +19,11 @@ public interface ICodec<T> : ICodec, IEncoder<T>, IDecoder<T>
         CoSelect(from), SelectMany(to), 
         $"{this}[comapFlatMapped]"
     );
+    
+    public ICodec<TOut> FlatCoSelectSelect<TOut>(Func<T, TOut> to, Func<TOut, IDataResult<T>> from) => Codec.Of(
+        FlatCoSelect(from), Select(to), 
+        $"{this}[flatComapMapped]"
+    );
 
     public ICodec<TOut> FlatCrossSelect<TOut>(Func<T, IDataResult<TOut>> to, Func<TOut, IDataResult<T>> from) =>
         Codec.Of(FlatCoSelect(from), SelectMany(to), $"{this}[flatXmapped]");

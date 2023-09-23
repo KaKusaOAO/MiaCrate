@@ -2,6 +2,7 @@ using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
 using MiaCrate.Resources;
 using Mochi.Utils;
+using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -25,6 +26,7 @@ public class DynamicTexture : AbstractTexture, IDumpable
 
         void ExecuteRenderCall()
         {
+            GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, Id, $"DynamicTexture #{Id}");
             TextureUtil.PrepareImage(Id, _pixels!.Width, _pixels.Height);
             Upload();
         }

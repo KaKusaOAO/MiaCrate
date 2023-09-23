@@ -7,8 +7,8 @@ public class TextureMetadataSectionSerializer : IMetadataSectionSerializer<Textu
 {
     public TextureMetadataSection FromJson(JsonObject obj)
     {
-        var blur = obj["blur"]!.GetValue<bool>();
-        var clamp = obj["clamp"]!.GetValue<bool>();
+        var blur = obj["blur"]?.GetValue<bool>() ?? false;
+        var clamp = obj["clamp"]?.GetValue<bool>() ?? false;
         return new TextureMetadataSection(blur, clamp);
     }
 

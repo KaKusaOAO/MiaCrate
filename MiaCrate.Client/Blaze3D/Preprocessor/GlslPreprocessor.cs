@@ -26,7 +26,7 @@ public abstract partial class GlslPreprocessor
         var context = new Context();
         var list = ProcessImports(str, context, "");
         list[0] = SetVersion(list[0], context.GlslVersion);
-        return list;
+        return list.Select(r => r.Replace("\0", "")).ToList();
     }
 
     private List<string> ProcessImports(string str, Context context, string str2)

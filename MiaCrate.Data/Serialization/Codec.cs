@@ -6,7 +6,7 @@ namespace MiaCrate.Data;
 
 public static class Codec
 {
-    public static IMapCodec<Unit> Empty { get; } = MapCodec.Of(Encoder.Empty<Unit>(), Decoder.Unit(Unit.Instance));
+    public static IMapCodec<Unit> Empty { get; } = MapCodec.Of(Encoder.Empty<Unit>(), Decoder.Unit(Mochi.Core.Unit.Instance));
     public static IPrimitiveCodec<bool> Bool { get; } = new BoolPrimitiveCodec();
     public static IPrimitiveCodec<byte> Byte { get; } = new BytePrimitiveCodec();
     public static IPrimitiveCodec<int> Int { get; } = new IntPrimitiveCodec();
@@ -16,6 +16,9 @@ public static class Codec
     public static IPrimitiveCodec<string> String { get; } = new StringPrimitiveCodec();
     public static ICodec<IDynamic> Passthrough { get; } = new PassthroughCodec();
 
+    public static ICodec<T> Unit<T>(T defaultValue) => MapCodec.Unit(defaultValue).Codec;
+    public static ICodec<T> Unit<T>(Func<T> defaultValue) => MapCodec.Unit(defaultValue).Codec;
+    
     public static ICodec<List<T>> ListOf<T>(ICodec<T> elementCodec) => new ListCodec<T>(elementCodec);
     
     public static ICodec<IEither<TFirst, TSecond>>

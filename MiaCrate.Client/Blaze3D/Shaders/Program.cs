@@ -1,4 +1,5 @@
-﻿using MiaCrate.Client.Platform;
+﻿using System.Diagnostics;
+using MiaCrate.Client.Platform;
 using MiaCrate.Client.Preprocessor;
 using MiaCrate.Client.Systems;
 using OpenTK.Graphics.OpenGL4;

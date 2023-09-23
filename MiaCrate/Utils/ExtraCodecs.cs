@@ -45,6 +45,12 @@ public static class ExtraCodecs
         }
     });
 
+    public static ICodec<int> NonNegativeInt { get; } = IntRangeWithMessage(0, int.MaxValue, 
+        i => $"Value must be non-negative: {i}");
+    
+    public static ICodec<int> PositiveInt { get; } = IntRangeWithMessage(1, int.MaxValue, 
+        i => $"Value must be positive: {i}");
+
     public static ICodec<Regex> Regex { get; } = Codec.String.CoSelectSelectMany(str =>
     {
         try
@@ -148,6 +154,16 @@ public static class ExtraCodecs
             });
     }
 
+    public static IMapCodec<IOptional<T>> StrictOptionalField<T>(ICodec<T> codec, string name) => 
+        new StrictOptionalFieldCodec<T>(name, codec);
+
+    public static IMapCodec<T> StrictOptionalField<T>(ICodec<T> codec, string name, T obj)
+    {
+        return StrictOptionalField(codec, name).CrossSelect(
+            o => o.OrElse(obj),
+            o => Equals(obj, o) ? Optional.Empty<T>() : Optional.Of(o));
+    } 
+
     public static ICodec<T> Validate<T>(ICodec<T> codec, Func<T, IDataResult<T>> validate)
     {
         if (codec is IMapCodecCodec<T> codecCodec)
@@ -158,6 +174,19 @@ public static class ExtraCodecs
 
     public static IMapCodec<T> Validate<T>(IMapCodec<T> mapCodec, Func<T, IDataResult<T>> validate) => 
         mapCodec.FlatCrossSelect(validate, validate);
+
+    private static ICodec<int> IntRangeWithMessage(int min, int max, Func<int, string> message)
+    {
+        return Validate(Codec.Int, i =>
+        {
+            return i.CompareTo(min) >= 0 && i.CompareTo(max) <= 0
+                ? DataResult.Success(i)
+                : DataResult.Error<int>(() => message(i));
+        });
+    }
+
+    public static ICodec<int> IntRange(int min, int max) => 
+        IntRangeWithMessage(min, max, i => $"Value must be within range [{min};{max}]: {i}");
 
     public static ICodec<T> OrCompressed<T>(ICodec<T> uncompressed, ICodec<T> compressed) =>
         new OrCompressedCodec<T>(uncompressed, compressed);
@@ -186,6 +215,35 @@ public static class ExtraCodecs
                     ? DataResult.Error<int>(() => $"Element with unknown id: {obj}")
                     : DataResult.Success(j);
             });
+
+    private sealed class StrictOptionalFieldCodec<T> : MapCodec<IOptional<T>>
+    {
+        private readonly string _name;
+        private readonly ICodec<T> _elementCodec;
+
+        public StrictOptionalFieldCodec(string name, ICodec<T> elementCodec)
+        {
+            _name = name;
+            _elementCodec = elementCodec;
+        }
+
+        public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => Enumerable.Repeat(ops.CreateString(_name), 1);
+        
+        public override IRecordBuilder<TOut> Encode<TOut>(IOptional<T> input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix)
+        {
+            return input.IsPresent
+                ? prefix.Add(_name, _elementCodec.EncodeStart(ops, input.Value))
+                : prefix;
+        }
+
+        public override IDataResult<IOptional<T>> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input)
+        {
+            var obj = input[_name];
+            return obj == null
+                ? DataResult.Success(Optional.Empty<T>())
+                : _elementCodec.Parse(ops, obj).Select(Optional.Of);
+        }
+    }
 
     private class OrCompressedCodec<T> : ICodec<T>
     {

@@ -185,6 +185,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
     public bool IsGameLoadFinished { get; private set; }
     private Screen? _screen;
 
+    public GuiSpriteManager GuiSprites { get; }
     public VanillaPackResources VanillaPackResources { get; }
     public TextureManager TextureManager { get; }
     public bool IsWindowActive { get; set; }
@@ -289,6 +290,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         
         GameRenderer = new GameRenderer(this, EntityRenderDispatcher.ItemInHandRenderer, _resourceManager, _renderBuffers);
         _resourceManager.RegisterReloadListener(GameRenderer.CreateReloadListener());
+
+        GuiSprites = new GuiSpriteManager(TextureManager);
+        _resourceManager.RegisterReloadListener(GuiSprites);
 
         var realmsClient = RealmsClient.Create(this);
         
@@ -415,6 +419,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
     {
 	    var i = Window.CalculateScale(2, false); // guiScale, enforceUnicode
 	    Window.SetGuiScale(i);
+	    Screen?.Resize(this, Window.GuiScaledWidth, Window.GuiScaledHeight);
 	    MainRenderTarget.Resize(Window.Width, Window.Height, OnMacOs);
     }
 

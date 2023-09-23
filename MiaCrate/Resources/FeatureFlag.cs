@@ -22,17 +22,21 @@ public class FeatureFlagRegistry
     private readonly Dictionary<ResourceLocation, FeatureFlag> _names;
     public FeatureFlagSet AllFlags { get; }
 
-    public ICodec<FeatureFlagSet> Codec => ResourceLocation.Codec.ListCodec.CoSelectSelectMany(list =>
-    {
-        var set = new HashSet<ResourceLocation>();
-        var features = FromNames(list, x => set.Add(x));
+    public ICodec<FeatureFlagSet> Codec => ResourceLocation.Codec.ListCodec.CoSelectSelectMany(
+        list =>
+        {
+            var set = new HashSet<ResourceLocation>();
+            var features = FromNames(list, x => set.Add(x));
 
-        return set.Any()
-            ? DataResult.Error<FeatureFlagSet>(() => $"Unknown feature ids: {set}")
-            : DataResult.Success(features);
-    }, features => ToNames(features).ToList());
+            return set.Any()
+                ? DataResult.Error<FeatureFlagSet>(() => $"Unknown feature ids: {set}")
+                : DataResult.Success(features);
+        },
+        features => ToNames(features).ToList()
+    );
 
-    public FeatureFlagRegistry(FeatureFlagUniverse universe, FeatureFlagSet allFlags, Dictionary<ResourceLocation, FeatureFlag> names)
+    public FeatureFlagRegistry(FeatureFlagUniverse universe, FeatureFlagSet allFlags,
+        Dictionary<ResourceLocation, FeatureFlag> names)
     {
         _universe = universe;
         AllFlags = allFlags;
@@ -70,7 +74,8 @@ public class FeatureFlagRegistry
         var set = new HashSet<FeatureFlag>();
         foreach (var location in locations)
         {
-            var flag = _names[location];
+            var flag = _names.GetValueOrDefault(location);
+            
             if (flag == null)
             {
                 handle(location);
@@ -100,10 +105,12 @@ public class FeatureFlagRegistry
 
         public FeatureFlag Create(ResourceLocation location)
         {
-            if (_id >= 64) throw new Exception("Too many feature flags");
+            if (_id >= 64) 
+                throw new Exception("Too many feature flags");
+            
             if (_flags.ContainsKey(location))
                 throw new Exception($"Duplicate feature flag {location}");
-            
+
             var flag = new FeatureFlag(_universe, _id++);
             _flags[location] = flag;
             return flag;

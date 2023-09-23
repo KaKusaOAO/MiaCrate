@@ -201,7 +201,7 @@ public unsafe class Window : IDisposable
         }
     }
 
-    public int FrameRateLimit { get; set; } = 60;
+    public int FrameRateLimit { get; set; } = 144;
 
     public bool ShouldClose => GLFW.WindowShouldClose(Handle);
 

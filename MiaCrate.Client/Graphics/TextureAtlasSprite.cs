@@ -55,6 +55,11 @@ public class TextureAtlasSprite
         return spriteTicker != null ? new TickerInstance(this, spriteTicker) : null;
     }
 
+    public void UploadFirstFrame()
+    {
+        Contents.UploadFirstFrame(X, Y);
+    }
+
     private class TickerInstance : ITicker
     {
         private readonly TextureAtlasSprite _sprite;

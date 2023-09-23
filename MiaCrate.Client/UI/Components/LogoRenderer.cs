@@ -2,9 +2,9 @@ namespace MiaCrate.Client.UI;
 
 public class LogoRenderer
 {
-    public static readonly ResourceLocation Logo = new("textures/gui/title/minecraft.png");
-    public static readonly ResourceLocation EasterEggLogo = new("textures/gui/title/minceraft.png");
-    public static readonly ResourceLocation Edition = new("textures/gui/title/edition.png");
+    public static ResourceLocation Logo { get; } = new("textures/gui/title/minecraft.png");
+    public static ResourceLocation EasterEggLogo { get; } = new("textures/gui/title/minceraft.png");
+    public static ResourceLocation Edition { get; } = new("textures/gui/title/edition.png");
 
     public const int LogoWidth = 256;
     public const int LogoHeight = 44;
@@ -25,8 +25,18 @@ public class LogoRenderer
         _keepLogoThroughFade = keepLogoThroughFade;
     }
 
-    public void RenderLogo(GuiGraphics graphics, int i, float f, int j = DefaultHeightOffset)
+    public void RenderLogo(GuiGraphics graphics, int screenWidth, float alpha, int y = DefaultHeightOffset)
     {
+        graphics.SetColor(1, 1, 1, _keepLogoThroughFade ? 1 : alpha);
         
+        var logoX = screenWidth / 2 - LogoWidth / 2;
+        graphics.Blit(_showEasterEgg ? EasterEggLogo : Logo, logoX, y, 0, 0, 
+            LogoWidth, LogoHeight, LogoTextureWidth, LogoTextureHeight);
+
+        var editionX = screenWidth / 2 - EditionWidth / 2;
+        var editionY = y + LogoHeight - EditionLogoOverlap;
+        graphics.Blit(Edition, editionX, editionY, 0, 0, 
+        EditionWidth, EditionHeight, EditionTextureWidth, EditionTextureHeight);
+        graphics.SetColor(1, 1, 1, 1);
     }
 }

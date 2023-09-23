@@ -140,5 +140,8 @@ public class SpriteLoader
     }
 
     public record Preparations(int Width, int Height, int MipLevel, TextureAtlasSprite Missing,
-        Dictionary<ResourceLocation, TextureAtlasSprite> Regions, Task ReadyForUpload);
+        Dictionary<ResourceLocation, TextureAtlasSprite> Regions, Task ReadyForUpload)
+    {
+        public Task<Preparations> WaitForUploadAsync() => ReadyForUpload.ThenApplyAsync(() => this);
+    }
 }

@@ -37,6 +37,11 @@ public abstract class MapCodec<T> : CompressorHolder, IMapCodec<T>
 
 public static class MapCodec
 {
+    public static IMapCodec<T> Unit<T>(T value) => Unit(() => value);
+
+    public static IMapCodec<T> Unit<T>(Func<T> defaultValue) =>
+        Of(Encoder.Empty<T>(), Decoder.Unit(defaultValue), () => $"Unit[{typeof(T)}]");
+
     public static IMapCodec<T> Of<T>(IMapEncoder<T> encoder, IMapDecoder<T> decoder) =>
         Of(encoder, decoder, () => $"MapCodec[{encoder} {decoder}]");
     

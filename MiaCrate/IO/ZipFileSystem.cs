@@ -27,8 +27,15 @@ public class ZipFileSystem : IFileSystem
         {
             throw new FileNotFoundException($"Entry {path} not found");
         }
+
+        // For some reason we need to copy the content into memory first
+        using var stream = entry.Open();
+        var memory = new MemoryStream();
+        stream.CopyTo(memory);
         
-        return entry.Open();
+        // Reset the position and pass it to caller
+        memory.Seek(0, SeekOrigin.Begin);
+        return memory;
     }
 
     public Stream Open(string path, FileMode mode) => 

@@ -8,8 +8,8 @@ public class AnimationMetadataSection
 
     public static AnimationMetadataSectionSerializer Serializer { get; } = new();
 
-    public static AnimationMetadataSection Empty { get; } =
-        new(new List<AnimationFrame>(), UnknownSize, UnknownSize, DefaultFrameTime, false);
+    public static AnimationMetadataSection Empty { get; } = new EmptyAnimationMetadataSection(
+        new List<AnimationFrame>(), UnknownSize, UnknownSize, DefaultFrameTime, false);
     
     private readonly List<AnimationFrame> _frames;
     private readonly int _frameWidth;
@@ -27,7 +27,7 @@ public class AnimationMetadataSection
         _interpolatedFrames = interpolatedFrames;
     }
 
-    public FrameSize CalculateFrameSize(int width, int height)
+    public virtual FrameSize CalculateFrameSize(int width, int height)
     {
         if (_frameWidth != UnknownSize)
         {
@@ -43,5 +43,16 @@ public class AnimationMetadataSection
 
         var k = Math.Min(width, height);
         return new FrameSize(k, k);
+    }
+
+    private class EmptyAnimationMetadataSection : AnimationMetadataSection
+    {
+        public EmptyAnimationMetadataSection(List<AnimationFrame> frames, int frameWidth, int frameHeight,
+            int defaultFrameTime, bool interpolatedFrames) 
+            : base(frames, frameWidth, frameHeight, defaultFrameTime, interpolatedFrames)
+        {
+        }
+
+        public override FrameSize CalculateFrameSize(int width, int height) => new(width, height);
     }
 }

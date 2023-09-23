@@ -14,9 +14,9 @@ public class LoadingOverlay : Overlay
     private static ResourceLocation MojangStudiosLogoLocation { get; } = new("textures/gui/title/mojangstudios.png");
 
     // @formatter:off
-    private static int LogoBackgroundColor     { get; } = FastColor.ARGB32.Color(255, 239, 50, 61);
-    private static int LogoBackgroundColorDark { get; } = FastColor.ARGB32.Color(255, 0, 0 ,0);
-    private static Func<int> BrandBackground   { get; } = () => LogoBackgroundColor;
+    private static Argb32 LogoBackgroundColor     { get; } = new(239, 50, 61);
+    private static Argb32 LogoBackgroundColorDark { get; } = new(0, 0 ,0);
+    private static Func<Argb32> BrandBackground   { get; } = () => LogoBackgroundColor;
     // @formatter:on
 
     public override bool IsPauseScreen => true;
@@ -42,8 +42,6 @@ public class LoadingOverlay : Overlay
         game.TextureManager.Register(MojangStudiosLogoLocation, new LogoTexture());
     }
 
-    private static int ReplaceAlpha(int color, int alpha) => color & 0xffffff | alpha << 24;
-
     public override void Render(GuiGraphics graphics, int mouseX, int mouseY, float f)
     {
         var k = graphics.GuiWidth;
@@ -63,23 +61,19 @@ public class LoadingOverlay : Overlay
         {
             _game.Screen?.Render(graphics, 0, 0, f);
             var alpha = (int) Math.Ceiling(1 - Math.Clamp(g - 1, 0, 1) * 255);
-            graphics.Fill(RenderType.GuiOverlay, 0, 0, k, l, ReplaceAlpha(BrandBackground(), alpha));
+            graphics.Fill(RenderType.GuiOverlay, 0, 0, k, l, BrandBackground().WithAlpha(alpha));
             o = 1 - Math.Clamp(g - 1, 0, 1);
         } else if (_fadeIn)
         {
             if (h < 1) _game.Screen?.Render(graphics, mouseX, mouseY, f);
             var alpha = (int) Math.Ceiling(Math.Clamp(h, 0.15, 1) * 255);
-            graphics.Fill(RenderType.GuiOverlay, 0, 0, k, l, ReplaceAlpha(BrandBackground(), alpha));
+            graphics.Fill(RenderType.GuiOverlay, 0, 0, k, l, BrandBackground().WithAlpha(alpha));
             o = 1 - Math.Clamp(h, 0, 1);
         }
         else
         {
             var color = BrandBackground();
-            var p = ((color >> 16) & 0xff) / 255f;
-            var q = ((color >> 8) & 0xff) / 255f;
-            var r = (color & 0xff) / 255f;
-            
-            GlStateManager.ClearColor(p, q, r, 1);
+            GlStateManager.ClearColor(color.Red / 255f, color.Green / 255f, color.Blue / 255f, 1);
             GlStateManager.Clear(ClearBufferMask.ColorBufferBit, Game.OnMacOs);
             o = 1;
         }
@@ -144,20 +138,20 @@ public class LoadingOverlay : Overlay
         }
     }
 
-    private void DrawProgressBar(GuiGraphics graphics, int i, int j, int k, int l, float f)
+    private void DrawProgressBar(GuiGraphics graphics, int x, int y, int width, int height, float alpha)
     {
-        var m = (int) Math.Ceiling((k - i - 2) * _currentProgress);
-        var n = (int) Math.Round(f * 255);
-        var o = FastColor.ARGB32.Color(n, 255, 255, 255);
+        var m = (int) Math.Ceiling((width - x - 2) * _currentProgress);
+        var n = (byte) Math.Round(alpha * byte.MaxValue);
+        var color = new Argb32(255, 255, 255, n);
         
         // The inner rect of the progress bar
-        graphics.Fill(i + 2, j + 2, i + m, l - 2, o);
+        graphics.Fill(x + 2, y + 2, x + m, height - 2, color);
         
         // The outer border of the progress bar
-        graphics.Fill(i + 1, j, k - 1, j + 1, o);
-        graphics.Fill(i + 1, l, k - 1, l - 1, o);
-        graphics.Fill(i, j, i + 1, l, o);
-        graphics.Fill(k, j, k - 1, l, o);
+        graphics.Fill(x + 1, y, width - 1, y + 1, color);
+        graphics.Fill(x + 1, height, width - 1, height - 1, color);
+        graphics.Fill(x, y, x + 1, height, color);
+        graphics.Fill(width, y, width - 1, height, color);
     }
 
     private class LogoTexture : SimpleTexture

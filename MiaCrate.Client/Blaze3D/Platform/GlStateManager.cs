@@ -176,6 +176,20 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThreadOrInit();
         GL.TexSubImage2D(target, level, xOffset, yOffset, width, height, format, type, pixels);
     }
+    
+    public static void TexSubImage2D(TextureTarget target, int level, int xOffset, int yOffset, int width, int height,
+        PixelFormat format, PixelType type, byte[] buffer)
+    {
+        RenderSystem.AssertOnRenderThreadOrInit();
+        GL.TexSubImage2D(target, level, xOffset, yOffset, width, height, format, type, buffer);
+    }
+    
+    public static void TexSubImage2D(TextureTarget target, int level, int xOffset, int yOffset, int width, int height,
+        PixelFormat format, PixelType type, int[] buffer)
+    {
+        RenderSystem.AssertOnRenderThreadOrInit();
+        GL.TexSubImage2D(target, level, xOffset, yOffset, width, height, format, type, buffer);
+    }
 
     public static void GetTexImage(TextureTarget target, int level, PixelFormat format, PixelType type, IntPtr pixels)
     {
