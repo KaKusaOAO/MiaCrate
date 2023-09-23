@@ -1,5 +1,6 @@
 using MiaCrate.Client.Models;
 using MiaCrate.Resources;
+using Mochi.Utils;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -18,6 +19,6 @@ public class EntityRenderDispatcher : IResourceManagerReloadListener
 
     public void OnResourceManagerReload(IResourceManager manager)
     {
-        throw new NotImplementedException();
+        Util.LogFoobar();
     }
 }

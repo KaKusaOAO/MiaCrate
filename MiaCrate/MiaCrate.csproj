@@ -22,7 +22,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Net\Packets\Common\" />
       <Folder Include="Net\Packets\Configure\" />
     </ItemGroup>
 

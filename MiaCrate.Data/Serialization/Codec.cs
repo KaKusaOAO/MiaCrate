@@ -38,6 +38,9 @@ public static class Codec
         (IMapCodec<TFirst> first, IMapCodec<TSecond> second) =>
         new PairMapCodec<TFirst, TSecond>(first, second);
 
+    public static UnboundedMapCodec<TKey, TValue> UnboundedMap<TKey, TValue>(ICodec<TKey> keyCodec,
+        ICodec<TValue> elementCodec) where TKey : notnull => new(keyCodec, elementCodec);
+
     private class CompositionCodec<T> : ICodec<T>
     {
         private readonly IEncoder<T> _encoder;

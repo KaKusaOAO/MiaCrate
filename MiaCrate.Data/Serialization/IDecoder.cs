@@ -94,7 +94,7 @@ public static class Decoder
         }
     }
 
-    private class UnitDecoder<T> : IMapDecoder<T>
+    private class UnitDecoder<T> : MapDecoder.Implementation<T>
     {
         private readonly Func<T> _func;
 
@@ -103,9 +103,9 @@ public static class Decoder
             _func = func;
         }
 
-        public IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => Enumerable.Empty<T1>();
+        public override IEnumerable<T1> GetKeys<T1>(IDynamicOps<T1> ops) => Enumerable.Empty<T1>();
 
-        public IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) => DataResult.Success(_func());
+        public override IDataResult<T> Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input) => DataResult.Success(_func());
         public override string ToString() => $"UnitDecoder[{_func()}]";
     }
 

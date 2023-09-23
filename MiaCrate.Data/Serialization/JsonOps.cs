@@ -57,12 +57,23 @@ public class JsonOps : IDynamicOps<JsonNode>
 
     public IDataResult<IEnumerable<IPair<JsonNode, JsonNode>>> GetMapValues(JsonNode input)
     {
-        throw new NotImplementedException();
+        if (input is not JsonObject obj) 
+            return DataResult.Error<IEnumerable<IPair<JsonNode, JsonNode>>>(() => $"Not a JSON object: {input}");
+
+        return DataResult.Success(obj
+            .Select(e => Pair.Of((JsonNode) JsonValue.Create(e.Key)!, e.Value))
+        );
     }
 
     public JsonNode CreateList(IEnumerable<JsonNode> input)
     {
-        throw new NotImplementedException();
+        var result = new JsonArray();
+        foreach (var node in input)
+        {
+            result.Add(JsonNode.Parse(node.ToJsonString()));
+        }
+
+        return result;
     }
 
     public JsonNode CreateMap(IEnumerable<IPair<JsonNode, JsonNode>> map)

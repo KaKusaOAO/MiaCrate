@@ -1,3 +1,5 @@
+using OpenTK.Mathematics;
+
 namespace MiaCrate.Client;
 
 public interface IVertexConsumer
@@ -16,7 +18,7 @@ public interface IVertexConsumer
     void Vertex(float x, float y, float z, float red, float green, float blue, float alpha, float u, float v, 
         int oPacked, int uv2Packed, float nx, float ny, float nz) => 
         DefaultVertex(this, x, y, z, red, green, blue, alpha, u, v, oPacked, uv2Packed, nx, ny, nz);
-    
+
     protected static void DefaultVertex(IVertexConsumer consumer, 
         float x, float y, float z, float red, float green, float blue, float alpha, float u, float v, 
         int oPacked, int uv2Packed, float nx, float ny, float nz) => consumer.Vertex(x, y, z)
@@ -30,6 +32,12 @@ public interface IVertexConsumer
 
 public static class VertexConsumerExtension
 {
+    public static IVertexConsumer Vertex(this IVertexConsumer consumer, Matrix4 matrix, float x, float y, float z)
+    {
+        var v = new Vector4(x, y, z, 1) * matrix;
+        return consumer.Vertex(v.X, v.Y, v.Z);
+    }
+    
     public static IVertexConsumer OverlayCoords(this IVertexConsumer consumer, int packed) => 
         consumer.OverlayCoords(packed & 0xffff, (packed >> 16) & 0xffff);
     

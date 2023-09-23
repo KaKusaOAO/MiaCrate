@@ -145,6 +145,7 @@ public class ShaderInstance : IShader, IDisposable
             VertexProgram = GetOrCreate(provider, ProgramType.Vertex, vertex);
             FragmentProgram = GetOrCreate(provider, ProgramType.Fragment, fragment);
             Id = ProgramManager.CreateProgram();
+            GlStateManager.ObjectLabel(ObjectLabelIdentifier.Program, Id, Name);
             
             if (_attributeNames != null)
             {

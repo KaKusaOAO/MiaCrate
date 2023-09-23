@@ -6,7 +6,7 @@ namespace MiaCrate;
 
 public class ResourceLocation : IComparable<ResourceLocation>
 {
-    public static readonly ICodec<ResourceLocation> Codec = Data.Codec.String
+    public static ICodec<ResourceLocation> Codec { get; } = Data.Codec.String
         .CoSelectSelectMany(Read, x => x.ToString())
         .Stable;
 
@@ -127,6 +127,20 @@ public class ResourceLocation : IComparable<ResourceLocation>
         try
         {
             result = new ResourceLocation(str);
+            return true;
+        }
+        catch (ResourceLocationException)
+        {
+            result = null;
+            return false;
+        }
+    }
+    
+    public static bool TryBuild(string ns, string path, [MaybeNullWhen(false)] out ResourceLocation result)
+    {
+        try
+        {
+            result = new ResourceLocation(ns, path);
             return true;
         }
         catch (ResourceLocationException)

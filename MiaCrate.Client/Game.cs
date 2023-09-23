@@ -3,11 +3,13 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Text;
 using MiaCrate.Auth;
 using MiaCrate.Auth.Yggdrasil;
 using MiaCrate.Client.Colors;
 using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Models;
+using MiaCrate.Client.Multiplayer;
 using MiaCrate.Client.Pipeline;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Realms;
@@ -87,7 +89,8 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	// private readonly LanguageManager _languageManager;
 	private readonly BlockColors _blockColors;
 	private readonly ItemColors _itemColors;
-	private readonly RenderTarget _mainRenderTarget;
+	public RenderTarget MainRenderTarget { get; }
+
 	public SoundManager SoundManager { get; }
 	// private readonly MusicManager _musicManager;
 	private readonly FontManager _fontManager;
@@ -114,7 +117,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	// private readonly RealmsDataFetcher _realmsDataFetcher;
 	// private readonly QuickPlayLog _quickPlayLog;
 	// public MultiPlayerGameMode gameMode;
-	// public ClientLevel level;
+	public ClientLevel? Level { get; set; }
 	// public LocalPlayer player;
 	// private IntegratedServer _singleplayerServer;
 	// private Connection _pendingConnection;
@@ -130,7 +133,26 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	private long _lastTime;
 	private int _frames;
 	public bool NoRender { get; set; }
-	public Screen? Screen { get; set; }
+
+	public Screen? Screen
+	{
+		get => _screen;
+		set
+		{
+			_screen?.Removed();
+			if (value == null && Level == null)
+			{
+				value = new TitleScreen();
+			}
+
+			_screen = value;
+			_screen?.Added();
+			
+			BufferUploader.Reset();
+			UpdateTitle();
+		}
+	}
+
 	public Overlay? Overlay { get; set; }
 	private bool _connectedToRealms;
 	private Thread _gameThread;
@@ -160,7 +182,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	private string _debugPath = "root";
     private readonly ConcurrentQueue<Action> _progressTasks = new();
     private TaskCompletionSource? _pendingReload;
-    
+    public bool IsGameLoadFinished { get; private set; }
+    private Screen? _screen;
+
     public VanillaPackResources VanillaPackResources { get; }
     public TextureManager TextureManager { get; }
     public bool IsWindowActive { get; set; }
@@ -198,7 +222,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         var displayData = config.Display;
         Util.TimeSource = RenderSystem.InitBackendSystem();
         _virtualScreen = new VirtualScreen(this);
-        Window = _virtualScreen.NewWindow(displayData, null, "11");
+        Window = _virtualScreen.NewWindow(displayData, null, CreateTitle());
         Window.WindowActiveChanged += WindowOnWindowActiveChanged;
         Window.DisplayResized += WindowOnDisplayResized;
         Window.CursorEntered += WindowOnCursorEntered;
@@ -216,9 +240,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         RenderSystem.InitRenderer(0, false);
         
         // Initialize the main render target
-        _mainRenderTarget = new MainTarget(Window.Width, Window.Height);
-        _mainRenderTarget.SetClearColor(0f, 0f, 0f, 0f);
-        _mainRenderTarget.Clear(OnMacOs);
+        MainRenderTarget = new MainTarget(Window.Width, Window.Height);
+        MainRenderTarget.SetClearColor(0f, 0f, 0f, 0f);
+        MainRenderTarget.Clear(OnMacOs);
         
         _resourceManager = new ReloadableResourceManager(PackType.ClientResources);
         _resourcePackRepository.Reload();
@@ -291,8 +315,77 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 		        .IfEmpty(() =>
 		        {
 			        _reloadStateTracker.FinishReload();
+			        OnResourceLoadFinished(cookie);
 		        });
         }, false);
+    }
+
+    public void UpdateTitle()
+    {
+	    Window.SetTitle(CreateTitle());
+    }
+
+    private string CreateTitle()
+    {
+	    var sb = new StringBuilder(MiaCore.ProductName);
+
+	    if (Screen != null)
+	    {
+		    sb.Append($" -> S: {Screen.GetType()}");
+	    }
+
+	    if (Overlay != null)
+	    {
+		    sb.Append($" -> O: {Overlay.GetType()}");
+	    }
+
+	    return sb.ToString();
+    }
+
+    private void OnResourceLoadFinished(GameLoadCookie? cookie)
+    {
+	    if (IsGameLoadFinished) return;
+	    IsGameLoadFinished = true;
+	    OnGameLoadFinished(cookie);
+    }
+
+    private void OnGameLoadFinished(GameLoadCookie? cookie)
+    {
+	    var action = BuildInitialScreens(cookie);
+	    // TODO: GameLoadTimesEvent
+	    action();
+    }
+
+    private Action BuildInitialScreens(GameLoadCookie? cookie)
+    {
+	    var list = new List<Func<Action, Screen>>();
+	    AddInitialScreens(list);
+
+	    var action = () =>
+	    {
+		    if (cookie != null && cookie.QuickPlayData.IsEnabled)
+		    {
+			    // TODO: quick play
+		    }
+		    else
+		    {
+			    Screen = new TitleScreen(true);
+		    }
+	    };
+
+	    list.Reverse();
+	    foreach (var func in list)
+	    {
+		    var screen = func(action);
+		    action = () => Screen = screen;
+	    }
+
+	    return action;
+    }
+
+    private void AddInitialScreens(List<Func<Action, Screen>> list)
+    {
+	    
     }
 
     private void RollbackResourcePacks(Exception ex, GameLoadCookie? cookie)
@@ -320,7 +413,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 
     private void WindowOnDisplayResized()
     {
-	    
+	    var i = Window.CalculateScale(2, false); // guiScale, enforceUnicode
+	    Window.SetGuiScale(i);
+	    MainRenderTarget.Resize(Window.Width, Window.Height, OnMacOs);
     }
 
     private void WindowOnWindowActiveChanged(bool active)
@@ -436,6 +531,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 		        {
 			        _reloadStateTracker.FinishReload();
 			        source.SetResult();
+			        OnResourceLoadFinished(cookie);
 		        });
 	        }, true);
         return source.Task;
@@ -485,7 +581,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         bool bl2;
 
         RenderSystem.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit, OnMacOs);
-        _mainRenderTarget.BindWrite(true);
+        MainRenderTarget.BindWrite(true);
         RenderSystem.EnableCull();
         
         if (!NoRender)
@@ -493,13 +589,29 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	        GameRenderer.Render(_pause ? _pausePartialTick : _timer.PartialTick, l, bl);
         }
         
+        MainRenderTarget.UnbindWrite();
+        MainRenderTarget.BlitToScreen(Window.Width, Window.Height);
+        
         
         // _profiler.PopPush("updateDisplay");
         Window.UpdateDisplay();
+        var k = GetFramerateLimit();
+        if (k < 260)
+        {
+	        RenderSystem.LimitDisplayFps(k);
+        }
+
+        Thread.Yield();
         
         Window.SetErrorSection("Post render");
         
         
+        UpdateTitle();
+    }
+
+    private int GetFramerateLimit()
+    {
+	    return Window.FrameRateLimit;
     }
 
     public void Tick()

@@ -13,6 +13,7 @@ public class VertexBuffer : IDisposable
     private int _arrayObjectId;
     private readonly BufferUsageHint _usage;
     private VertexFormat? _format;
+    private RenderSystem.AutoStorageIndexBuffer? _sequencialIndices;
     private int _indexCount;
     private VertexFormat.IndexType _indexType;
     private VertexFormat.Mode _mode;
@@ -28,8 +29,13 @@ public class VertexBuffer : IDisposable
         
         RenderSystem.AssertOnRenderThread();
         _vertexBufferId = GlStateManager.GenBuffers();
+        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Buffer, _vertexBufferId, $"Vertex Buffer #{_vertexBufferId}");
+        
         _indexBufferId = GlStateManager.GenBuffers();
+        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Buffer, _indexBufferId, $"Index Buffer #{_indexBufferId}");
+        
         _arrayObjectId = GlStateManager.GenVertexArrays();
+        GlStateManager.ObjectLabel(ObjectLabelIdentifier.VertexArray, _arrayObjectId, $"Vertex Array #{_arrayObjectId}");
     }
     
     public void Upload(BufferBuilder.RenderedBuffer renderedBuffer)
@@ -41,8 +47,29 @@ public class VertexBuffer : IDisposable
         {
             var drawState = renderedBuffer.DrawState;
             _format = UploadVertexBuffer(drawState, renderedBuffer.VertexBuffer);
-            throw new NotImplementedException();
+            _sequencialIndices = UploadIndexBuffer(drawState, renderedBuffer.IndexBuffer);
+            _indexCount = drawState.IndexCount;
+            _indexType = drawState.IndexType;
+            _mode = drawState.Mode;
         }
+    }
+
+    private RenderSystem.AutoStorageIndexBuffer? UploadIndexBuffer(BufferBuilder.DrawState drawState, ReadOnlySpan<byte> buffer)
+    {
+        if (!drawState.SequentialIndex)
+        {
+            GlStateManager.BindBuffer(BufferTarget.ElementArrayBuffer, _indexBufferId);
+            RenderSystem.BufferData(BufferTarget.ElementArrayBuffer, buffer, _usage);
+            return null;
+        }
+
+        var b = RenderSystem.GetSequentialBuffer(drawState.Mode);
+        if (b != _sequencialIndices || !b.HasStorage(drawState.IndexCount))
+        {
+            b.Bind(drawState.IndexCount);
+        }
+
+        return b;
     }
 
     private VertexFormat UploadVertexBuffer(BufferBuilder.DrawState drawState, ReadOnlySpan<byte> buffer)
@@ -86,6 +113,8 @@ public class VertexBuffer : IDisposable
         
         shaderInstance.ModelViewMatrix?.Set(modelViewMatrix);
         shaderInstance.ProjectionMatrix?.Set(projectionMatrix);
+        shaderInstance.InverseViewRotationMatrix?.Set(RenderSystem.InverseViewRotationMatrix);
+        shaderInstance.ColorModulator?.Set(RenderSystem.ShaderColor);
 
         var window = Game.Instance.Window;
         shaderInstance.ScreenSize?.Set((float) window.Width, window.Height);
@@ -102,5 +131,17 @@ public class VertexBuffer : IDisposable
     
     public void Dispose()
     {
+    }
+
+    public void Bind()
+    {
+        BufferUploader.Invalidate();
+        GlStateManager.BindVertexArray(_arrayObjectId);
+    }
+
+    public static void Unbind()
+    {
+        BufferUploader.Invalidate();
+        GlStateManager.BindVertexArray(0);
     }
 }

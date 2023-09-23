@@ -53,4 +53,31 @@ public static partial class Util
             mod += y;
         return mod;
     }
+
+    public static float FastInvCubeRoot(float n)
+    {
+        var i = BitConverter.SingleToInt32Bits(n);
+        i = 0x54a2fa8c - i / 3;
+        
+        var g = BitConverter.Int32BitsToSingle(i);
+        g = 0.6666667f * g + 1 / (3 * g * g * n);
+        g = 0.6666667f * g + 1 / (3 * g * g * n);
+        return g;
+    }
+
+    public static int RoundToward(int x, int y) => PositiveCeilDiv(x, y) * y;
+    
+    public static int PositiveCeilDiv(int x, int y) => -FloorDiv(-x, y);
+
+    public static int FloorDiv(int x, int y)
+    {
+        var r = x / y;
+        
+        // if the signs are different and modulo not zero, round down
+        if ((x ^ y) < 0 && (r * y != x)) {
+            r--;
+        }
+        
+        return r;
+    }
 }

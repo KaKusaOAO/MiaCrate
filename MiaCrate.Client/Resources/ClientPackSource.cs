@@ -28,8 +28,8 @@ public class ClientPackSource : BuiltInPackSource
             .SetMetadata(_builtInMetadata)
             .ExposeNamespace("minecraft", "realms")
             .ApplyDevelopmentConfig()
-            .PushJarResources()
             .PushAssetPath(PackType.ClientResources, path)
+            .PushJarResources()
             .Build();
     }
 

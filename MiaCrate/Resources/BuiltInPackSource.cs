@@ -18,8 +18,8 @@ public abstract class BuiltInPackSource : IRepositorySource
     {
         var pack = CreateVanillaPack(VanillaPack);
         if (pack != null) loader(pack);
-        
-        
+
+        ListBundledPacks(loader);
     }
 
     protected abstract Pack? CreateVanillaPack(IPackResources resources);

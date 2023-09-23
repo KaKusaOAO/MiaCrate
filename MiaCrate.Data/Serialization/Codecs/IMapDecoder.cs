@@ -2,9 +2,10 @@ using System.Collections;
 
 namespace MiaCrate.Data.Codecs;
 
-public interface IMapDecoder : IKeyable
+public interface IMapDecoder : ICompressable
 {
     IDataResult Decode<TIn>(IDynamicOps<TIn> ops, IMapLike<TIn> input);
+    IDataResult CompressedDecode<TIn>(IDynamicOps<TIn> ops, TIn input);
 }
 
 public interface IMapDecoder<T> : IMapDecoder
@@ -16,6 +17,52 @@ public interface IMapDecoder<T> : IMapDecoder
         new IMapDecoder<TOut>.MappedImpl<T>(this, func);
     IMapDecoder<TOut> SelectMany<TOut>(Func<T, IDataResult<TOut>> func) => 
         new IMapDecoder<TOut>.FlatMappedImpl<T>(this, func);
+
+    new IDataResult<T> CompressedDecode<TIn>(IDynamicOps<TIn> ops, TIn input)
+    {
+        if (!ops.CompressMaps)
+        {
+            return ops
+                .GetMap(input)
+                .SetLifecycle(Lifecycle.Stable)
+                .SelectMany(m => Decode(ops, m));
+        }
+
+        var inputList = ops.GetList(input).Result;
+        if (!inputList.IsPresent)
+            return DataResult.Error<T>(() => "Input is not a list");
+
+        var compressor = GetCompressor(ops);
+        var entries = new List<TIn>();
+        inputList.Value(e => entries.Add(e));
+
+        var map = new CompressedMap<TIn>(compressor, entries);
+        return Decode(ops, map);
+    }
+
+    IDataResult IMapDecoder.CompressedDecode<TIn>(IDynamicOps<TIn> ops, TIn input) =>
+        CompressedDecode(ops, input);
+
+    private class CompressedMap<TOps> : IMapLike<TOps>
+    {
+        private readonly IKeyCompressor<TOps> _compressor;
+        private readonly List<TOps> _entries;
+
+        public CompressedMap(IKeyCompressor<TOps> compressor, List<TOps> entries)
+        {
+            _compressor = compressor;
+            _entries = entries;
+        }
+
+        public TOps? this[TOps key] => _entries[_compressor.Compress(key)];
+        
+        public TOps? this[string key] => _entries[_compressor.Compress(key)];
+
+        public IEnumerable<IPair<TOps, TOps>> Entries =>
+            Enumerable.Range(0, _entries.Count)
+                .Select(i => Pair.Of(_compressor.Decompress(i), _entries[i]))
+                .Where(p => p.Second != null);
+    }
 
     private class FlatMappedImpl<TSource> : MapDecoder.Implementation<T>
     {

@@ -1,4 +1,5 @@
 using System.Collections;
+using MiaCrate.Extensions;
 
 namespace MiaCrate;
 
@@ -58,12 +59,16 @@ public class Multimap<TKey, TValue> : IDictionary<TKey, HashSet<TValue>>
         return false;
     }
 
-    public bool TryGetValue(TKey key, out HashSet<TValue> value) => 
-        _delegate.TryGetValue(key, out value);
+    public bool TryGetValue(TKey key, out HashSet<TValue> value)
+    {
+        if (_delegate.TryGetValue(key, out value!)) return true;
+        value = _delegate[key] = new HashSet<TValue>();
+        return true;
+    }
 
     public HashSet<TValue> this[TKey key]
     {
-        get => _delegate[key];
+        get => _delegate.ComputeIfAbsent(key, _ => new HashSet<TValue>());
         set => _delegate[key] = value;
     }
 

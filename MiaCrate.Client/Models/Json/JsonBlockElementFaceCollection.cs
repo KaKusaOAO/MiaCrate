@@ -1,7 +1,8 @@
 ﻿using System.Text.Json.Serialization;
+using MiaCrate.Client.Graphics;
 using MiaCrate.Core;
 
-namespace MiaCrate.Client.Models;
+namespace MiaCrate.Client.Models.Json;
 
 public class JsonBlockElementFaceCollection
 {

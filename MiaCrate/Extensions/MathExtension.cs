@@ -10,6 +10,9 @@ public static class MathExtension
         float.IsFinite(matrix.M31) && float.IsFinite(matrix.M32) && float.IsFinite(matrix.M33) && float.IsFinite(matrix.M34) && 
         float.IsFinite(matrix.M41) && float.IsFinite(matrix.M42) && float.IsFinite(matrix.M43) && float.IsFinite(matrix.M44);
 
+    public static bool IsFinite(this Vector3 v) =>
+        float.IsFinite(v.X) && float.IsFinite(v.Y) && float.IsFinite(v.Z);
+
     private static Matrix3 Rotate(this Matrix3 matrix3, Quaternion q, ref Matrix3 destination)
     {
         var w2 = q.W * q.W;

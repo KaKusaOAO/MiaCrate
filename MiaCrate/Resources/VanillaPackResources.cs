@@ -62,15 +62,51 @@ public class VanillaPackResources : IPackResources
         return null;
     }
 
-    public void ListResources(PackType type, string str, string str2, IPackResources.ResourceOutputDelegate output)
+    public void ListResources(PackType type, string str, string path, IPackResources.ResourceOutputDelegate output)
     {
-        throw new NotImplementedException();
+        var pathList = path.Replace('\\', '/').Split('/').ToList();
+        var fsList = _pathsForType[type];
+        var i = fsList.Count;
+        
+        if (i == 1)
+        {
+            GetResources(output, str, fsList.First(), pathList);
+        } else if (i > 1)
+        {
+            var dict = new Dictionary<ResourceLocation, Func<Stream>>();
+
+            for (var j = 0; j < i - 1; j++)
+            {
+                GetResources((location, stream) => dict.TryAdd(location, stream),
+                    str, fsList[j], pathList);
+            }
+
+            var fs = fsList[i - 1];
+            if (!dict.Any())
+            {
+                GetResources(output, str, fs, pathList);
+            }
+            else
+            {
+                GetResources((location, stream) => dict.TryAdd(location, stream),
+                    str, fs, pathList);
+                
+                foreach (var (key, value) in dict)
+                {
+                    output(key, value);
+                }
+            }
+        }
     }
 
-    public ISet<string> GetNamespaces(PackType type)
+    private static void GetResources(IPackResources.ResourceOutputDelegate output, string str, IFileSystem fs,
+        List<string> list)
     {
-        throw new NotImplementedException();
+        var fs2 = fs.CreateRelative(str);
+        PathPackResources.ListPath(str, fs2, list, output);
     }
+
+    public ISet<string> GetNamespaces(PackType type) => _namespaces;
 
     public T? GetMetadataSection<T>(IMetadataSectionSerializer<T> serializer) where T : class
     {

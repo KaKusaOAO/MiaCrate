@@ -11,6 +11,18 @@ public class TextureAtlasSprite
     public float V0 { get; }
     public float V1 { get; }
 
+    private float AtlasSize
+    {
+        get
+        {
+            var f = Contents.Width / (U1 - U0);
+            var g = Contents.Height / (V1 - V0);
+            return Math.Max(g, f);
+        }
+    }
+
+    public float UvShrinkRatio => 4 / AtlasSize;
+
     public TextureAtlasSprite(ResourceLocation atlasLocation, SpriteContents contents, int width, int height, int x, int y)
     {
         AtlasLocation = atlasLocation;
@@ -21,6 +33,20 @@ public class TextureAtlasSprite
         U1 = (float) (x + contents.Width) / width;
         V0 = (float) y / height;
         V1 = (float) (y + contents.Height) / height;
+    }
+
+    public float GetU(float f)
+    {
+        // Lerp?
+        var g = U1 - U0;
+        return U0 + g * f;
+    }
+    
+    public float GetV(float f)
+    {
+        // Lerp?
+        var g = V1 - V0;
+        return V0 + g * f;
     }
 
     public ITicker? CreateTicker()

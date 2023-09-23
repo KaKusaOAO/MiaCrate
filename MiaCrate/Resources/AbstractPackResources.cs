@@ -65,7 +65,7 @@ public abstract class AbstractPackResources : IPackResources
         throw new NotImplementedException();
     }
 
-    public void ListResources(PackType type, string str, string str2, IPackResources.ResourceOutputDelegate output)
+    public void ListResources(PackType type, string str, string path, IPackResources.ResourceOutputDelegate output)
     {
         throw new NotImplementedException();
     }

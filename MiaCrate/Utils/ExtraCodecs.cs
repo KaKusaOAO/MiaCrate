@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using MiaCrate.Data;
@@ -10,17 +11,17 @@ namespace MiaCrate;
 
 public static class ExtraCodecs
 {
-    public static readonly ICodec<JsonNode> Json = Codec.Passthrough.CrossSelect(
+    public static ICodec<JsonNode> Json { get; } = Codec.Passthrough.CrossSelect(
         d => d.Convert(JsonOps.Instance).Value,
         n => new Dynamic<JsonNode>(JsonOps.Instance, n)
     );
 
-    public static readonly ICodec<IComponent> Component = AdaptJsonSerializer(
+    public static ICodec<IComponent> Component { get; } = AdaptJsonSerializer(
         Mochi.Texts.Component.FromJson,
         x => x.ToJson()
     );
 
-    public static readonly ICodec<IComponent> FlatComponent = Codec.String.FlatCrossSelect(str =>
+    public static ICodec<IComponent> FlatComponent { get; } = Codec.String.FlatCrossSelect(str =>
     {
         try
         {
@@ -44,7 +45,7 @@ public static class ExtraCodecs
         }
     });
 
-    public static readonly ICodec<Regex> Regex = Codec.String.CoSelectSelectMany(str =>
+    public static ICodec<Regex> Regex { get; } = Codec.String.CoSelectSelectMany(str =>
     {
         try
         {
@@ -56,6 +57,17 @@ public static class ExtraCodecs
                 $"Invalid regex '{str}': {ex.Message}");
         }
     }, r => r.ToString());
+
+    public static ICodec<int> Codepoint { get; } = Codec.String.CoSelectSelectMany(s =>
+    {
+        var arr = Encoding.UTF32.GetBytes(s)
+            .Chunk(4)
+            .Select(arr => BitConverter.ToInt32(arr)).ToArray();
+
+        return arr.Length != 1
+            ? DataResult.Error<int>(() => $"Expected one codepoint, got: {s}")
+            : DataResult.Success(arr[0]);
+    }, char.ConvertFromUtf32);
 
     public static ICodec<T> AdaptJsonSerializer<T>(Func<JsonNode, T> deserialize, Func<T, JsonNode> serialize)
     {

@@ -62,12 +62,13 @@ public unsafe class Window : IDisposable
         get => _framebufferHeight;
         set => _framebufferHeight = value;
     }
+    public double GuiScale { get; private set; }
 
     public int ScreenWidth => _width;
     public int ScreenHeight => _height;
-    public int GuiScaledWidth { get; }
+    public int GuiScaledWidth { get; private set; }
 
-    public int GuiScaledHeight { get; }
+    public int GuiScaledHeight { get; private set; }
 
     public Window(ScreenManager screenManager, DisplayData displayData, string? str, string str2)
     {
@@ -146,6 +147,32 @@ public unsafe class Window : IDisposable
         RenderSystem.FlipFrame(Handle);
     }
 
+    public int CalculateScale(int i, bool bl)
+    {
+        int j;
+        for (j = 1;
+             j != i && j < _framebufferWidth && j < _framebufferHeight && _framebufferWidth / (j + 1) >= 320 &&
+             _framebufferHeight / (j + 1) >= 240;
+             j++)
+        {
+            
+        }
+
+        if (bl && j % 2 == 0) j++;
+        return j;
+    }
+
+    public void SetGuiScale(double d)
+    {
+        GuiScale = d;
+
+        var i = (int) (_framebufferWidth / d);
+        GuiScaledWidth = _framebufferWidth / d > i ? i + 1 : i;
+
+        var j = (int) (_framebufferHeight / d);
+        GuiScaledHeight = _framebufferHeight / d > j ? j + 1 : j;
+    }
+
     private void SetMode()
     {
         RenderSystem.AssertInInitPhase();
@@ -173,6 +200,8 @@ public unsafe class Window : IDisposable
             return GLX.GetRefreshRate(this);
         }
     }
+
+    public int FrameRateLimit { get; set; } = 60;
 
     public bool ShouldClose => GLFW.WindowShouldClose(Handle);
 
@@ -233,6 +262,11 @@ public unsafe class Window : IDisposable
         RenderSystem.AssertInInitPhase();
         _delegateErrorCallback = BootCrash;
         GLFW.SetErrorCallback(_delegateErrorCallback);
+    }
+
+    public void SetTitle(string title)
+    {
+        GLFW.SetWindowTitle(Handle, title);
     }
 
     private static void BootCrash(ErrorCode error, string description)

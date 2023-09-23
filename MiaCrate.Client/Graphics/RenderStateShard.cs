@@ -4,12 +4,12 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Graphics;
 
-public abstract class RenderStateShard
+public abstract partial class RenderStateShard
 {
-    public static readonly TransparencyStateShard NoTransparency = 
+    public static TransparencyStateShard NoTransparency { get; } =
         new("no_transparency", RenderSystem.DisableBlend, () => { });
 
-    public static readonly TransparencyStateShard AdditiveTransparency =
+    public static TransparencyStateShard AdditiveTransparency { get; } =
         new("additive_transparency", () =>
         {
             RenderSystem.EnableBlend();
@@ -20,7 +20,7 @@ public abstract class RenderStateShard
             RenderSystem.DefaultBlendFunc();
         });
 
-    public static readonly TransparencyStateShard LightningTransparency =
+    public static TransparencyStateShard LightningTransparency { get; } =
         new("lightning_trasnparency", () =>
         {
             RenderSystem.EnableBlend();
@@ -30,39 +30,39 @@ public abstract class RenderStateShard
             RenderSystem.DisableBlend();
             RenderSystem.DefaultBlendFunc();
         });
-    
-    public static readonly TransparencyStateShard GlintTransparency =
+
+    public static TransparencyStateShard GlintTransparency { get; } =
         new("glint_transparency", () =>
         {
             RenderSystem.EnableBlend();
             RenderSystem.BlendFuncSeparate(
-                BlendingFactorSrc.SrcColor, BlendingFactorDest.One, 
+                BlendingFactorSrc.SrcColor, BlendingFactorDest.One,
                 BlendingFactorSrc.Zero, BlendingFactorDest.One);
         }, () =>
         {
             RenderSystem.DisableBlend();
             RenderSystem.DefaultBlendFunc();
         });
-    
-    public static readonly TransparencyStateShard CrumblingTransparency =
+
+    public static TransparencyStateShard CrumblingTransparency { get; } =
         new("crumbling_transparency", () =>
         {
             RenderSystem.EnableBlend();
             RenderSystem.BlendFuncSeparate(
-                BlendingFactorSrc.DstColor, BlendingFactorDest.SrcColor, 
+                BlendingFactorSrc.DstColor, BlendingFactorDest.SrcColor,
                 BlendingFactorSrc.One, BlendingFactorDest.Zero);
         }, () =>
         {
             RenderSystem.DisableBlend();
             RenderSystem.DefaultBlendFunc();
         });
-    
-    public static readonly TransparencyStateShard TranslucentTransparency =
+
+    public static TransparencyStateShard TranslucentTransparency { get; } =
         new("translucent_transparency", () =>
         {
             RenderSystem.EnableBlend();
             RenderSystem.BlendFuncSeparate(
-                BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha, 
+                BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha,
                 BlendingFactorSrc.One, BlendingFactorDest.OneMinusSrcAlpha);
         }, () =>
         {
@@ -70,7 +70,19 @@ public abstract class RenderStateShard
             RenderSystem.DefaultBlendFunc();
         });
 
-    public static readonly ShaderStateShard NoShader = new();
+    public static TextureStateShard BlockSheetMipped { get; } = new(TextureAtlas.LocationBlocks, false, true);
+    public static TextureStateShard BlockSheet { get; } = new(TextureAtlas.LocationBlocks, false, false);
+    public static EmptyTextureStateShard NoTexture { get; } = new();
+
+    public static CullStateShard NoCull { get; } = new(false);
+    public static CullStateShard Cull { get; } = new(true);
+    public static DepthTestStateShard NoDepthTest { get; } = new("always", DepthFunction.Always);
+    public static DepthTestStateShard EqualDepthTest { get; } = new("==", DepthFunction.Equal);
+    public static DepthTestStateShard LequalDepthTest { get; } = new("<=", DepthFunction.Lequal);
+    public static DepthTestStateShard GreaterDepthTest { get; } = new(">", DepthFunction.Greater);
+    public static WriteMaskStateShard ColorDepthWrite { get; } = new(true, true);
+    public static WriteMaskStateShard ColorWrite { get; } = new(true, false);
+    public static WriteMaskStateShard DepthWrite { get; } = new(false, true);
 
     private readonly string _name;
     private readonly Action _setupState;
@@ -90,9 +102,9 @@ public abstract class RenderStateShard
 
     public class ShaderStateShard : RenderStateShard
     {
-        private readonly IOptional<Func<ShaderInstance>> _shader;
+        private readonly IOptional<Func<ShaderInstance?>> _shader;
 
-        public ShaderStateShard(Func<ShaderInstance> shader) : base("shader",
+        public ShaderStateShard(Func<ShaderInstance?> shader) : base("shader",
             () => RenderSystem.SetShader(shader),
             () => { })
         {
@@ -112,8 +124,10 @@ public abstract class RenderStateShard
         public EmptyTextureStateShard(Action setupState, Action clearState) : base("texture", setupState, clearState)
         {
         }
-        
-        public EmptyTextureStateShard() : this(() => { }, () => { }) {}
+
+        public EmptyTextureStateShard() : this(() => { }, () => { })
+        {
+        }
 
         public virtual IOptional<ResourceLocation> CutoutTexture => Optional.Empty<ResourceLocation>();
     }
@@ -141,7 +155,7 @@ public abstract class RenderStateShard
     public class MultiTextureStateShard : EmptyTextureStateShard
     {
         public override IOptional<ResourceLocation> CutoutTexture { get; }
-        
+
         private MultiTextureStateShard(List<(ResourceLocation, bool, bool)> list)
             : base(() =>
             {
@@ -161,7 +175,7 @@ public abstract class RenderStateShard
         }
 
         public static StateBuilder Builder => new();
-        
+
         public class StateBuilder
         {
             private readonly List<(ResourceLocation, bool, bool)> _list = new();
@@ -175,12 +189,36 @@ public abstract class RenderStateShard
             public MultiTextureStateShard Build() => new(_list);
         }
     }
+    
+    public class BoolStateShard : RenderStateShard
+    {
+        private readonly bool _enabled;
+        
+        public BoolStateShard(string name, Action setupState, Action clearState, bool enabled) 
+            : base(name, setupState, clearState)
+        {
+            _enabled = enabled;
+        }
+    }
 
     public class TransparencyStateShard : RenderStateShard
     {
-        public TransparencyStateShard(string name, Action setupState, Action clearState) : base(name, setupState, clearState)
+        public TransparencyStateShard(string name, Action setupState, Action clearState) : base(name, setupState,
+            clearState)
         {
         }
+    }
+
+    public class CullStateShard : BoolStateShard
+    {
+        public CullStateShard(bool cull)
+            : base("cull", () =>
+            {
+                if (!cull) RenderSystem.DisableCull();
+            }, () =>
+            {
+                if (!cull) RenderSystem.EnableCull();
+            }, cull) {}
     }
 
     public class DepthTestStateShard : RenderStateShard

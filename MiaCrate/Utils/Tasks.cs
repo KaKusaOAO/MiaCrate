@@ -21,15 +21,15 @@ public static class Tasks
         return source.Task;
     }
     
-    public static Task RunAsync(Action func, IExecutor executor)
+    public static Task RunAsync(Action action, IExecutor executor)
     {
-        var source = new TaskCompletionSource<Unit>();
+        var source = new TaskCompletionSource();
         executor.Execute(() =>
         {
             try
             {
-                func();
-                source.SetResult(Unit.Instance);
+                action();
+                source.SetResult();
             }
             catch (Exception ex)
             {
@@ -39,10 +39,38 @@ public static class Tasks
         return source.Task;
     }
     
+    private static void TryRun(TaskCompletionSource source, Action action)
+    {
+        try
+        {
+            action();
+            source.SetResult();
+        }
+        catch (Exception ex)
+        {
+            TrySetException(source, ex);
+        }
+    }
     
     public static Task<TOther> ApplyToEitherAsync<T, TOther>(this Task<T> task, Task<T> other, Func<T, TOther> func) => 
         Task.WhenAny(task, other).ThenApplyAsync(t => func(t.Result));
 
+    private static void TrySetException(TaskCompletionSource source, Exception ex)
+    {
+        if (ex is AggregateException aggregateException)
+        {
+            var list = aggregateException.InnerExceptions;
+            if (list.Count == 1)
+                source.TrySetException(list.First());
+            else
+                source.TrySetException(list);
+        }
+        else
+        {
+            source.TrySetException(ex);
+        }
+    }
+    
     private static void TrySetException<T>(TaskCompletionSource<T> source, Exception ex)
     {
         if (ex is AggregateException aggregateException)
@@ -92,18 +120,21 @@ public static class Tasks
     
     public static Task ThenRunAsync(this Task task, Action action, IExecutor executor)
     {
-        var source = new TaskCompletionSource<Unit>();
+        var source = new TaskCompletionSource();
         task.ContinueWith(t =>
         {
-            RunAsync(() =>
+            executor.Execute(() =>
             {
-                // Ensure the errors in the previous task is handled
-                t.Wait();
+                TryRun(source, () =>
+                {
+                    // Ensure the errors in the previous task is handled
+                    t.Wait();
 
-                // Run the action
-                action();
-                source.SetResult(Unit.Instance);
-            }, executor);
+                    // Run the action
+                    action();
+                    source.SetResult();
+                });
+            });
         });
 
         return source.Task;
@@ -141,7 +172,7 @@ public static class Tasks
         var source = new TaskCompletionSource<T>();
         task.ContinueWith(t =>
         {
-            RunAsync(() =>
+            executor.Execute(() =>
             {
                 TryRun(source, () =>
                 {
@@ -149,7 +180,7 @@ public static class Tasks
                     t.Wait();
                     return func();
                 });
-            }, executor);
+            });
         });
 
         return source.Task;
@@ -160,14 +191,14 @@ public static class Tasks
         var source = new TaskCompletionSource<Unit>();
         task.ContinueWith(t =>
         {
-            RunAsync(() =>
+            executor.Execute(() =>
             {
                 TryRun(source, () =>
                 {
                     func(t.Result);
                     return Unit.Instance;
                 });
-            }, executor);
+            });
         });
 
         return source.Task;
@@ -178,10 +209,10 @@ public static class Tasks
         var source = new TaskCompletionSource<T>();
         task.ContinueWith(t =>
         {
-            RunAsync(() =>
+            executor.Execute(() =>
             {
                 TryRun(source, () => func(t.Result));
-            }, executor);
+            });
         });
 
         return source.Task;

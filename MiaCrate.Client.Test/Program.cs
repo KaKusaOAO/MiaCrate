@@ -8,6 +8,5 @@ internal static class Program
     {
         Logger.Logged += Logger.LogToEmulatedTerminalAsync;
         Logger.RunThreaded();
-        
     }
 }

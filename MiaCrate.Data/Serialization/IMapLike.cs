@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 namespace MiaCrate.Data;
 
 public interface IMapLike
@@ -28,14 +30,41 @@ public static class MapLike
             _ops = ops;
         }
 
-        public T? this[T key] => _dict.TryGetValue(key, out var result) ? result : default;
+        public T? this[T key]
+        {
+            get
+            {
+                foreach (var dictKey in _dict.Keys)
+                {
+                    if (IsMatch(dictKey, key)) return _dict[dictKey];
+                }
+                
+                return default;
+            }
+        }
+
         public T? this[string key]
         {
             get
             {
                 var k = _ops.CreateString(key);
-                return _dict.TryGetValue(k, out var result) ? result : default;
+                foreach (var dictKey in _dict.Keys)
+                {
+                    if (IsMatch(dictKey, k)) return _dict[dictKey];
+                }
+                
+                return default;
             }
+        }
+
+        private static bool IsMatch(T a, T b)
+        {
+            if (a is JsonNode nodeA && b is JsonNode nodeB)
+            {
+                return nodeA.ToJsonString() == nodeB.ToJsonString();
+            }
+
+            return a?.Equals(b) ?? false;
         }
 
         public IEnumerable<IPair<T, T>> Entries => _dict.Select(e => Pair.Of(e.Key, e.Value));

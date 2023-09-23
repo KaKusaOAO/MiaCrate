@@ -1,6 +1,8 @@
-﻿using MiaCrate.Client.Platform;
+﻿using MiaCrate.Client.Graphics;
+using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
 
 namespace MiaCrate.Client.Pipeline;
 
@@ -11,8 +13,8 @@ public abstract class RenderTarget
     private const int BlueChannel = 0;
     private const int AlphaChannel = 0;
 
-    private readonly float[] _clearChannels = { 1f, 1f, 1f, 0f };
-    
+    private readonly float[] _clearChannels = {1f, 1f, 1f, 0f};
+
     public int Width { get; set; }
     public int Height { get; set; }
     public int ViewWidth { get; set; }
@@ -30,13 +32,13 @@ public abstract class RenderTarget
         ColorTextureId = -1;
         DepthBufferId = -1;
     }
-    
-    public void UnbindWrite() => 
-        RenderSystem.EnsureOnRenderThread(() => 
+
+    public void UnbindWrite() =>
+        RenderSystem.EnsureOnRenderThread(() =>
             GlStateManager.BindFramebuffer(FramebufferTarget.Framebuffer, 0));
 
-    public void Resize(int width, int height, bool clearError) => 
-        RenderSystem.EnsureOnRenderThread(() => 
+    public void Resize(int width, int height, bool clearError) =>
+        RenderSystem.EnsureOnRenderThread(() =>
             InternalResize(width, height, clearError));
 
     private void InternalResize(int width, int height, bool clearError)
@@ -44,7 +46,7 @@ public abstract class RenderTarget
         RenderSystem.AssertOnRenderThreadOrInit();
         GlStateManager.EnableDepthTest();
         if (FramebufferId >= 0) DestroyBuffers();
-        
+
         CreateBuffers(width, height, clearError);
         GlStateManager.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
     }
@@ -97,11 +99,16 @@ public abstract class RenderTarget
         Width = width;
         Height = height;
         FramebufferId = GlStateManager.GenFramebuffers();
+        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Framebuffer, FramebufferId, "Render Target");
+        
         ColorTextureId = TextureUtil.GenerateTextureId();
+        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, ColorTextureId, "Render Target - Color");
 
         if (UseDepth)
         {
             DepthBufferId = TextureUtil.GenerateTextureId();
+            GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, DepthBufferId, "Render Target - Depth");
+            
             GlStateManager.BindTexture(DepthBufferId);
             GlStateManager.TexMinFilter(TextureTarget.Texture2D, TextureMinFilter.Nearest);
             GlStateManager.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Nearest);
@@ -149,13 +156,13 @@ public abstract class RenderTarget
             GlStateManager.ClearDepth(1.0);
             mask |= ClearBufferMask.DepthBufferBit;
         }
-        
+
         GlStateManager.Clear(mask, clearError);
         UnbindWrite();
     }
 
-    public void BindWrite(bool resetViewport) => 
-        RenderSystem.EnsureOnRenderThread(() => 
+    public void BindWrite(bool resetViewport) =>
+        RenderSystem.EnsureOnRenderThread(() =>
             InternalBindWrite(resetViewport));
 
     private void InternalBindWrite(bool resetViewport)
@@ -198,5 +205,54 @@ public abstract class RenderTarget
         _clearChannels[GreenChannel] = green;
         _clearChannels[BlueChannel] = blue;
         _clearChannels[AlphaChannel] = alpha;
+    }
+
+    public void BlitToScreen(int width, int height, bool noBlend = true)
+    {
+        RenderSystem.AssertOnGameThreadOrInit();
+        RenderSystem.EnsureInInitPhase(() =>
+            GlStateManager.WrapWithDebugGroup("RenderTarget::InternalBlitToScreen",
+                () => InternalBlitToScreen(width, height, noBlend)
+            )
+        );
+    }
+
+    private void InternalBlitToScreen(int width, int height, bool noBlend)
+    {
+        RenderSystem.AssertOnRenderThread();
+        GlStateManager.ColorMask(true, true, true, false);
+        GlStateManager.DisableDepthTest();
+        GlStateManager.DepthMask(false);
+        GlStateManager.Viewport(0, 0, width, height);
+        if (noBlend) GlStateManager.DisableBlend();
+
+        var game = Game.Instance;
+        var shader = game.GameRenderer.BlitShader;
+        shader.SetSampler("DiffuseSampler", ColorTextureId);
+
+        var matrix = Matrix4.CreateOrthographicOffCenter(0, width, height, 0, 1000, 3000);
+        RenderSystem.SetProjectionMatrix(matrix, IVertexSorting.OrthoZ);
+
+        shader.ModelViewMatrix?.Set(Matrix4.CreateTranslation(0, 0, -2000));
+        shader.ProjectionMatrix?.Set(matrix);
+        shader.Apply();
+
+        var f = (float) width;
+        var g = (float) height;
+        var h = (float) ViewWidth / Width;
+        var k = (float) ViewHeight / Height;
+
+        var tesselator = RenderSystem.RenderThreadTesselator;
+        var builder = tesselator.Builder;
+        builder.Begin(VertexFormat.Mode.Quads, DefaultVertexFormat.PositionTexColor);
+        builder.Vertex(0, g, 0).Uv(0, 0).Color(255, 255, 255, 255).EndVertex();
+        builder.Vertex(f, g, 0).Uv(h, 0).Color(255, 255, 255, 255).EndVertex();
+        builder.Vertex(f, 0, 0).Uv(h, k).Color(255, 255, 255, 255).EndVertex();
+        builder.Vertex(0, 0, 0).Uv(0, k).Color(255, 255, 255, 255).EndVertex();
+        BufferUploader.Draw(builder.End());
+
+        shader.Clear();
+        GlStateManager.DepthMask(true);
+        GlStateManager.ColorMask(true, true, true, true);
     }
 }

@@ -2,7 +2,7 @@ using Mochi.Utils;
 
 namespace MiaCrate.Data.Codecs;
 
-public interface IMapEncoder : IKeyable
+public interface IMapEncoder : ICompressable
 {
     
 }
@@ -10,7 +10,6 @@ public interface IMapEncoder : IKeyable
 public interface IMapEncoder<T> : IMapEncoder
 {
     IRecordBuilder<TOut> Encode<TOut>(T input, IDynamicOps<TOut> ops, IRecordBuilder<TOut> prefix);
-    IKeyCompressor<TOut> GetCompressor<TOut>(IDynamicOps<TOut> ops);
 
     IRecordBuilder<TOut> GetCompressedBuilder<TOut>(IDynamicOps<TOut> ops) => ops.CompressMaps
         ? MapEncoder.MakeCompressedBuilder(ops, GetCompressor(ops))

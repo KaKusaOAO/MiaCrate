@@ -1,8 +1,6 @@
-﻿using MiaCrate.Client.Graphics;
-using MiaCrate.Client.Systems;
+﻿using MiaCrate.Client.Systems;
 using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
-using All = OpenTK.Graphics.OpenGL.All;
 
 namespace MiaCrate.Client.Platform;
 
@@ -14,11 +12,13 @@ public static class GlStateManager
     private static readonly PolygonOffsetState _polyOffset = new();
     private static readonly ColorLogicState _colorLogic = new();
     private static readonly ScissorState _scissor = new();
+    private static readonly ColorMask _colorMask = new();
     private const int TextureUnit = (int) OpenTK.Graphics.OpenGL4.TextureUnit.Texture0;
     private static int _activeTexture;
-    private static readonly TextureState[] _textures = 
+
+    private static readonly TextureState[] _textures =
         Enumerable.Range(0, 12).Select(i => new TextureState()).ToArray();
-    
+
     public static void AttachShader(int program, int shader)
     {
         RenderSystem.AssertOnRenderThread();
@@ -42,25 +42,26 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThread();
         GL.EnableVertexAttribArray(index);
     }
-    
+
     public static void DisableVertexAttribArray(int index)
     {
         RenderSystem.AssertOnRenderThread();
         GL.DisableVertexAttribArray(index);
     }
-    
-    public static void VertexAttribPointer(int index, int size, VertexAttribPointerType type, bool normalized, int stride, IntPtr ptr)
+
+    public static void VertexAttribPointer(int index, int size, VertexAttribPointerType type, bool normalized,
+        int stride, IntPtr ptr)
     {
         RenderSystem.AssertOnRenderThread();
         GL.VertexAttribPointer(index, size, type, normalized, stride, ptr);
     }
-    
+
     public static void VertexAttribIPointer(int index, int size, VertexAttribIntegerType type, int stride, IntPtr ptr)
     {
         RenderSystem.AssertOnRenderThread();
         GL.VertexAttribIPointer(index, size, type, stride, ptr);
     }
-    
+
     public static void VertexAttribIPointer(int index, int size, VertexAttribPointerType type, int stride, IntPtr ptr)
     {
         var name = Enum.GetName(type);
@@ -69,7 +70,7 @@ public static class GlStateManager
             VertexAttribIPointer(index, size, t, stride, ptr);
             return;
         }
-        
+
         Logger.Warn($"Unknown {nameof(VertexAttribIntegerType)}: {type}");
     }
 
@@ -100,22 +101,22 @@ public static class GlStateManager
         {
             foreach (var texture in textures)
             {
-                if (state.Binding == texture) 
+                if (state.Binding == texture)
                     state.Binding = -1;
             }
         }
-        
+
         GL.DeleteTextures(textures.Length, textures);
     }
-    
+
     public static void DeleteTexture(int texture)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         GL.DeleteTextures(1, ref texture);
-        
+
         foreach (var state in _textures)
         {
-            if (state.Binding == texture) 
+            if (state.Binding == texture)
                 state.Binding = -1;
         }
     }
@@ -123,9 +124,10 @@ public static class GlStateManager
     public static void TexParameter(TextureTarget target, TextureParameterName pName, int value)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        GL.TexParameter(target, pName, value);;
+        GL.TexParameter(target, pName, value);
+        ;
     }
-    
+
     public static void TexParameter(TextureTarget target, TextureParameterName pName, float value)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
@@ -137,29 +139,29 @@ public static class GlStateManager
     /// </summary>
     public static void TexMinFilter(TextureTarget target, TextureMinFilter filter) =>
         TexParameter(target, TextureParameterName.TextureMinFilter, (int) filter);
-    
+
     /// <summary>
     /// For quick check, this applies to 10240 (<see cref="TextureParameterName.TextureMagFilter"/>).
     /// </summary>
-    public static void TexMagFilter(TextureTarget target, TextureMagFilter filter) => 
+    public static void TexMagFilter(TextureTarget target, TextureMagFilter filter) =>
         TexParameter(target, TextureParameterName.TextureMagFilter, (int) filter);
-    
+
     /// <summary>
     /// For quick check, this applies to 34892 (<see cref="TextureParameterName.TextureCompareMode"/>).
     /// </summary>
-    public static void TexCompareMode(TextureTarget target, TextureCompareMode mode) => 
+    public static void TexCompareMode(TextureTarget target, TextureCompareMode mode) =>
         TexParameter(target, TextureParameterName.TextureCompareMode, (int) mode);
-    
+
     /// <summary>
     /// For quick check, this applies to 10242 (<see cref="TextureParameterName.TextureWrapS"/>).
     /// </summary>
     public static void TexWrapS(TextureTarget target, TextureWrapMode mode) =>
         TexParameter(target, TextureParameterName.TextureWrapS, (int) mode);
-    
+
     /// <summary>
     /// For quick check, this applies to 10243 (<see cref="TextureParameterName.TextureWrapT"/>).
     /// </summary>
-    public static void TexWrapT(TextureTarget target, TextureWrapMode mode) => 
+    public static void TexWrapT(TextureTarget target, TextureWrapMode mode) =>
         TexParameter(target, TextureParameterName.TextureWrapT, (int) mode);
 
     public static void PixelStore(PixelStoreParameter pName, int param)
@@ -209,7 +211,8 @@ public static class GlStateManager
         }
     }
 
-    public static void TexImage2D(TextureTarget target, int level, PixelInternalFormat internalFormat, int width, int height, int border, PixelFormat format, PixelType type, IntPtr pixels)
+    public static void TexImage2D(TextureTarget target, int level, PixelInternalFormat internalFormat, int width,
+        int height, int border, PixelFormat format, PixelType type, IntPtr pixels)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         GL.TexImage2D(target, level, internalFormat, width, height, border, format, type, pixels);
@@ -220,7 +223,7 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThreadOrInit();
         _depth.State.Enable();
     }
-    
+
     public static void DisableDepthTest()
     {
         RenderSystem.AssertOnRenderThreadOrInit();
@@ -231,7 +234,7 @@ public static class GlStateManager
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         if (func == _depth.DepthFunction) return;
-        
+
         _depth.DepthFunction = func;
         GL.DepthFunc(func);
     }
@@ -241,7 +244,7 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThread();
         _blend.State.Disable();
     }
-    
+
     public static void EnableBlend()
     {
         RenderSystem.AssertOnRenderThread();
@@ -252,18 +255,19 @@ public static class GlStateManager
     {
         RenderSystem.AssertOnRenderThread();
         if (sourceFactor == _blend.SrcRgb && destFactor == _blend.DstRgb) return;
-        
+
         _blend.SrcRgb = sourceFactor;
         _blend.DstRgb = destFactor;
         GL.BlendFunc((BlendingFactor) sourceFactor, (BlendingFactor) destFactor);
     }
-    
-    public static void BlendFuncSeparate(BlendingFactorSrc sourceRgb, BlendingFactorDest destRgb, BlendingFactorSrc sourceAlpha, BlendingFactorDest destAlpha)
+
+    public static void BlendFuncSeparate(BlendingFactorSrc sourceRgb, BlendingFactorDest destRgb,
+        BlendingFactorSrc sourceAlpha, BlendingFactorDest destAlpha)
     {
         RenderSystem.AssertOnRenderThread();
-        if (sourceRgb == _blend.SrcRgb && destRgb == _blend.DstRgb && 
+        if (sourceRgb == _blend.SrcRgb && destRgb == _blend.DstRgb &&
             sourceAlpha == _blend.SrcAlpha && destAlpha == _blend.DstAlpha) return;
-        
+
         _blend.SrcRgb = sourceRgb;
         _blend.DstRgb = destRgb;
         _blend.SrcAlpha = sourceAlpha;
@@ -276,7 +280,7 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThread();
         GL.Uniform1(location, 1, buffer);
     }
-    
+
     public static void Uniform1(int location, float[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
@@ -288,61 +292,61 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThread();
         GL.Uniform1(location, value);
     }
-    
+
     public static void Uniform2(int location, int[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
         GL.Uniform2(location, 1, buffer);
     }
-    
+
     public static void Uniform2(int location, float[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
         GL.Uniform2(location, 1, buffer);
     }
-    
+
     public static void Uniform3(int location, int[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
         GL.Uniform3(location, 1, buffer);
     }
-    
+
     public static void Uniform3(int location, float[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
         GL.Uniform3(location, 1, buffer);
     }
-    
+
     public static void Uniform4(int location, int[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
         GL.Uniform4(location, 1, buffer);
     }
-    
+
     public static void Uniform4(int location, float[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
         GL.Uniform4(location, 1, buffer);
     }
-    
+
     public static void UniformMatrix2(int location, bool transpose, float[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
         GL.UniformMatrix2(location, 1, transpose, buffer);
     }
-    
+
     public static void UniformMatrix3(int location, bool transpose, float[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
         GL.UniformMatrix3(location, 1, transpose, buffer);
     }
-    
+
     public static void UniformMatrix4(int location, bool transpose, float[] buffer)
     {
         RenderSystem.AssertOnRenderThread();
         GL.UniformMatrix4(location, 1, transpose, buffer);
     }
-    
+
     public static void BlendEquation(BlendEquationMode func)
     {
         RenderSystem.AssertOnRenderThread();
@@ -358,7 +362,7 @@ public static class GlStateManager
     public static void ShaderSource(int shader, List<string> list)
     {
         RenderSystem.AssertOnRenderThread();
-        
+
         var source = string.Join('\n', list);
         GL.ShaderSource(shader, source);
     }
@@ -382,7 +386,7 @@ public static class GlStateManager
         GL.GetShaderInfoLog(shader, maxLength, out _, out var result);
         return result;
     }
-    
+
     public static string GetShaderInfoLog(int shader)
     {
         RenderSystem.AssertOnRenderThread();
@@ -426,14 +430,14 @@ public static class GlStateManager
         GL.GetProgram(program, pName, out var result);
         return result;
     }
-    
+
     public static string GetProgramInfoLog(int program, int maxLength)
     {
         RenderSystem.AssertOnRenderThread();
         GL.GetProgramInfoLog(program, maxLength, out _, out var result);
         return result;
     }
-    
+
     public static string GetProgramInfoLog(int program)
     {
         RenderSystem.AssertOnRenderThread();
@@ -479,7 +483,8 @@ public static class GlStateManager
         return result;
     }
 
-    public static void FramebufferTexture2D(FramebufferTarget target, FramebufferAttachment attachment, TextureTarget textureTarget, int texture, int level)
+    public static void FramebufferTexture2D(FramebufferTarget target, FramebufferAttachment attachment,
+        TextureTarget textureTarget, int texture, int level)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         GL.FramebufferTexture2D(target, attachment, textureTarget, texture, level);
@@ -528,8 +533,8 @@ public static class GlStateManager
     }
 
     public static void BlitFramebuffer(
-        int srcX0, int srcY0, int srcX1, int srcY1, 
-        int dstX0, int dstY0, int dstX1, int dstY1, 
+        int srcX0, int srcY0, int srcX1, int srcY1,
+        int dstX0, int dstY0, int dstX1, int dstY1,
         ClearBufferMask clearMask, BlitFramebufferFilter filter)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
@@ -542,7 +547,7 @@ public static class GlStateManager
         GL.GenBuffers(1, out int result);
         return result;
     }
-    
+
     public static int GenVertexArrays()
     {
         RenderSystem.AssertOnRenderThreadOrInit();
@@ -568,10 +573,100 @@ public static class GlStateManager
         }
     }
 
+    public static void BufferData(BufferTarget target, nint size, BufferUsageHint usage)
+    {
+        RenderSystem.AssertOnRenderThreadOrInit();
+        GL.BufferData(target, size, IntPtr.Zero, usage);
+    }
+
     public static void DrawElements(PrimitiveType mode, int count, DrawElementsType type, IntPtr indices)
     {
         RenderSystem.AssertOnRenderThread();
         GL.DrawElements(mode, count, type, indices);
+    }
+
+    public static void EnableCull()
+    {
+        RenderSystem.AssertOnRenderThread();
+        _cull.State.Enable();
+    }
+
+    public static void DepthMask(bool flag)
+    {
+        RenderSystem.AssertOnRenderThread();
+        if (flag == _depth.EnableMask) return;
+
+        _depth.EnableMask = flag;
+        GL.DepthMask(flag);
+    }
+
+    public static IntPtr MapBuffer(BufferTarget target, BufferAccess access)
+    {
+        RenderSystem.AssertOnRenderThreadOrInit();
+        return GL.MapBuffer(target, access);
+    }
+
+    public static void UnmapBuffer(BufferTarget target)
+    {
+        RenderSystem.AssertOnRenderThreadOrInit();
+        GL.UnmapBuffer(target); // the bool result is discarded
+    }
+
+    public static void BindVertexArray(int array)
+    {
+        RenderSystem.AssertOnRenderThreadOrInit();
+        GL.BindVertexArray(array);
+    }
+    
+    public static void DisableCull()
+    {
+        RenderSystem.AssertOnRenderThread();
+        _cull.State.Disable();
+    }
+
+    public static void ColorMask(bool red, bool green, bool blue, bool alpha)
+    {
+        RenderSystem.AssertOnRenderThread();
+        if (red == _colorMask.Red && green == _colorMask.Green && blue == _colorMask.Blue &&
+            alpha == _colorMask.Alpha) return;
+        
+        _colorMask.Red = red;
+        _colorMask.Green = green;
+        _colorMask.Blue = blue;
+        _colorMask.Alpha = alpha;
+        GL.ColorMask(red, green, blue, alpha);
+    }
+    
+    public static void ObjectLabel(ObjectLabelIdentifier identifier, int name, string label)
+    {
+        RenderSystem.AssertOnRenderThread();
+        GL.ObjectLabel(identifier, name, label.Length, label);
+    }
+
+    public static void PushDebugGroup(string message)
+    {
+        RenderSystem.AssertOnRenderThread();
+        GL.PushDebugGroup(DebugSourceExternal.DebugSourceApplication, 0, message.Length, message);
+    }
+    
+    public static void PopDebugGroup()
+    {
+        RenderSystem.AssertOnRenderThread();
+        GL.PopDebugGroup();
+    }
+
+    public static void WrapWithDebugGroup(string message, Action action)
+    {
+        RenderSystem.AssertOnRenderThread();
+        PushDebugGroup(message);
+        try
+        {
+            action();
+        }
+        finally
+        {
+            PopDebugGroup();
+        }
     }
 
     // Why is this needed?
@@ -581,11 +676,5 @@ public static class GlStateManager
         public static int Y { get; set; }
         public static int Width { get; set; }
         public static int Height { get; set; }
-    }
-
-    public static void EnableCull()
-    {
-        RenderSystem.AssertOnRenderThread();
-        _cull.State.Enable();
     }
 }

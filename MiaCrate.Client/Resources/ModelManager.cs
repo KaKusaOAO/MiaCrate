@@ -18,7 +18,12 @@ public class ModelManager : IPreparableReloadListener, IDisposable
         [Sheets.BannerSheet] = new("banner_patterns"),
         [Sheets.BedSheet] = new("beds"),
         [Sheets.ChestSheet] = new("chests"),
-        [Sheets.ShieldSheet] = new("shield_patterns")
+        [Sheets.ShieldSheet] = new("shield_patterns"),
+        [Sheets.SignSheet] = new("signs"),
+        [Sheets.ShulkerSheet] = new("shulker_boxes"),
+        [Sheets.ArmorTrimsSheet] = new("armor_trims"),
+        [Sheets.DecoratedPotSheet] = new("decorated_pot"),
+        [TextureAtlas.LocationBlocks] = new("blocks")
     };
 
     private readonly BlockColors _blockColors;
@@ -46,7 +51,7 @@ public class ModelManager : IPreparableReloadListener, IDisposable
 
         var dict = _atlases.ScheduleLoad(manager, _maxMipmapLevels, executor);
         return Task
-            .WhenAll(dict.Values.Concat(new List<Task> {task3}))
+            .WhenAll(dict.Values.Append((Task) task3))
             .ThenApplyAsync(() => LoadModels(profiler,
                 dict.ToDictionary(e => e.Key, e => e.Value.Result),
                 task3.Result), executor)

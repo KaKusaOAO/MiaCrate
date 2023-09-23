@@ -26,7 +26,7 @@ public class ModelBakery
         
         sb.AppendLine(@$"{{");
         sb.AppendLine(@$"    ""textures"": {{");
-        sb.AppendLine(@$"        ""particle"": ""{MissingTextureAtlasSprite.Location.Path}"",");
+        sb.AppendLine(@$"        ""{BlockModel.ParticleTextureReference}"": ""{MissingTextureAtlasSprite.Location.Path}"",");
         sb.AppendLine(@$"        ""missingno"": ""{MissingTextureAtlasSprite.Location.Path}""");
         sb.AppendLine(@$"    }},");
         sb.AppendLine(@$"    ""elements"": [");
@@ -72,6 +72,8 @@ public class ModelBakery
         return sb.ToString();
     });
 
+    private static readonly ItemModelGenerator _itemModelGenerator = new();
+
     private static readonly Dictionary<string, string> _builtinModels = new()
     {
         ["missing"] = MissingModelMesh
@@ -98,6 +100,7 @@ public class ModelBakery
     private readonly BlockModelDefinition.Context _context = new();
     private readonly HashSet<ResourceLocation> _loadingStack = new();
     private readonly Dictionary<ResourceLocation, IUnbakedModel> _unbakedCache = new();
+    private readonly Dictionary<BakedCacheKey, IBakedModel> _bakedCache = new();
     private readonly Dictionary<ResourceLocation, IUnbakedModel> _topLevelModels = new();
     
     private readonly BlockColors _blockColors;
@@ -300,7 +303,25 @@ public class ModelBakery
 
         public IBakedModel? Bake(ResourceLocation location, IModelState modelState)
         {
-            throw new NotImplementedException();
+            var key = new BakedCacheKey(location, modelState.Rotation, modelState.IsUvLocked);
+            var model = _instance._bakedCache.GetValueOrDefault(key);
+            if (model != null) return model;
+
+            var unbaked = GetModel(location);
+            if (unbaked is BlockModel blockModel)
+            {
+                if (blockModel.RootModel == GenerationMarker)
+                    return _itemModelGenerator.GenerateBlockModel(_modelTextureGetter, blockModel)
+                        .Bake(this, blockModel, _modelTextureGetter, modelState, location, false);
+            }
+
+            var baked = unbaked.Bake(this, _modelTextureGetter, modelState, location);
+            if (baked != null)
+                _instance._bakedCache[key] = baked;
+            
+            return baked;
         }
     }
+
+    private record BakedCacheKey(ResourceLocation Id, Transformation Transformation, bool IsUvLocked);
 }

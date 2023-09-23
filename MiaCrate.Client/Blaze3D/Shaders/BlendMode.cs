@@ -91,8 +91,8 @@ public class BlendMode
     public override int GetHashCode() => 
         HashCode.Combine(_srcRgb, _srcAlpha, _dstRgb, _dstAlpha, _blendFunc, _separateBlend, IsOpaque);
 
-    public static bool operator ==(BlendMode? a, BlendMode? b) => a?.Equals(b) ?? false;
-    public static bool operator !=(BlendMode? a, BlendMode? b) => !(a?.Equals(b) ?? false);
+    public static bool operator ==(BlendMode? a, BlendMode? b) => a?.Equals(b) ?? ReferenceEquals(b, null);
+    public static bool operator !=(BlendMode? a, BlendMode? b) => !(a?.Equals(b) ?? !ReferenceEquals(b, null));
 
     public static BlendEquationMode StringToBlendFunc(string str)
     {

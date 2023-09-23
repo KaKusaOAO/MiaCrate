@@ -55,17 +55,6 @@ public class InactiveProfiler : IProfileCollector
     }
 
     public IProfileResults Results => EmptyProfileResults.Instance;
-}
 
-public class EmptyProfileResults : IProfileResults
-{
-    public static readonly EmptyProfileResults Instance = new();
-    
-    private EmptyProfileResults() {}
-    
-    public bool SaveResults(string path) => false;
-    public long StartTimeNano => 0;
-    public int StartTimeTicks => 0;
-    public long EndTimeNano => 0;
-    public int EndTimeTicks => 0;
+    public ActiveProfiler.PathEntry? GetEntry(string str) => null;
 }

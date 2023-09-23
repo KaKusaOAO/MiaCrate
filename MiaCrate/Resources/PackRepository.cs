@@ -42,7 +42,7 @@ public class PackRepository
         var list = GetAvailablePacks(ids);
         foreach (var pack in _available.Values)
         {
-            if (pack.IsRequired && list.Contains(pack))
+            if (pack.IsRequired && !list.Contains(pack))
             {
                 pack.DefaultPosition.Insert(list, pack, x => x, false);
             }

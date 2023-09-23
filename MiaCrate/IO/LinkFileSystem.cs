@@ -4,7 +4,9 @@ public class LinkFileSystem : IFileSystem
 {
     private bool _frozen;
     private readonly string _dummyBase = Path.GetFullPath("/");
-    private readonly DummyDirectory _root = new(""); 
+    private readonly DummyDirectory _root = new("");
+    
+    public string BasePath => "/";
     
     public LinkFileSystem Freeze()
     {
@@ -79,7 +81,7 @@ public class LinkFileSystem : IFileSystem
 
         return null;
     }
-    
+
     public Stream Open(string path, FileMode mode)
     {
         var file = ResolveFile(path);
@@ -111,6 +113,8 @@ public class LinkFileSystem : IFileSystem
         
         return dir.SubDirectories.Select(d => d.Name).ToArray();
     }
+    
+    public string[] GetDirectories() => _root.SubDirectories.Select(d => d.Name).ToArray();
 
     public string[] GetFiles(string directory)
     {
@@ -119,6 +123,8 @@ public class LinkFileSystem : IFileSystem
         
         return dir.Files.Select(d => d.Name).ToArray();
     }
+    
+    public string[] GetFiles() => _root.Files.Select(d => d.Name).ToArray();
 
     private abstract class DummyNode
     {

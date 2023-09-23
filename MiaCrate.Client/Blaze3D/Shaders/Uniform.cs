@@ -1,7 +1,10 @@
-﻿using MiaCrate.Client.Graphics;
+﻿using System.Runtime.InteropServices;
+using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
 using Mochi.Utils;
+using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
 
 namespace MiaCrate.Client.Shaders;
 
@@ -68,6 +71,96 @@ public class Uniform : AbstractUniform, IDisposable
         _floatValues![0] = f1;
         _floatValues![1] = f2;
         _floatValues![2] = f3;
+        MarkDirty();
+    }
+    
+    public sealed override void SetSafe(int f1, int f2, int f3, int f4)
+    {
+        if (_type >= UniformType.Int)
+        {
+            _intValues![0] = f1;
+        }
+        
+        if (_type >= UniformType.Int2)
+        {
+            _intValues![1] = f2;
+        }
+        
+        if (_type >= UniformType.Int3)
+        {
+            _intValues![2] = f3;
+        }
+        
+        if (_type >= UniformType.Int4)
+        {
+            _intValues![3] = f4;
+        }
+        
+        MarkDirty();
+    }
+
+    public sealed override void SetSafe(float f1, float f2, float f3, float f4)
+    {
+        if (_type >= UniformType.Float)
+        {
+            _floatValues![0] = f1;
+        }
+        
+        if (_type >= UniformType.Float2)
+        {
+            _floatValues![1] = f2;
+        }
+        
+        if (_type >= UniformType.Float3)
+        {
+            _floatValues![2] = f3;
+        }
+        
+        if (_type >= UniformType.Float4)
+        {
+            _floatValues![3] = f4;
+        }
+        
+        MarkDirty();
+    }
+
+    public sealed override void Set(float[] fs)
+    {
+        if (fs.Length < _count)
+        {
+            Logger.Warn($"Uniform.Set called with a too-small value array (expected {_count}, got {fs.Length}). Ignoring.");
+            return;
+        }
+        
+        Array.Copy(fs, 0, _floatValues!, 0, _floatValues!.Length);
+        MarkDirty();
+    }
+
+    public sealed override void Set(Matrix4 matrix)
+    {
+        unsafe
+        {
+            var numPtr = &matrix.Row0.X;
+            var buffer = new byte[sizeof(float) * 16];
+            Marshal.Copy((IntPtr) numPtr, buffer, 0, buffer.Length);
+
+            var fs = buffer.Chunk(sizeof(float)).Select(t => BitConverter.ToSingle(t)).ToArray();
+            Array.Copy(fs, 0, _floatValues!, 0, 16);
+        }
+        MarkDirty();
+    }
+    
+    public sealed override void Set(Matrix3 matrix)
+    {
+        unsafe
+        {
+            var numPtr = &matrix.Row0.X;
+            var buffer = new byte[sizeof(float) * 9];
+            Marshal.Copy((IntPtr) numPtr, buffer, 0, buffer.Length);
+
+            var fs = buffer.Chunk(sizeof(float)).Select(t => BitConverter.ToSingle(t)).ToArray();
+            Array.Copy(fs, 0, _floatValues!, 0, 9);
+        }
         MarkDirty();
     }
 

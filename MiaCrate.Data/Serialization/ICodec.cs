@@ -85,3 +85,8 @@ public interface ICodec<T> : ICodec, IEncoder<T>, IDecoder<T>
         public override string ToString() => _inner.ToString()!;
     }
 }
+
+public static class CodecExtension
+{
+    public static IMapCodec<T> FieldOf<T>(this ICodec<T> codec, string name) => codec.FieldOf(name);
+}

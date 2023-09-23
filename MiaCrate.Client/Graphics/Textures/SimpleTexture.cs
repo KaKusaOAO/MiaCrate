@@ -3,6 +3,7 @@ using MiaCrate.Client.Resources;
 using MiaCrate.Client.Systems;
 using MiaCrate.Resources;
 using Mochi.Utils;
+using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -37,6 +38,7 @@ public class SimpleTexture : AbstractTexture
 
     private void DoLoad(NativeImage image, bool blur, bool clamp)
     {
+        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, Id, Location);
         TextureUtil.PrepareImage(Id, 0, image.Width, image.Height);
         image.Upload(0, 0, 0, 0, 0, image.Width, image.Height, blur, clamp, false, true);
     }

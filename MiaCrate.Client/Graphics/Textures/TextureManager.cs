@@ -117,7 +117,8 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
         IProfilerFiller profiler2, IExecutor executor, IExecutor executor2)
     {
         var source = new TaskCompletionSource();
-        TitleScreen.PreloadResourcesAsync(this, executor)
+        TitleScreen
+            .PreloadResourcesAsync(this, executor)
             .ThenApplyAsync(() => barrier.Wait(Unit.Instance))
             .ThenAcceptAsync(_ =>
             {

@@ -9,6 +9,10 @@ public class Screen : AbstractContainerEventHandler, IRenderable
     public override List<IGuiEventListener> Children { get; } = new();
     public IComponent Title { get; }
 
+    protected Game? Game { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+
     protected Screen(IComponent title)
     {
         Title = title;
@@ -27,7 +31,9 @@ public class Screen : AbstractContainerEventHandler, IRenderable
 
     public void Init(Game game, int width, int height)
     {
-        
+        Game = game;
+        Width = width;
+        Height = height;
     }
 
     public virtual void Render(GuiGraphics graphics, int mouseX, int mouseY, float f)
@@ -38,5 +44,10 @@ public class Screen : AbstractContainerEventHandler, IRenderable
         {
             renderable.Render(graphics, mouseX, mouseY, f);
         }
+    }
+
+    public void RenderWithTooltip(GuiGraphics graphics, int mouseX, int mouseY, float f)
+    {
+        Render(graphics, mouseX, mouseY, f);
     }
 }

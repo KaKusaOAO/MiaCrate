@@ -32,11 +32,16 @@ public record GameData(
     string VersionType, 
     bool IsMultiplayerDisabled, 
     bool IsChatDisabled);
+
 public record QuickPlayData(
-    string? Path, 
-    string? Singleplayer, 
-    string? Multiplayer, 
-    string? Realms);
+    string? Path,
+    string? Singleplayer,
+    string? Multiplayer,
+    string? Realms)
+{
+    public bool IsEnabled => !Singleplayer.IsBlank() || !Multiplayer.IsBlank() || !Realms.IsBlank();
+}
+
 public record UserData(
     User User, 
     PropertyMap UserProperties, 

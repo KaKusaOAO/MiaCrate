@@ -8,7 +8,7 @@ public class Tesselator
 
     private static readonly Tesselator _instance = new();
 
-    private static Tesselator Instance
+    public static Tesselator Instance
     {
         get
         {
@@ -26,6 +26,6 @@ public class Tesselator
 
     public void End()
     {
-        
+        BufferUploader.DrawWithShader(Builder.End());
     }
 }

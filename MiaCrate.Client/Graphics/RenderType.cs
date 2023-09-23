@@ -4,15 +4,62 @@ namespace MiaCrate.Client.Graphics;
 
 public abstract class RenderType : RenderStateShard
 {
-    public static readonly RenderType Solid = Create("solid", DefaultVertexFormat.Block, VertexFormat.Mode.Quads,
+    public static RenderType Solid { get; } = Create("solid", DefaultVertexFormat.Block, VertexFormat.Mode.Quads,
         0x200000, true, false,
-        CompositeState.Builder.CreateCompositeState(true));
+        CompositeState.Builder
+            .SetShaderState(RenderTypeSolidShader)
+            .CreateCompositeState(true));
+
+    public static RenderType CutoutMipped { get; } = Create("cutout_mipped", DefaultVertexFormat.Block,
+        VertexFormat.Mode.Quads, 0x20000, true, false,
+        CompositeState.Builder
+            .SetShaderState(RenderTypeCutoutMippedShader)
+            .CreateCompositeState(false));
+
+    private static readonly Func<ResourceLocation, bool, RenderType> _entityCutoutNoCull = Util.Memoize(
+        (ResourceLocation location, bool outline) =>
+        {
+            var state = CompositeState.Builder
+                .SetShaderState(RenderTypeEntityCutoutNoCullShader)
+                .SetTextureState(new TextureStateShard(location, false, false))
+                .SetTransparencyState(NoTransparency)
+                .SetCullState(NoCull)
+                .CreateCompositeState(outline);
+                
+            return Create("entity_cutout_no_cull", DefaultVertexFormat.NewEntity, VertexFormat.Mode.Quads, 0x100,
+                true, false, state);
+        });
+
+    public static RenderType Gui { get; } = Create("gui", DefaultVertexFormat.PositionColor,
+        VertexFormat.Mode.Quads, 0x100,
+        CompositeState.Builder
+            .SetShaderState(RenderTypeGuiShader)
+            .SetTransparencyState(TranslucentTransparency)
+            .SetDepthTestState(LequalDepthTest)
+            .CreateCompositeState(false));
+
+    public static RenderType GuiOverlay { get; } = Create("gui_overlay", DefaultVertexFormat.PositionColor,
+        VertexFormat.Mode.Quads, 0x100,
+        CompositeState.Builder
+            .SetShaderState(RenderTypeGuiOverlayShader)
+            .SetTransparencyState(TranslucentTransparency)
+            .SetDepthTestState(NoDepthTest)
+            .SetWriteMaskState(ColorWrite)
+            .CreateCompositeState(false));
+
+    public static List<RenderType> ChunkBufferLayers { get; } = new()
+    {
+        Solid, CutoutMipped, // Cutout, Translucent, Tripwire
+    };
+
+    private readonly IOptional<RenderType> _asOptional;
     
     public VertexFormat Format { get; }
     public VertexFormat.Mode Mode { get; }
     public int BufferSize { get; }
     public bool AffectsCrumbling { get; }
     public bool SortOnUpload { get; }
+    public bool CanConsolidateConsecutiveGeometry => !Mode.ConnectedPrimitives;
     
     public virtual IOptional<RenderType> Outline => Optional.Empty<RenderType>();
     public virtual bool IsOutline => false;
@@ -26,7 +73,10 @@ public abstract class RenderType : RenderStateShard
         BufferSize = bufferSize;
         AffectsCrumbling = affectsCrumbling;
         SortOnUpload = sortOnUpload;
+        _asOptional = Optional.Of(this);
     }
+
+    public IOptional<RenderType> AsOptional() => _asOptional;
 
     public static CompositeRenderType Create(string name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
         CompositeState state) =>
@@ -35,6 +85,20 @@ public abstract class RenderType : RenderStateShard
     public static CompositeRenderType Create(string name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
         bool affectsCrumbling, bool sortOnUpload, CompositeState state) =>
         new(name, format, mode, bufferSize, affectsCrumbling, sortOnUpload, state);
+
+    public static RenderType EntityCutoutNoCull(ResourceLocation location, bool outline = true) => 
+        _entityCutoutNoCull(location, outline);
+
+    public void End(BufferBuilder builder, IVertexSorting vertexSorting)
+    {
+        if (!builder.IsBuilding) return;
+        if (SortOnUpload) builder.SetQuadSorting(vertexSorting);
+
+        var buffer = builder.End();
+        SetupRenderState();
+        BufferUploader.DrawWithShader(buffer);
+        ClearRenderState();
+    }
 
     public class CompositeRenderType : RenderType
     {
@@ -64,36 +128,86 @@ public abstract class RenderType : RenderStateShard
     {
         public EmptyTextureStateShard TextureState { get; }
         public ShaderStateShard ShaderState { get; }
+        public TransparencyStateShard TransparencyState { get; }
+        public DepthTestStateShard DepthTestState { get; }
+        public CullStateShard CullState { get; }
+        public WriteMaskStateShard WriteMaskState { get; }
         public List<RenderStateShard> States { get; }
         public OutlineProperty OutlineProperty { get; }
         
         private CompositeState(
             EmptyTextureStateShard textureState,
             ShaderStateShard shaderState,
+            TransparencyStateShard transparencyState,
+            DepthTestStateShard depthTestState,
+            CullStateShard cullState,
+            WriteMaskStateShard writeMaskState,
             OutlineProperty outline
         )
         {
             TextureState = textureState;
             ShaderState = shaderState;
+            TransparencyState = transparencyState;
+            DepthTestState = depthTestState;
+            CullState = cullState;
+            WriteMaskState = writeMaskState;
+            
+            Util.LogFoobar();
+            
             OutlineProperty = outline;
             States = new List<RenderStateShard>
             {
                 TextureState,
-                ShaderState
+                ShaderState,
+                TransparencyState,
+                DepthTestState
             };
-            throw new NotImplementedException();
         }
 
         public static CompositeStateBuilder Builder => new();
 
         public class CompositeStateBuilder
         {
-            public EmptyTextureStateShard TextureState { get; set; }
-            public ShaderStateShard ShaderState { get; set; }
+            public EmptyTextureStateShard TextureState { get; set; } = NoTexture;
+            public ShaderStateShard ShaderState { get; set; } = NoShader;
+            public TransparencyStateShard TransparencyState { get; set; } = NoTransparency;
+            public DepthTestStateShard DepthTestState { get; set; } = LequalDepthTest;
+            public WriteMaskStateShard WriteMaskState { get; set; } = ColorDepthWrite;
+            public CullStateShard CullState { get; set; } = Cull;
+
+            public CompositeStateBuilder SetTextureState(EmptyTextureStateShard state)
+            {
+                TextureState = state;
+                return this;
+            }
 
             public CompositeStateBuilder SetShaderState(ShaderStateShard state)
             {
                 ShaderState = state;
+                return this;
+            }
+
+            public CompositeStateBuilder SetTransparencyState(TransparencyStateShard state)
+            {
+                TransparencyState = state;
+                return this;
+            }
+
+            public CompositeStateBuilder SetDepthTestState(DepthTestStateShard state)
+            {
+                DepthTestState = state;
+                return this;
+            }
+
+            public CompositeStateBuilder SetCullState(CullStateShard state)
+            {
+                CullState = state;
+                return this;
+            }
+
+            public CompositeStateBuilder SetWriteMaskState(WriteMaskStateShard state)
+            {
+                WriteMaskState = state;
                 return this;
             }
 
@@ -102,7 +216,7 @@ public abstract class RenderType : RenderStateShard
             
             public CompositeState CreateCompositeState(OutlineProperty outline) =>
                 new(
-                    TextureState, ShaderState, 
+                    TextureState, ShaderState, TransparencyState, DepthTestState, CullState, WriteMaskState,
                     outline
                 );
         }

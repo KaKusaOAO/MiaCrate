@@ -58,7 +58,7 @@ public interface IBufferVertexConsumer : IVertexConsumer
             throw new InvalidOperationException();
 
         consumer.PutFloat(0, u);
-        consumer.PutFloat(0, v);
+        consumer.PutFloat(4, v);
         consumer.NextElement();
         return consumer;
     }

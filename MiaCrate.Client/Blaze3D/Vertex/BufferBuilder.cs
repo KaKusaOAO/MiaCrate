@@ -1,5 +1,6 @@
 ﻿using MiaCrate.Client.Graphics;
 using Mochi.Utils;
+using OpenTK.Mathematics;
 
 namespace MiaCrate.Client;
 
@@ -13,9 +14,14 @@ public class BufferBuilder : DefaultedVertexConsumer, IBufferVertexConsumer
     private VertexFormat _format;
     private VertexFormat.Mode _mode;
     private byte[] _buffer;
+    private Vector3[]? _sortingPoints;
+    private bool _indexOnly;
     private bool _fastFormat;
     private bool _fullFormat;
     private int _elementIndex;
+    private IVertexSorting? _sorting;
+    
+    public bool IsBuilding { get; private set; }
 
     public BufferBuilder(int capacity)
     {
@@ -39,6 +45,166 @@ public class BufferBuilder : DefaultedVertexConsumer, IBufferVertexConsumer
     private void ReleaseRenderedBuffer()
     {
         if (_renderedBufferCount > 0 && --_renderedBufferCount == 0) Clear();
+    }
+
+    public void Begin(VertexFormat.Mode mode, VertexFormat format)
+    {
+        if (IsBuilding) throw new InvalidOperationException("Already building!");
+        IsBuilding = true;
+        _mode = mode;
+        SwitchFormat(format);
+
+        _currentElement = format.Elements[0];
+        _elementIndex = 0;
+    }
+
+    public RenderedBuffer End()
+    {
+        EnsureDrawing();
+        var result = StoreRenderedBuffer();
+        Reset();
+        return result;
+    }
+
+    private void Reset()
+    {
+        IsBuilding = false;
+        _vertices = 0;
+        _currentElement = null;
+        _elementIndex = 0;
+        _sortingPoints = null;
+        _sorting = null;
+        _indexOnly = false;
+    }
+
+    private void EnsureDrawing()
+    {
+        if (!IsBuilding) throw new InvalidOperationException("Not building!");
+    }
+
+    public void SetQuadSorting(IVertexSorting sorting)
+    {
+        if (_mode != VertexFormat.Mode.Quads) return;
+        _sorting = sorting;
+        _sortingPoints ??= MakeQuadSortingPoints();
+    }
+
+    private Vector3[] MakeQuadSortingPoints()
+    {
+        var buffer = _buffer
+            .Chunk(sizeof(float))
+            .Select(buf => BitConverter.ToSingle(buf)).ToArray();
+        var i = _renderedBufferPointer / sizeof(float);
+        var j = _format.IntegerSize;
+        var k = j * _mode.PrimitiveStride;
+        var l = _vertices / _mode.PrimitiveStride;
+
+        var arr = new Vector3[l];
+
+        for (var m = 0; m < l; m++)
+        {
+            var f = buffer[i + m * k + 0];
+            var g = buffer[i + m * k + 1];
+            var h = buffer[i + m * k + 2];
+            var n = buffer[i + m * k + j * 2 + 0];
+            var o = buffer[i + m * k + j * 2 + 1];
+            var p = buffer[i + m * k + j * 2 + 2];
+
+            var q = (f + n) / 2;
+            var r = (g + o) / 2;
+            var s = (h + p) / 2;
+            arr[m] = new Vector3(q, r, s);
+        }
+
+        return arr;
+    }
+
+    private RenderedBuffer StoreRenderedBuffer()
+    {
+        var i = _mode.GetIndexCount(_vertices);
+        var j = !_indexOnly ? _vertices * _format.VertexSize : 0;
+        var indexType = VertexFormat.IndexType.Least(i);
+
+        bool bl;
+        int l, k;
+        if (_sortingPoints != null)
+        {
+            k = Util.RoundToward(i * indexType.Bytes, 4);
+            EnsureCapacity(k);
+            PutSortedQuadIndices(indexType);
+            bl = false;
+            _nextElementByte += k;
+            l = j + k;
+        }
+        else
+        {
+            bl = true;
+            l = j;
+        }
+
+        k = _renderedBufferPointer;
+        _renderedBufferPointer += l;
+        _renderedBufferCount++;
+
+        var drawState = new DrawState(_format, _vertices, i, _mode, indexType, _indexOnly, bl);
+        return new RenderedBuffer(this, k, drawState);
+    }
+
+    private void PutSortedQuadIndices(VertexFormat.IndexType indexType)
+    {
+        if (_sortingPoints == null || _sorting == null)
+            throw new InvalidOperationException("Sorting state uninitialized");
+
+        var arr = _sorting.Sort(_sortingPoints);
+        var consumer = IntConsumer(_nextElementByte, indexType);
+        
+        foreach (var i in arr)
+        {
+            consumer(i * _mode.PrimitiveStride + 0);
+            consumer(i * _mode.PrimitiveStride + 1);
+            consumer(i * _mode.PrimitiveStride + 2);
+            consumer(i * _mode.PrimitiveStride + 2);
+            consumer(i * _mode.PrimitiveStride + 3);
+            consumer(i * _mode.PrimitiveStride + 0);
+        }
+    }
+
+    private Action<int> IntConsumer(int i, VertexFormat.IndexType indexType)
+    {
+        var ptr = i;
+        
+        if (indexType == VertexFormat.IndexType.Short)
+        {
+            return x =>
+            {
+                var buf = BitConverter.GetBytes((short) x);
+                Array.Copy(buf, 0, _buffer, ptr, buf.Length);
+                ptr += sizeof(short);
+            };
+        }
+
+        if (indexType == VertexFormat.IndexType.Int)
+        {
+            return x =>
+            {
+                var buf = BitConverter.GetBytes(x);
+                Array.Copy(buf, 0, _buffer, ptr, buf.Length);
+                ptr += sizeof(int);
+            };
+        }
+        
+        throw new Exception($"Unknown index type: {indexType}");
+    }
+
+    private void SwitchFormat(VertexFormat format)
+    {
+        if (_format == format) return;
+        _format = format;
+        
+        var bl = format == DefaultVertexFormat.NewEntity;
+        var bl2 = format == DefaultVertexFormat.Block;
+        _fastFormat = bl || bl2;
+        _fullFormat = bl;
     }
 
     public void Vertex(float x, float y, float z, float red, float green, float blue, float alpha, float u, float v, int oPacked,
@@ -160,7 +326,7 @@ public class BufferBuilder : DefaultedVertexConsumer, IBufferVertexConsumer
     
     public void PutByte(int index, byte f)
     {
-        _buffer[index] = f;
+        _buffer[_nextElementByte + index] = f;
     }
 
     public void Clear()
@@ -230,6 +396,12 @@ public class BufferBuilder : DefaultedVertexConsumer, IBufferVertexConsumer
 
         public bool IsEmpty => DrawState.VertexCount == 0;
 
+        /// <summary>
+        /// The constructor of the rendered buffer. Always remember to provide the builder instance (<c>this</c>).
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="pointer"></param>
+        /// <param name="drawState"></param>
         public RenderedBuffer(BufferBuilder builder, int pointer, DrawState drawState)
         {
             _builder = builder;

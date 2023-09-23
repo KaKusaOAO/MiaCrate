@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace MiaCrate.Client.Models;
+namespace MiaCrate.Client.Models.Json;
 
 public class JsonBlockElementRotation
 {

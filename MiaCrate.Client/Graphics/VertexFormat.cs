@@ -9,6 +9,7 @@ public class VertexFormat
     public List<VertexFormatElement> Elements { get; }
     private readonly Dictionary<string, VertexFormatElement> _elementMapping;
     private readonly List<IntPtr> _offsets = new();
+    private VertexBuffer? _immediateDrawVertexBuffer;
     
     public int VertexSize { get; }
     public int IntegerSize => VertexSize / 4;
@@ -27,6 +28,9 @@ public class VertexFormat
 
         VertexSize = offset;
     }
+
+    public VertexBuffer ImmediateDrawVertexBuffer =>
+        _immediateDrawVertexBuffer ??= new VertexBuffer(BufferUsageHint.DynamicDraw);
 
     public void SetupBufferState()
     {
@@ -79,6 +83,8 @@ public class VertexFormat
             GlType = glType;
             Bytes = bytes;
         }
+
+        public static IndexType Least(int i) => (i & -0x10000) != 0 ? Int : Short;
     }
     
     public sealed class Mode

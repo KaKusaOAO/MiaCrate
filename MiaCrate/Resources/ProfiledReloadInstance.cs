@@ -34,12 +34,13 @@ public class ProfiledReloadInstance : SimpleReloadInstance<ProfiledReloadInstanc
         return list;
     }
 
-    private static Task<State> ProfiledStateFactory(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IPreparableReloadListener listener, IExecutor executor, IExecutor executor2)
+    private static Task<State> ProfiledStateFactory(IPreparableReloadListener.IPreparationBarrier barrier,
+        IResourceManager manager, IPreparableReloadListener listener, IExecutor executor, IExecutor executor2)
     {
         var l1 = 0L;
         var l2 = 0L;
-        var profiler = InactiveProfiler.Instance;
-        var profiler2 = InactiveProfiler.Instance;
+        var profiler = new ActiveProfiler(Util.TimeSource.GetNanos, () => 0, false);
+        var profiler2 = new ActiveProfiler(Util.TimeSource.GetNanos, () => 0, false);
         
         return listener.ReloadAsync(barrier, manager, profiler, profiler2, IExecutor.Create(r =>
             {

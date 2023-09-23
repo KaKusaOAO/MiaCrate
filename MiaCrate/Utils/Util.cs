@@ -1,9 +1,13 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using MiaCrate.Data.Codecs;
 using MiaCrate.Extensions;
+using Mochi.Texts;
 using Mochi.Utils;
+using Component = MiaCrate.Texts.Component;
+using TextExtension = Mochi.Texts.TextExtension;
 
 namespace MiaCrate;
 
@@ -92,6 +96,35 @@ public static partial class Util
             .ApplyToEitherAsync(source.Task, t => t);
     }
 
+    public static void LogAndPauseIfInIde(object message)
+    {
+        Logger.Error(message);
+        Debugger.Break();
+    }
+
+    public static void LogFoobar(
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = -1,
+        [CallerMemberName] string methodName = "")
+    {
+        Logger.Warn(Component.Literal("")
+            .AddExtra(Component.Literal(filePath)
+                .SetColor(TextColor.Aqua))
+            .AddExtra(Component.Literal("::")
+                .SetColor(TextColor.Gray))
+            .AddExtra(Component.Literal(methodName)
+                .SetColor(TextColor.Gold))
+            .AddExtra(Component.Translatable("(%s)")
+                .SetColor(TextColor.Gray)
+                .AddWith(Component.Literal("...")
+                    .SetColor(TextColor.DarkGray)
+                ))
+            .AddExtra(Component.Literal($" (line {lineNumber})")
+                .SetColor(TextColor.DarkGray))
+            .AddExtra(Component.Literal(" is foobar!"))
+        );
+    }
+
     public static Task<List<T>> FallibleSequence<T>(List<Task<T>> list, Action<Exception> handler)
     {
         var list2 = new List<T>(list.Count);
@@ -102,16 +135,32 @@ public static partial class Util
             list2.Add(default!);
             wait[i] = task.ContinueWith(t =>
             {
-                if (t.IsFaulted)
+                try
                 {
-                    var ex = t.Exception!;
-                    var exceptions = ex.InnerExceptions;
-                    if (exceptions.Count == 1)
-                        handler(exceptions.First());
-                    else
-                        handler(ex);
+                    if (t.IsCanceled)
+                    {
+                        handler(new TaskCanceledException(t));
+                        return;
+                    }
+
+                    if (t.IsFaulted)
+                    {
+                        var ex = t.Exception!;
+                        var exceptions = ex.InnerExceptions;
+                        if (exceptions.Count == 1)
+                            handler(exceptions.First());
+                        else
+                            handler(ex);
+                        return;
+                    }
+
+                    list2[i] = t.Result;
                 }
-                else list2[i] = t.Result;
+                catch (Exception ex)
+                {
+                    Logger.Warn("Unexpected error occurred while handling completed tasks");
+                    Logger.Warn(ex);
+                }
             });
         }
 
@@ -128,6 +177,25 @@ public static partial class Util
         return list.Count >= size
             ? DataResult.Error(ErrorMessage, list.Take(size).ToList())
             : DataResult.Error<List<T>>(ErrorMessage);
+    }
+
+    public static T GetOrThrow<T>(IDataResult<T> result, Func<string, Exception> ex)
+    {
+        var optional = result.Error;
+        if (optional.IsPresent) throw ex(optional.Value.Message);
+        return result.Result.OrElseGet(() => throw new InvalidOperationException());
+    }
+
+    public static Func<T, TR> Memoize<T, TR>(Func<T, TR> func)
+    {
+        var dict = new Dictionary<T, TR>();
+        return a => dict.ComputeIfAbsent(a, _ => func(a));
+    }
+    
+    public static Func<TA, TB, TR> Memoize<TA, TB, TR>(Func<TA, TB, TR> func)
+    {
+        var dict = new Dictionary<(TA, TB), TR>();
+        return (a, b) => dict.ComputeIfAbsent((a, b), _ => func(a, b));
     }
 
     private class TaskExecutor : IExecutor

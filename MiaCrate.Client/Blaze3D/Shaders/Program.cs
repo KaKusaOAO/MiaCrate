@@ -41,6 +41,8 @@ public class Program : IDisposable
     {
         RenderSystem.AssertOnRenderThread();
         var shader = InternalCompileShader(type, name, stream, str2, preprocessor);
+        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Shader, shader, name + type.Extension);
+        
         var program = new Program(type, shader, name);
         type.Programs[name] = program;
         return program;

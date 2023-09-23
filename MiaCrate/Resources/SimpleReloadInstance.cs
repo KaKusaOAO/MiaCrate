@@ -94,20 +94,18 @@ public class SimpleReloadInstance<T> : IReloadInstance
 
         public Task<TObj> Wait<TObj>(TObj obj)
         {
-            _executor2.Execute(IRunnable.Create(() =>
+            _executor2.Execute(() =>
             {
                 _instance._preparingListeners.Remove(_listener);
                 if (!_instance._preparingListeners.Any())
                 {
                     _instance._allPreparations.SetResult(Unit.Instance);
                 }
-            }));
-
-            return _instance._allPreparations.Task.ContinueWith(_ =>
-            {
-                _task2.Wait();
-                return obj;
             });
+
+            return _instance._allPreparations.Task.ThenCombineAsync(
+                _task2.ThenApplyAsync(() => Unit.Instance), 
+                (_, _) => obj);
         }
     }
 

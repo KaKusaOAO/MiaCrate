@@ -10,6 +10,9 @@ public static class Component
     public static IMutableComponent<Style> Literal(string message) => 
         Mochi.Texts.Component.Literal(message, Style.Empty);
 
+    public static IMutableComponent<Style> Translatable(string message, params object[] parameters) =>
+        Mochi.Texts.Component.Translatable(message, Style.Empty, parameters);
+
     private static Style ParseStyle(JsonObject o)
     {
         T? GetValueFrom<T>(string key, Func<JsonNode, T> extract) where T : class => 

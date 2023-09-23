@@ -6,7 +6,11 @@ public class AnimationMetadataSection
     public const int DefaultFrameTime = 1;
     public const int UnknownSize = -1;
 
-    public static readonly AnimationMetadataSectionSerializer Serializer = new();
+    public static AnimationMetadataSectionSerializer Serializer { get; } = new();
+
+    public static AnimationMetadataSection Empty { get; } =
+        new(new List<AnimationFrame>(), UnknownSize, UnknownSize, DefaultFrameTime, false);
+    
     private readonly List<AnimationFrame> _frames;
     private readonly int _frameWidth;
     private readonly int _frameHeight;
@@ -22,18 +26,22 @@ public class AnimationMetadataSection
         _defaultFrameTime = defaultFrameTime;
         _interpolatedFrames = interpolatedFrames;
     }
-}
 
-public class AnimationFrame
-{
-    public const int UnknownFrameTime = -1;
-    
-    public int Index { get; }
-    public int Time { get; }
-
-    public AnimationFrame(int index, int time = UnknownFrameTime)
+    public FrameSize CalculateFrameSize(int width, int height)
     {
-        Index = index;
-        Time = time;
+        if (_frameWidth != UnknownSize)
+        {
+            return _frameHeight != UnknownSize
+                ? new FrameSize(_frameWidth, _frameHeight)
+                : new FrameSize(_frameWidth, height);
+        }
+
+        if (_frameHeight != UnknownSize)
+        {
+            return new FrameSize(width, _frameHeight);
+        }
+
+        var k = Math.Min(width, height);
+        return new FrameSize(k, k);
     }
 }

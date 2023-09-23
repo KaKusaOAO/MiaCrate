@@ -109,9 +109,10 @@ public class KeyDispatchCodec<TKey, TValue> : MapCodec<TValue>
                     return c.Parse(ops, value);
                 }
 
-                if (c is IMapCodecCodec<TValue> codecCodec)
+                if (c is IMapCodecCodec codecCodec)
                 {
-                    return codecCodec.Codec.Decode(ops, input);
+                    return codecCodec.Codec.Decode(ops, input)
+                        .Select(e => (TValue) e);
                 }
 
                 if (_assumeMap)

@@ -1,8 +1,11 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
+using MiaCrate.Client.Shaders;
 using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Window = OpenTK.Windowing.GraphicsLibraryFramework.Window;
 
@@ -11,15 +14,120 @@ namespace MiaCrate.Client.Systems;
 public static class RenderSystem
 {
     private static readonly ConcurrentQueue<Action> _recordingQueue = new();
-    private static readonly int[] _shaderTextures = new int[12];
-    private static readonly float[] _shaderColor = new float[4];
+    private static readonly Tesselator _renderThreadTesselator = new();
+    private const int MinimumAtlasTextureSize = 1024;
     private static bool _isReplayingQueue;
-    private static bool _isInInit;
     private static Thread? _gameThread;
     private static Thread? _renderThread;
-    private static string? _apiDescription;
-    private static ShaderInstance? _shader;
     private static int _maxSupportedTextureSize = -1;
+    private static bool _isInInit;
+    private static double _lastDrawTime = double.MinValue;
+    private static AutoStorageIndexBuffer _sharedSequential =
+        new AutoStorageIndexBuffer(1, 1, (consumer, i) => consumer(i));
+    private static AutoStorageIndexBuffer _sharedSequentialQuad =
+        new AutoStorageIndexBuffer(4, 6, (consumer, i) =>
+        {
+            consumer(i + 0);
+            consumer(i + 1);
+            consumer(i + 2);
+            consumer(i + 2);
+            consumer(i + 3);
+            consumer(i + 0);
+        });
+    private static AutoStorageIndexBuffer _sharedSequentialLines =
+        new AutoStorageIndexBuffer(4, 6, (consumer, i) =>
+        {
+            consumer(i + 0);
+            consumer(i + 1);
+            consumer(i + 2);
+            consumer(i + 3);
+            consumer(i + 2);
+            consumer(i + 1);
+        });
+    private static Matrix3 _inverseViewRotationMatrix = Matrix3.Zero;
+    private static Matrix4 _projectionMatrix = Matrix4.Identity;
+    private static Matrix4 _savedProjectionMatrix = Matrix4.Identity;
+    private static IVertexSorting _vertexSorting = IVertexSorting.DistanceToOrigin;
+    private static IVertexSorting _savedVertexSorting = IVertexSorting.DistanceToOrigin;
+    private static Matrix4 _modelViewMatrix = Matrix4.Identity;
+    private static Matrix4 _textureMatrix = Matrix4.Identity;
+    private static readonly int[] _shaderTextures = new int[12];
+    private static readonly float[] _shaderColor = {1, 1, 1, 1};
+    private static float _shaderGlintAlpha = 1f;
+    private static float _shaderFogEnd = 1f;
+    private static readonly float[] _shaderFogColor = new float[4];
+    private static FogShape _shaderFogShape = FogShape.Sphere;
+    private static readonly Vector3[] _shaderLightDirections = new Vector3[2];
+    private static float _shaderLineWidth = 1f;
+    private static string _apiDescription = "Unknown";
+    private static ShaderInstance? _shader;
+    private static long _pollEventsWaitStart;
+    private static bool _pollingEvents;
+
+    public static Tesselator RenderThreadTesselator
+    {
+        get
+        {
+            AssertOnRenderThread();
+            return _renderThreadTesselator;
+        }
+    }
+    
+    public static IVertexSorting VertexSorting
+    {
+        get
+        {
+            AssertOnRenderThread();
+            return _vertexSorting;
+        }
+    }
+
+    public static PoseStack ModelViewStack { get; } = new();
+
+    public static Matrix4 ModelViewMatrix
+    {
+        get
+        {
+            AssertOnRenderThread();
+            return _modelViewMatrix;
+        }
+    }
+    
+    public static Matrix4 ProjectionMatrix
+    {
+        get
+        {
+            AssertOnRenderThread();
+            return _projectionMatrix;
+        }
+    }
+
+    public static Matrix3 InverseViewRotationMatrix
+    {
+        get
+        {
+            AssertOnRenderThread();
+            return _inverseViewRotationMatrix;
+        }
+    }
+
+    public static float[] ShaderColor
+    {
+        get
+        {
+            AssertOnRenderThread();
+            return _shaderColor;
+        }
+    }
+    
+    public static ShaderInstance? Shader
+    {
+        get
+        {
+            AssertOnRenderThread();
+            return _shader;
+        }
+    }
     
     public static bool IsOnRenderThread => Thread.CurrentThread == _renderThread;
     public static bool IsOnRenderThreadOrInit => _isInInit || IsOnRenderThread;
@@ -35,7 +143,7 @@ public static class RenderSystem
             AssertOnRenderThreadOrInit();
             var i = GlStateManager.GetInteger(GetPName.MaxTextureSize);
 
-            for (var j = Math.Max(32768, i); j >= 1024; j >>= 1)
+            for (var j = Math.Max(32768, i); j >= MinimumAtlasTextureSize; j >>= 1)
             {
                 GlStateManager.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, j, j, 0, PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
                 var k = GlStateManager.GetTexLevelParameter(TextureTarget.Texture2D, 0,
@@ -47,10 +155,16 @@ public static class RenderSystem
                 }
             }
 
-            _maxSupportedTextureSize = Math.Max(i, 1024);
+            _maxSupportedTextureSize = Math.Max(i, MinimumAtlasTextureSize);
             Logger.Info($"Failed to determine maximum texture size by probing, trying GL_MAX_TEXTURE_SIZE = {_maxSupportedTextureSize}");
             return _maxSupportedTextureSize;
         }
+    }
+    
+    public static void EnsureInInitPhase(Action action)
+    {
+        if (!IsInInitPhase) RecordRenderCall(action);
+        else action();
     }
     
     public static void EnsureOnRenderThreadOrInit(Action action)
@@ -393,5 +507,192 @@ public static class RenderSystem
     {
         AssertOnRenderThread();
         GlStateManager.EnableCull();
+    }
+
+    public static void DepthMask(bool flag)
+    {
+        AssertOnRenderThread();
+        GlStateManager.DepthMask(flag);
+    }
+    
+    public static void ColorMask(bool red, bool green, bool blue, bool alpha)
+    {
+        AssertOnRenderThread();
+        GlStateManager.ColorMask(red, green, blue, alpha);
+    }
+
+    public static void SetShaderColor(float r, float g, float b, float a) => 
+        EnsureOnRenderThread(() => InternalSetShaderColor(r, g, b, a));
+
+    private static void InternalSetShaderColor(float r, float g, float b, float a)
+    {
+        _shaderColor[0] = r;
+        _shaderColor[1] = g;
+        _shaderColor[2] = b;
+        _shaderColor[3] = a;
+    }
+
+    public static AutoStorageIndexBuffer GetSequentialBuffer(VertexFormat.Mode mode)
+    {
+        AssertOnRenderThread();
+        if (mode == VertexFormat.Mode.Quads) return _sharedSequentialQuad;
+        if (mode == VertexFormat.Mode.Lines) return _sharedSequentialLines;
+        return _sharedSequential;
+    }
+
+    public static void DisableCull()
+    {
+        AssertOnRenderThread();
+        GlStateManager.DisableCull();
+    }
+
+    public static void SetProjectionMatrix(Matrix4 matrix, IVertexSorting vertexSorting)
+    {
+        EnsureOnRenderThread(() =>
+        {
+            _projectionMatrix = matrix;
+            _vertexSorting = vertexSorting;
+        });
+    }
+
+    public static void LimitDisplayFps(int fps)
+    {
+        var d = _lastDrawTime + 1.0 / fps;
+        
+        double e;
+        for (e = GLFW.GetTime(); e < d; e = GLFW.GetTime())
+        {
+            GLFW.WaitEventsTimeout(d - e);
+        }
+
+        _lastDrawTime = e;
+    }
+
+    public static void Viewport(int x, int y, int width, int height)
+    {
+        AssertOnGameThreadOrInit();
+        GlStateManager.Viewport(x, y, width, height);
+    }
+
+    public static void ApplyModelViewMatrix()
+    {
+        var matrix = ModelViewStack.Last.Pose;
+        EnsureOnRenderThread(() => _modelViewMatrix = matrix);
+    }
+
+    public static void BackupProjectionMatrix()
+    {
+        EnsureOnRenderThread(() =>
+        {
+            _savedProjectionMatrix = _projectionMatrix;
+            _savedVertexSorting = _vertexSorting;
+        });
+    }
+    
+    public static void RestoreProjectionMatrix()
+    {
+        EnsureOnRenderThread(() =>
+        {
+            _projectionMatrix = _savedProjectionMatrix;
+            _vertexSorting = _savedVertexSorting;
+        });
+    }
+
+    public sealed class AutoStorageIndexBuffer
+    {
+        private readonly int _vertexStride;
+        private readonly int _indexStride;
+        private readonly IndexGenerator _generator;
+        
+        private int _name;
+        private int _indexCount;
+        
+        public VertexFormat.IndexType Type { get; private set; }
+
+        public AutoStorageIndexBuffer(int vertexStride, int indexStride, IndexGenerator generator)
+        {
+            Type = VertexFormat.IndexType.Short;
+            _vertexStride = vertexStride;
+            _indexStride = indexStride;
+            _generator = generator;
+        }
+
+        public bool HasStorage(int count) => count <= _indexCount;
+
+        public void Bind(int count)
+        {
+            if (_name == 0)
+            {
+                _name = GlStateManager.GenBuffers();
+                GlStateManager.ObjectLabel(ObjectLabelIdentifier.Buffer, _name, $"{nameof(AutoStorageIndexBuffer)} #{_name}");
+            }
+
+            GlStateManager.BindBuffer(BufferTarget.ElementArrayBuffer, _name);
+            EnsureStorage(count);
+        }
+
+        private void EnsureStorage(int count)
+        {
+            if (HasStorage(count)) return;
+
+            count = Util.RoundToward(count * 2, _indexStride);
+            Logger.Verbose($"Growing IndexBuffer: Old limit {_indexCount}, new limit {count}");
+            var indexType = VertexFormat.IndexType.Least(count);
+
+            var j = Util.RoundToward(count * indexType.Bytes, 4);
+            GlStateManager.BufferData(BufferTarget.ElementArrayBuffer, j, BufferUsageHint.DynamicDraw);
+
+            var buffer = GlStateManager.MapBuffer(BufferTarget.ElementArrayBuffer, BufferAccess.WriteOnly);
+            if (buffer == 0)
+            {
+                throw new Exception("Failed to map GL buffer");
+            }
+
+            Type = indexType;
+            var tracker = new PointerTrackingIntConsumer(buffer);
+            var consumer = IntConsumer(tracker);
+
+            for (var k = 0; k < count; k += _indexStride)
+            {
+                _generator(consumer, k * _vertexStride / _indexStride);
+            }
+
+            GlStateManager.UnmapBuffer(BufferTarget.ElementArrayBuffer);
+            _indexCount = count;
+        }
+
+        private Action<int> IntConsumer(PointerTrackingIntConsumer tracker)
+        {
+            if (Type == VertexFormat.IndexType.Short)
+            {
+                return tracker.WriteShort;
+            }
+
+            return tracker.WriteInt;
+        }
+
+        private class PointerTrackingIntConsumer
+        {
+            private IntPtr _buffer;
+
+            public PointerTrackingIntConsumer(IntPtr buffer)
+            {
+                _buffer = buffer;
+            }
+
+            public void WriteShort(int i)
+            {
+                Marshal.WriteInt16(_buffer, (short) i);
+                _buffer += sizeof(short);
+            }
+
+            public void WriteInt(int i)
+            {
+                Marshal.WriteInt32(_buffer, i);
+                _buffer += sizeof(int);
+            }
+        }
+
+        public delegate void IndexGenerator(Action<int> consumer, int i);
     }
 }
