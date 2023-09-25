@@ -1,4 +1,5 @@
-﻿using MiaCrate.Client.Systems;
+﻿using System.Diagnostics.CodeAnalysis;
+using MiaCrate.Client.Systems;
 using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
 
@@ -13,7 +14,7 @@ public static class GlStateManager
     private static readonly ColorLogicState _colorLogic = new();
     private static readonly ScissorState _scissor = new();
     private static readonly ColorMask _colorMask = new();
-    private const int TextureUnit = (int) OpenTK.Graphics.OpenGL4.TextureUnit.Texture0;
+    public const int TextureUnit = (int) OpenTK.Graphics.OpenGL4.TextureUnit.Texture0;
     private static int _activeTexture;
 
     private static readonly TextureState[] _textures =
@@ -681,6 +682,29 @@ public static class GlStateManager
         {
             PopDebugGroup();
         }
+    }
+
+    [SuppressMessage("ReSharper", "CompareOfFloatsByEqualityOperator")]
+    public static void PolygonOffset(float factor, float units)
+    {
+        RenderSystem.AssertOnRenderThread();
+        if (factor == _polyOffset.Factor && units == _polyOffset.Units) return;
+
+        _polyOffset.Factor = factor;
+        _polyOffset.Units = units;
+        GL.PolygonOffset(factor, units);
+    }
+    
+    public static void EnablePolygonOffset()
+    {
+        RenderSystem.AssertOnRenderThread();
+        _polyOffset.FillState.Enable();
+    }
+    
+    public static void DisablePolygonOffset()
+    {
+        RenderSystem.AssertOnRenderThread();
+        _polyOffset.FillState.Disable();
     }
 
     // Why is this needed?

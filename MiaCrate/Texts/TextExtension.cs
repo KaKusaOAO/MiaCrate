@@ -18,10 +18,10 @@ public static class TextExtension
         return text;
     }
     
-    public static T SetUnderline<T>(this T text, bool value) where T : IMutableComponent
+    public static T SetUnderlined<T>(this T text, bool value) where T : IMutableComponent
     {
         if (text.Style is Style style)
-            text.Style = style.WithUnderline(value);
+            text.Style = style.WithUnderlined(value);
         return text;
     }
     

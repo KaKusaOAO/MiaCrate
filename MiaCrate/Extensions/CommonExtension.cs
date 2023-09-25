@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using Mochi.Core;
 using Mochi.Utils;
+using StringReader = Mochi.Brigadier.StringReader;
 
 namespace MiaCrate.Extensions;
 
@@ -68,5 +69,13 @@ public static class CommonExtension
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    public static void SkipWhitespace(this StringReader reader)
+    {
+        while (reader.CanRead() && char.IsWhiteSpace(reader.Peek()))
+        {
+            reader.Skip();
+        }
     }
 }

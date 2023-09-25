@@ -35,15 +35,15 @@ public class FontManager : IPreparableReloadListener, IDisposable
     private ResourceLocation GetActualId(ResourceLocation location) => 
         _renames.GetValueOrDefault(location, location);
 
-    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller profiler,
-        IProfilerFiller profiler2, IExecutor executor, IExecutor executor2)
+    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller preparationProfiler,
+        IProfilerFiller reloadProfiler, IExecutor preparationExecutor, IExecutor reloadExecutor)
     {
-        profiler.StartTick();
-        profiler.EndTick();
+        preparationProfiler.StartTick();
+        preparationProfiler.EndTick();
         
-        return PrepareAsync(manager, executor)
+        return PrepareAsync(manager, preparationExecutor)
             .ThenComposeAsync(barrier.Wait)
-            .ThenAcceptAsync(p => Apply(p, profiler2), executor2);
+            .ThenAcceptAsync(p => Apply(p, reloadProfiler), reloadExecutor);
     }
 
     private Task<Preparation> PrepareAsync(IResourceManager resourceManager, IExecutor executor)

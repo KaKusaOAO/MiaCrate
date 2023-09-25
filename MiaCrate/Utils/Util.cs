@@ -215,24 +215,27 @@ public static partial class Util
                 IRunnable runnable = null!;
                 SpinWait.SpinUntil(() => _queue.TryDequeue(out runnable));
 
-                void Run()
+                void Run(IRunnable r)
                 {
-                    try
+                    Task.Run(() =>
                     {
-                        runnable.Run();
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error($"--> Unhandled exception in: {runnable}");
-                        Logger.Error(ex);
-                    }
+                        try
+                        {
+                            r.Run();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"--> Unhandled exception in: {r}");
+                            Logger.Error(ex);
+                        }
+                    });
                 }
 
-                Run();
+                Run(runnable);
                 
                 while (_queue.TryDequeue(out runnable))
                 {
-                    Run();
+                    Run(runnable);
                 }
             }
             

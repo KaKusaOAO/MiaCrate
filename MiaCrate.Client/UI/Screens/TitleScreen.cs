@@ -49,15 +49,15 @@ public class TitleScreen : Screen
             _fadeInStart = Util.GetMillis();
         }
 
-        var g = _fading ? (Util.GetMillis() - _fadeInStart) / 1000f : 1f;
-        _panorama.Render(f, Math.Clamp(g - 1, 0, 1));
+        var fadeInProgress = _fading ? (Util.GetMillis() - _fadeInStart) / 1000f : 1f;
+        _panorama.Render(f, Math.Clamp(fadeInProgress, 0, 1));
         
         RenderSystem.EnableBlend();
-        graphics.SetColor(1, 1, 1, _fading ? MathF.Ceiling(Math.Clamp(g, 0, 1)) : 1);
+        graphics.SetColor(1, 1, 1, _fading ? MathF.Ceiling(Math.Clamp(fadeInProgress, 0, 1)) : 1);
         graphics.Blit(_panoramaOverlay, 0, 0, Width, Height, 0, 0, 16, 128, 16, 128);
         graphics.SetColor(1, 1, 1, 1);
 
-        var h = _fading ? Math.Clamp(g - 1, 0, 1) : 1;
+        var h = _fading ? Math.Clamp(fadeInProgress - 1, 0, 1) : 1;
         _logoRenderer.RenderLogo(graphics, Width, h);
     }
 }

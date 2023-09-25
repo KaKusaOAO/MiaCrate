@@ -1,5 +1,6 @@
 using MiaCrate.Client.Systems;
 using MiaCrate.Core;
+using Mochi.Utils;
 using OpenTK.Mathematics;
 
 namespace MiaCrate.Client.Graphics;
@@ -18,7 +19,7 @@ public class CubeMap
         }
     }
 
-    public void Render(Game game, float f, float g, float h)
+    public void Render(Game game, float f, float g, float alpha)
     {
         var tesselator = Tesselator.Instance;
         var builder = tesselator.Builder;
@@ -54,7 +55,7 @@ public class CubeMap
             {
                 RenderSystem.SetShaderTexture(0, _images[n]);
                 builder.Begin(VertexFormat.Mode.Quads, DefaultVertexFormat.PositionTexColor);
-                var o = (int) Math.Round(255 * h) / (j + 1);
+                var o = (int) (Math.Round(255 * alpha) / (j + 1));
 
                 if (n == 0)
                 {

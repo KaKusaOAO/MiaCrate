@@ -57,7 +57,7 @@ public class FaceBakery
         var iArr = new int[arr.Length];
         Array.Copy(arr, 0, iArr, 0, arr.Length);
 
-        var fs = new float[Direction.GetDirections().Length];
+        var fs = new float[Direction.Values.Length];
         fs[FaceInfo.Constants.MinX] = 999f;
         fs[FaceInfo.Constants.MinY] = 999f;
         fs[FaceInfo.Constants.MinZ] = 999f;
@@ -143,7 +143,7 @@ public class FaceBakery
         Direction? direction = null;
         var f = 0f;
         
-        foreach (var dir in Direction.GetDirections())
+        foreach (var dir in Direction.Values)
         {
             var normal = dir.Normal;
             var v7 = new Vector3(normal.X, normal.Y, normal.Z);
@@ -161,7 +161,7 @@ public class FaceBakery
 
     private float[] SetupShape(Vector3 from, Vector3 to)
     {
-        var arr = new float[Direction.GetDirections().Length];
+        var arr = new float[Direction.Values.Length];
         arr[FaceInfo.Constants.MinX] = from.X / 16;
         arr[FaceInfo.Constants.MinY] = from.Y / 16;
         arr[FaceInfo.Constants.MinZ] = from.Z / 16;

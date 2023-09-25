@@ -114,6 +114,7 @@ public class GameRenderer : IDisposable
     private ShaderInstance? _blitShader;
     public ShaderInstance BlitShader => _blitShader!;
 
+    #region => All shader definitions
     #region => Basic shader definitions
     public static ShaderInstance? ParticleShader { get; private set; }
     public static ShaderInstance? PositionShader { get; private set; }
@@ -185,13 +186,18 @@ public class GameRenderer : IDisposable
     public static ShaderInstance? RenderTypeGuiOverlayShader { get; private set; }
     public static ShaderInstance? RenderTypeGuiTextHighlightShader { get; private set; }
     public static ShaderInstance? RenderTypeGuiGhostRecipeOverlayShader { get; private set; }
+    #endregion
+    
+    public LightTexture LightTexture { get; }
+    public OverlayTexture OverlayTexture { get; } = new();
 
     public GameRenderer(Game game, ItemInHandRenderer itemInHandRenderer, IResourceManager resourceManager,
         RenderBuffers renderBuffers)
     {
         _game = game;
-        _itemInHandRenderer = itemInHandRenderer;
         _resourceManager = resourceManager;
+        _itemInHandRenderer = itemInHandRenderer;
+        LightTexture = new LightTexture(this, _game);
         _renderBuffers = renderBuffers;
     }
 

@@ -11,8 +11,8 @@ public class BufferBuilder : DefaultedVertexConsumer, IBufferVertexConsumer
     private int _nextElementByte;
     private int _vertices;
     private VertexFormatElement? _currentElement;
-    private VertexFormat _format;
-    private VertexFormat.Mode _mode;
+    private VertexFormat _format = null!;
+    private VertexFormat.Mode _mode = null!;
     private byte[] _buffer;
     private Vector3[]? _sortingPoints;
     private bool _indexOnly;

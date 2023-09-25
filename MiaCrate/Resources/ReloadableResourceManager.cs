@@ -19,14 +19,14 @@ public class ReloadableResourceManager : IDisposableResourceManager
         _listeners.Add(reloadListener);
     }
     
-    public IReloadInstance CreateReload(IExecutor executor, IExecutor executor2, Task task, List<IPackResources> list)
+    public IReloadInstance CreateReload(IExecutor preparationExecutor, IExecutor reloadExecutor, Task task, List<IPackResources> list)
     {
         var packs = string.Join(", ", list.Select(p => p.PackId));
         Logger.Info($"Reloading ResourceManager: {packs}");
         
         _resources.Dispose();
         _resources = new MultiPackResourceManager(_type, list);
-        return SimpleReloadInstance.Create(_resources, _listeners, executor, executor2, task, Logger.Level <= LogLevel.Verbose);
+        return SimpleReloadInstance.Create(_resources, _listeners, preparationExecutor, reloadExecutor, task, Logger.Level <= LogLevel.Verbose);
     }
     
     public IOptional<Resource> GetResource(ResourceLocation location) => _resources.GetResource(location);

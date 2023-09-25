@@ -211,12 +211,14 @@ public class BlockModel : IUnbakedModel
     {
         private static readonly Dictionary<int, GuiLightType> _values = new();
 
-        public static readonly GuiLightType Front = new("front");
-        public static readonly GuiLightType Side = new("side");
+        public static GuiLightType Front { get; } = new("front");
+        public static GuiLightType Side { get; } = new("side");
         
         private readonly string _name;
 
         public int Ordinal { get; }
+
+        public static GuiLightType[] Values => _values.Values.ToArray();
 
         private GuiLightType(string name)
         {

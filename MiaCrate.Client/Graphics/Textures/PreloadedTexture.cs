@@ -1,5 +1,9 @@
 using MiaCrate.Client.Systems;
 using MiaCrate.Resources;
+using MiaCrate.Texts;
+using Mochi.Texts;
+using Mochi.Utils;
+using Component = MiaCrate.Texts.Component;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -9,13 +13,7 @@ public class PreloadedTexture : SimpleTexture
     
     public PreloadedTexture(IResourceManager manager, ResourceLocation location, IExecutor executor) : base(location)
     {
-        var source = new TaskCompletionSource<TextureImage>();
-        executor.Execute(() =>
-        {
-            var image = TextureImage.Load(manager, location);
-            source.SetResult(image);
-        });
-        _task = source.Task;
+        _task = Tasks.SupplyAsync(() => TextureImage.Load(manager, location), executor);
     }
 
     protected override TextureImage GetTextureImage(IResourceManager manager)
@@ -31,20 +29,10 @@ public class PreloadedTexture : SimpleTexture
     public override void Reset(TextureManager textureManager, IResourceManager resourceManager, ResourceLocation location,
         IExecutor executor)
     {
-        var source = new TaskCompletionSource<TextureImage>();
-        executor.Execute(() =>
+        _task = Tasks.SupplyAsync(() => TextureImage.Load(resourceManager, Location), Util.BackgroundExecutor);
+        _task.ThenRunAsync(() =>
         {
-            var image = TextureImage.Load(resourceManager, location);
-            source.SetResult(image);
-        });
-        
-        _task = source.Task;
-        _task.ContinueWith(_ =>
-        {
-            CreateExecutor(executor).Execute(() =>
-            {
-                textureManager.Register(location, this);
-            });
+            textureManager.Register(Location, this);
         });
     }
 

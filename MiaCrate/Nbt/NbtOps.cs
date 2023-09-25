@@ -11,7 +11,7 @@ public class NbtOps : IDynamicOps<NbtTag>
         MapBuilder = new NbtRecordBuilder(this);
     }
     
-    public NbtTag Empty => NbtEnd.Shared;
+    public NbtTag Empty => NbtEnd.Instance;
     public NbtTag EmptyMap => new NbtCompound();
     public NbtTag EmptyList => new NbtList();
 
@@ -21,38 +21,38 @@ public class NbtOps : IDynamicOps<NbtTag>
     {
         switch (input.Type)
         {
-            case NbtTag.TagType.End:
+            case TagType.End:
                 return outOps.Empty;
-            case NbtTag.TagType.Byte:
+            case TagType.Byte:
                 return outOps.CreateByte(input.As<NbtByte>().Value);
-            case NbtTag.TagType.Short:
+            case TagType.Short:
                 return outOps.CreateShort(input.As<NbtShort>().Value);
-            case NbtTag.TagType.Int:
+            case TagType.Int:
                 return outOps.CreateInt(input.As<NbtInt>().Value);
-            case NbtTag.TagType.Long:
+            case TagType.Long:
                 return outOps.CreateLong(input.As<NbtLong>().Value);
-            case NbtTag.TagType.Float:
+            case TagType.Float:
                 return outOps.CreateFloat(input.As<NbtFloat>().Value);
-            case NbtTag.TagType.Double:
+            case TagType.Double:
                 return outOps.CreateDouble(input.As<NbtDouble>().Value);
-            case NbtTag.TagType.ByteArray:
+            case TagType.ByteArray:
                 throw new NotImplementedException();
-            case NbtTag.TagType.String:
+            case TagType.String:
                 return outOps.CreateString(input.As<NbtString>().Value);
-            case NbtTag.TagType.List:
+            case TagType.List:
                 return Boxed().ConvertList(outOps, input);
-            case NbtTag.TagType.Compound:
+            case TagType.Compound:
                 return Boxed().ConvertMap(outOps, input);
-            case NbtTag.TagType.IntArray:
+            case TagType.IntArray:
                 throw new NotImplementedException();
-            case NbtTag.TagType.LongArray:
+            case TagType.LongArray:
                 throw new NotImplementedException();
             default:
                 throw new ArgumentException($"Unknown tag type: {input}");
         }
     }
 
-    public NbtTag CreateString(string value) => new NbtString(value);
+    public NbtTag CreateString(string value) => NbtString.CreateValue(value);
 
     public IRecordBuilder<NbtTag> MapBuilder { get; }
     
@@ -104,7 +104,7 @@ public class NbtOps : IDynamicOps<NbtTag>
         throw new NotImplementedException();
     }
 
-    public NbtTag CreateByte(byte val) => new NbtByte(val);
+    public NbtTag CreateByte(byte val) => NbtByte.CreateValue(val);
 
     public IDataResult<string> GetStringValue(NbtTag value)
     {

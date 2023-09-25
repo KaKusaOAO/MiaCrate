@@ -41,6 +41,15 @@ public class DynamicTexture : AbstractTexture, IDumpable
         }
     }
 
+    public DynamicTexture(int width, int height, bool clearBuffer)
+    {
+        RenderSystem.AssertOnGameThreadOrInit();
+        _pixels = new NativeImage(width, height, clearBuffer);
+        
+        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, Id, $"DynamicTexture #{Id}");
+        TextureUtil.PrepareImage(Id, _pixels.Width, _pixels.Height);
+    }
+
     public void Upload()
     {
         if (_pixels == null)

@@ -13,7 +13,7 @@ public static class Codec
     public static IPrimitiveCodec<long> Long { get; } = new LongPrimitiveCodec();
     public static IPrimitiveCodec<float> Float { get; } = new FloatPrimitiveCodec();
     public static IPrimitiveCodec<double> Double { get; } = new DoublePrimitiveCodec();
-    public static IPrimitiveCodec<string> String { get; } = new StringPrimitiveCodec();
+    public static IPrimitiveCodec<string?> String { get; } = new StringPrimitiveCodec();
     public static ICodec<IDynamic> Passthrough { get; } = new PassthroughCodec();
 
     public static ICodec<T> Unit<T>(T defaultValue) => MapCodec.Unit(defaultValue).Codec;

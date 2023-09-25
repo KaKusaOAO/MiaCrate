@@ -25,14 +25,14 @@ public abstract class TextureAtlasHolder : IPreparableReloadListener, IDisposabl
         return _textureAtlas.GetSprite(location);
     }
     
-    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller profiler,
-        IProfilerFiller profiler2, IExecutor executor, IExecutor executor2)
+    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller preparationProfiler,
+        IProfilerFiller reloadProfiler, IExecutor preparationExecutor, IExecutor reloadExecutor)
     {
         return SpriteLoader.Create(_textureAtlas)
-            .LoadAndStitchAsync(manager, _atlasInfoLocation, 0, executor, _serializers)
+            .LoadAndStitchAsync(manager, _atlasInfoLocation, 0, preparationExecutor, _serializers)
             .ThenComposeAsync(p => p.WaitForUploadAsync())
             .ThenComposeAsync(barrier.Wait)
-            .ThenAcceptAsync(p => Apply(p, profiler2), executor2);
+            .ThenAcceptAsync(p => Apply(p, reloadProfiler), reloadExecutor);
     }
 
     private void Apply(SpriteLoader.Preparations preparations, IProfilerFiller profiler)

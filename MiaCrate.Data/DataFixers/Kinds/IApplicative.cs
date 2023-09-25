@@ -56,6 +56,25 @@ public interface IApplicativeLeft<T> : IApplicative, IFunctorLeft<T> where T : I
             (a, b, c) => (d, e, f) => fn(a, b, c, d, e, f);
         return Ap3(Ap3(Map(Curry3, func), t1, t2, t3), t4, t5, t6);
     }
+    
+    public IApp<T, TResult> Ap7<T1, T2, T3, T4, T5, T6, T7, TResult>(
+        IApp<T, Func<T1, T2, T3, T4, T5, T6, T7, TResult>> func,
+        IApp<T, T1> t1, IApp<T, T2> t2, IApp<T, T3> t3, IApp<T, T4> t4, IApp<T, T5> t5, IApp<T, T6> t6, IApp<T, T7> t7)
+    {
+        Func<T1, T2, T3, Func<T4, T5, T6, T7, TResult>> Curry3(Func<T1, T2, T3, T4, T5, T6, T7, TResult> fn) => 
+            (a, b, c) => (d, e, f, g) => fn(a, b, c, d, e, f, g);
+        return Ap4(Ap3(Map(Curry3, func), t1, t2, t3), t4, t5, t6, t7);
+    }
+    
+    public IApp<T, TResult> Ap8<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(
+        IApp<T, Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult>> func,
+        IApp<T, T1> t1, IApp<T, T2> t2, IApp<T, T3> t3, IApp<T, T4> t4, 
+        IApp<T, T5> t5, IApp<T, T6> t6, IApp<T, T7> t7, IApp<T, T8> t8)
+    {
+        Func<T1, T2, T3, T4, Func<T5, T6, T7, T8, TResult>> Curry4(Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> fn) => 
+            (a, b, c, d) => (e, f, g, h) => fn(a, b, c, d, e, f, g, h);
+        return Ap4(Ap4(Map(Curry4, func), t1, t2, t3, t4), t5, t6, t7, t8);
+    }
 }
 
 public interface IApplicativeRight<T> : IApplicative, IFunctorRight<T> where T : IApplicative.IMu

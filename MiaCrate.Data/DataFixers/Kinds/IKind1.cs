@@ -42,4 +42,28 @@ public static class Kind1Extension
         (this IKind1Left<TLeft> kind, IApp<TLeft, T1> t1, IApp<TLeft, T2> t2, IApp<TLeft, T3> t3, IApp<TLeft, T4> t4) 
         where TLeft : IK1 => 
         new Products.P4<TLeft, T1, T2, T3, T4>(t1, t2, t3, t4);
+    
+    public static Products.IP5<TLeft, T1, T2, T3, T4, T5> Group<TLeft, T1, T2, T3, T4, T5>
+        (this IKind1Left<TLeft> kind, IApp<TLeft, T1> t1, IApp<TLeft, T2> t2, IApp<TLeft, T3> t3, IApp<TLeft, T4> t4, 
+            IApp<TLeft, T5> t5) 
+        where TLeft : IK1 => 
+        new Products.P5<TLeft, T1, T2, T3, T4, T5>(t1, t2, t3, t4, t5);
+    
+    public static Products.IP6<TLeft, T1, T2, T3, T4, T5, T6> Group<TLeft, T1, T2, T3, T4, T5, T6>
+    (this IKind1Left<TLeft> kind, IApp<TLeft, T1> t1, IApp<TLeft, T2> t2, IApp<TLeft, T3> t3, IApp<TLeft, T4> t4, 
+        IApp<TLeft, T5> t5, IApp<TLeft, T6> t6) 
+        where TLeft : IK1 => 
+        new Products.P6<TLeft, T1, T2, T3, T4, T5, T6>(t1, t2, t3, t4, t5, t6);
+    
+    public static Products.IP7<TLeft, T1, T2, T3, T4, T5, T6, T7> Group<TLeft, T1, T2, T3, T4, T5, T6, T7>
+    (this IKind1Left<TLeft> kind, IApp<TLeft, T1> t1, IApp<TLeft, T2> t2, IApp<TLeft, T3> t3, IApp<TLeft, T4> t4, 
+        IApp<TLeft, T5> t5, IApp<TLeft, T6> t6, IApp<TLeft, T7> t7) 
+        where TLeft : IK1 => 
+        new Products.P7<TLeft, T1, T2, T3, T4, T5, T6, T7>(t1, t2, t3, t4, t5, t6, t7);
+    
+    public static Products.IP8<TLeft, T1, T2, T3, T4, T5, T6, T7, T8> Group<TLeft, T1, T2, T3, T4, T5, T6, T7, T8>
+    (this IKind1Left<TLeft> kind, IApp<TLeft, T1> t1, IApp<TLeft, T2> t2, IApp<TLeft, T3> t3, IApp<TLeft, T4> t4, 
+        IApp<TLeft, T5> t5, IApp<TLeft, T6> t6, IApp<TLeft, T7> t7, IApp<TLeft, T8> t8) 
+        where TLeft : IK1 => 
+        new Products.P8<TLeft, T1, T2, T3, T4, T5, T6, T7, T8>(t1, t2, t3, t4, t5, t6, t7, t8);
 }

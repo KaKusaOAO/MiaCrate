@@ -24,6 +24,9 @@ public interface IGuiSpriteScaling
         public static ICodec<ScalingType> Codec { get; } = IStringRepresentable.FromEnum(_values.Values.ToArray);
         
         public int Ordinal { get; }
+
+        public static ScalingType[] Values => _values.Values.ToArray();
+
         public string SerializedName { get; }
         public ICodec<IGuiSpriteScaling> ElementCodec { get; }
 

@@ -75,6 +75,24 @@ public static class ExtraCodecs
             : DataResult.Success(arr[0]);
     }, char.ConvertFromUtf32);
 
+    public static ICodec<TextColor> TextColor { get; } = Codec.String.CoSelectSelectMany(s =>
+    {
+        if (s.ToLowerInvariant() == "light_purple")
+        {
+            // TextColor defines this color as "purple"
+            s = "purple";
+        }
+
+        try
+        {
+            return DataResult.Success(Mochi.Texts.TextColor.Of(s));
+        }
+        catch (Exception ex)
+        {
+            return DataResult.Error<TextColor>(() => "String is not a valid color name or hex color code");
+        }
+    }, color => color == Mochi.Texts.TextColor.Purple ? "light_purple" : color.Name);
+
     public static ICodec<T> AdaptJsonSerializer<T>(Func<JsonNode, T> deserialize, Func<T, JsonNode> serialize)
     {
         return Json.FlatCrossSelect(n =>
@@ -202,8 +220,33 @@ public static class ExtraCodecs
                 .OrElseGet(() => DataResult.Error<string>(() => $"Element with unknown name: {obj}"))
         );
     
+    public static ICodec<T> StringResolverCodec<T>(Func<T, string> func, Func<string, T?> resolver)
+        where T : struct =>
+        Codec.String.FlatCrossSelect(
+            str => Optional.OfNullable(resolver(str))
+                .Select(DataResult.Success)
+                .OrElseGet(() => DataResult.Error<T>(() => $"Unknown element name: {str}")),
+            obj => Optional.OfNullable(func(obj))
+                .Select(DataResult.Success)
+                .OrElseGet(() => DataResult.Error<string>(() => $"Element with unknown name: {obj}"))
+        );
+    
     public static ICodec<T> IdResolverCodec<T>(Func<T, int> func, Func<int, T?> resolver, int i)
         where T : class =>
+        Codec.Int.FlatCrossSelect(
+            str => Optional.OfNullable(resolver(str))
+                .Select(DataResult.Success)
+                .OrElseGet(() => DataResult.Error<T>(() => $"Unknown element name: {str}")),
+            obj =>
+            {
+                var j = func(obj);
+                return j == i
+                    ? DataResult.Error<int>(() => $"Element with unknown id: {obj}")
+                    : DataResult.Success(j);
+            });
+    
+    public static ICodec<T> IdResolverCodec<T>(Func<T, int> func, Func<int, T?> resolver, int i)
+        where T : struct =>
         Codec.Int.FlatCrossSelect(
             str => Optional.OfNullable(resolver(str))
                 .Select(DataResult.Success)

@@ -73,9 +73,12 @@ public abstract partial class RenderStateShard
     public static TextureStateShard BlockSheetMipped { get; } = new(TextureAtlas.LocationBlocks, false, true);
     public static TextureStateShard BlockSheet { get; } = new(TextureAtlas.LocationBlocks, false, false);
     public static EmptyTextureStateShard NoTexture { get; } = new();
-
-    public static CullStateShard NoCull { get; } = new(false);
+    public static LightmapStateShard Lightmap { get; } = new(true);
+    public static LightmapStateShard NoLightmap { get; } = new(false);
+    public static OverlayStateShard Overlay { get; } = new(true);
+    public static OverlayStateShard NoOverlay { get; } = new(false);
     public static CullStateShard Cull { get; } = new(true);
+    public static CullStateShard NoCull { get; } = new(false);
     public static DepthTestStateShard NoDepthTest { get; } = new("always", DepthFunction.Always);
     public static DepthTestStateShard EqualDepthTest { get; } = new("==", DepthFunction.Equal);
     public static DepthTestStateShard LequalDepthTest { get; } = new("<=", DepthFunction.Lequal);
@@ -83,6 +86,87 @@ public abstract partial class RenderStateShard
     public static WriteMaskStateShard ColorDepthWrite { get; } = new(true, true);
     public static WriteMaskStateShard ColorWrite { get; } = new(true, false);
     public static WriteMaskStateShard DepthWrite { get; } = new(false, true);
+    public static LayeringStateShard NoLayering { get; } = new("no_layering", () => { }, () => { });
+    
+    public static LayeringStateShard PolygonOffsetLayering { get; } = new("polygon_offset_layering", () =>
+    {
+        RenderSystem.PolygonOffset(-1f, -10f);
+        RenderSystem.EnablePolygonOffset();
+    }, () =>
+    {
+        RenderSystem.PolygonOffset(0, 0);
+        RenderSystem.DisablePolygonOffset();
+    });
+    
+    public static LayeringStateShard ViewOffsetZLayering { get; } = new("view_offset_z_layering", () =>
+    {
+        var stack = RenderSystem.ModelViewStack;
+        stack.PushPose();
+
+        const float scale = 0.99975586f;
+        stack.Scale(scale, scale, scale);
+        RenderSystem.ApplyModelViewMatrix();
+    }, () =>
+    {
+        var stack = RenderSystem.ModelViewStack;
+        stack.PopPose();
+        RenderSystem.ApplyModelViewMatrix();
+    });
+
+    public static OutputStateShard MainTarget { get; } = new("main_target", () => { }, () => { });
+    
+    public static OutputStateShard OutlineTarget { get; } = new("outline_target", () =>
+    {
+        Util.LogFoobar();
+    }, () =>
+    {
+        Game.Instance.MainRenderTarget.BindWrite(false);
+    });
+    
+    public static OutputStateShard TranslucentTarget { get; } = new("translucent_target", () => 
+    {
+        Util.LogFoobar();
+    }, () => 
+    { 
+        Util.LogFoobar();
+        Game.Instance.MainRenderTarget.BindWrite(false);
+    });
+    
+    public static OutputStateShard ParticlesTarget { get; } = new("particles_target", () => 
+    {
+        Util.LogFoobar();
+    }, () => 
+    { 
+        Util.LogFoobar();
+        Game.Instance.MainRenderTarget.BindWrite(false);
+    });
+    
+    public static OutputStateShard WeatherTarget { get; } = new("weather_target", () => 
+    {
+        Util.LogFoobar();
+    }, () => 
+    { 
+        Util.LogFoobar();
+        Game.Instance.MainRenderTarget.BindWrite(false);
+    });
+    
+    public static OutputStateShard CloudsTarget { get; } = new("clouds_target", () => 
+    {
+        Util.LogFoobar();
+    }, () => 
+    { 
+        Util.LogFoobar();
+        Game.Instance.MainRenderTarget.BindWrite(false);
+    });
+    
+    public static OutputStateShard ItemEntityTarget { get; } = new("item_entity_target", () => 
+    {
+        Util.LogFoobar();
+    }, () =>
+    { 
+        Util.LogFoobar();
+        Game.Instance.MainRenderTarget.BindWrite(false);
+    });
 
     private readonly string _name;
     private readonly Action _setupState;
@@ -208,6 +292,30 @@ public abstract partial class RenderStateShard
         {
         }
     }
+    
+    public class LightmapStateShard : BoolStateShard
+    {
+        public LightmapStateShard(bool state)
+            : base("lightmap", () =>
+            {
+                if (state) Game.Instance.GameRenderer.LightTexture.TurnOnLightLayer();
+            }, () =>
+            {
+                if (state) Game.Instance.GameRenderer.LightTexture.TurnOffLightLayer();
+            }, state) {}
+    }
+    
+    public class OverlayStateShard : BoolStateShard
+    {
+        public OverlayStateShard(bool state)
+            : base("overlay", () =>
+            {
+                if (state) Game.Instance.GameRenderer.OverlayTexture.SetupOverlayColor();
+            }, () =>
+            {
+                if (state) Game.Instance.GameRenderer.OverlayTexture.TeardownOverlayColor();
+            }, state) {}
+    }
 
     public class CullStateShard : BoolStateShard
     {
@@ -246,5 +354,21 @@ public abstract partial class RenderStateShard
         }
 
         public override string ToString() => $"{_name}[{_funcName}]";
+    }
+    
+    public class LayeringStateShard : RenderStateShard
+    {
+        public LayeringStateShard(string name, Action setupState, Action clearState) 
+            : base(name, setupState, clearState)
+        {
+        }
+    }
+    
+    public class OutputStateShard : RenderStateShard
+    {
+        public OutputStateShard(string name, Action setupState, Action clearState) 
+            : base(name, setupState, clearState)
+        {
+        }
     }
 }

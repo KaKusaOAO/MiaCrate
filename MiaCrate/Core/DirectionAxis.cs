@@ -1,3 +1,5 @@
+using MiaCrate.Data;
+
 namespace MiaCrate.Core;
 
 public sealed class DirectionAxis : IEnumLike<DirectionAxis>, IStringRepresentable
@@ -8,7 +10,9 @@ public sealed class DirectionAxis : IEnumLike<DirectionAxis>, IStringRepresentab
     public static readonly DirectionAxis Y = new("y", AxisComponent.Y);
     public static readonly DirectionAxis Z = new("z", AxisComponent.Z);
 
-    public static readonly IStringRepresentable.EnumCodec<DirectionAxis> Codec = IStringRepresentable.FromEnum(GetAxes);
+    public static IStringRepresentable.EnumCodec<DirectionAxis> Codec { get; } =
+        IStringRepresentable.FromEnum<DirectionAxis>();
+    
     private readonly AxisComponent _component;
     
     public int Ordinal { get; }
@@ -27,7 +31,7 @@ public sealed class DirectionAxis : IEnumLike<DirectionAxis>, IStringRepresentab
         _values[ordinal] = this;
     }
 
-    public static DirectionAxis[] GetAxes() => _values.Values.ToArray();
+    public static DirectionAxis[] Values => _values.Values.ToArray();
 
     public static DirectionAxis? ByName(string name) => Codec.ByName(name);
 

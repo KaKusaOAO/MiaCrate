@@ -21,13 +21,16 @@ public interface IVertexConsumer
 
     protected static void DefaultVertex(IVertexConsumer consumer, 
         float x, float y, float z, float red, float green, float blue, float alpha, float u, float v, 
-        int oPacked, int uv2Packed, float nx, float ny, float nz) => consumer.Vertex(x, y, z)
-        .Color(red, green, blue, alpha)
-        .Uv(u, v)
-        .OverlayCoords(oPacked)
-        .Uv2(uv2Packed)
-        .Normal(nx, ny, nz)
-        .EndVertex();
+        int oPacked, int uv2Packed, float nx, float ny, float nz)
+    {
+        consumer.Vertex(x, y, z)
+            .Color(red, green, blue, alpha)
+            .Uv(u, v)
+            .OverlayCoords(oPacked)
+            .Uv2(uv2Packed)
+            .Normal(nx, ny, nz)
+            .EndVertex();
+    }
 }
 
 public static class VertexConsumerExtension

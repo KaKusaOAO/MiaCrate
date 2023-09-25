@@ -598,6 +598,56 @@ public static class RenderSystem
         });
     }
 
+    public static void TexParameter(TextureTarget target, TextureParameterName pName, int value) => 
+        GlStateManager.TexParameter(target, pName, value);
+
+    public static void TexParameter(TextureTarget target, TextureParameterName pName, float value) => 
+        GlStateManager.TexParameter(target, pName, value);
+    
+    /// <summary>
+    /// For quick check, this applies to 10241 (<see cref="TextureParameterName.TextureMinFilter"/>).
+    /// </summary>
+    public static void TexMinFilter(TextureTarget target, TextureMinFilter filter) =>
+        TexParameter(target, TextureParameterName.TextureMinFilter, (int) filter);
+
+    /// <summary>
+    /// For quick check, this applies to 10240 (<see cref="TextureParameterName.TextureMagFilter"/>).
+    /// </summary>
+    public static void TexMagFilter(TextureTarget target, TextureMagFilter filter) =>
+        TexParameter(target, TextureParameterName.TextureMagFilter, (int) filter);
+     
+    public static void PolygonOffset(float factor, float units)
+    {
+        AssertOnRenderThread();
+        GlStateManager.PolygonOffset(factor, units);
+    }
+
+    public static void EnablePolygonOffset()
+    {
+        AssertOnRenderThread();
+        GlStateManager.EnablePolygonOffset();
+    }
+    
+    public static void DisablePolygonOffset()
+    {
+        AssertOnRenderThread();
+        GlStateManager.DisablePolygonOffset();
+    }
+
+    public static void SetupOverlayColor(Func<int> textureId, int size)
+    {
+        // size is unused??
+        AssertOnRenderThread();
+        SetShaderTexture(1, textureId());
+    }
+    
+    public static void TeardownOverlayColor()
+    {
+        AssertOnRenderThread();
+        SetShaderTexture(1, 0);
+    }
+
+    #region => AutoStorageIndexBuffer
     public sealed class AutoStorageIndexBuffer
     {
         private readonly int _vertexStride;
@@ -695,4 +745,5 @@ public static class RenderSystem
 
         public delegate void IndexGenerator(Action<int> consumer, int i);
     }
+    #endregion
 }

@@ -11,7 +11,7 @@
     <ItemGroup>
       <PackageReference Include="CommandLineParser" Version="2.9.1" />
       <PackageReference Include="Mochi.Brigadier" Version="1.1.4" />
-      <PackageReference Include="Mochi.Nbt" Version="1.1.4" />
+      <PackageReference Include="Mochi.Nbt" Version="2.0.3" />
       <PackageReference Include="OpenTK.Mathematics" Version="4.8.0" />
       <PackageReference Include="System.Text.Json" Version="7.0.2" />
     </ItemGroup>

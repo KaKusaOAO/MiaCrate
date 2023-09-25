@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using MiaCrate.Extensions;
 using Mochi.Utils;
 
 namespace MiaCrate.Resources;
@@ -8,62 +7,70 @@ public class ProfiledReloadInstance : SimpleReloadInstance<ProfiledReloadInstanc
 {
     private readonly Stopwatch _total = new();
     
-    public ProfiledReloadInstance(IResourceManager manager, List<IPreparableReloadListener> list, IExecutor executor,
-        IExecutor executor2, Task task) : base(executor, executor2, manager, list, ProfiledStateFactory, task)
+    public ProfiledReloadInstance(IResourceManager manager, List<IPreparableReloadListener> list, 
+        IExecutor preparationExecutor, IExecutor reloadExecutor, Task task) 
+        : base(preparationExecutor, reloadExecutor, manager, list, PerformReloadAsync, task)
     {
         _total.Start();
-        _allDone = _allDone.ThenApplyAsync(Finish, executor2);
+        _allDone = _allDone.ThenApplyAsync(Finish, reloadExecutor);
     }
 
     private List<State> Finish(List<State> list)
     {
         _total.Stop();
-        var l = 0L;
+        var blockingTime = 0L;
         Logger.Info($"Resource reload finished after {_total.ElapsedMilliseconds} ms");
 
         foreach (var state in list)
         {
-            var m = state.PreparationNanos / 1000000L;
-            var n = state.ReloadNanos / 1000000L;
-            var o = m + n;
-            Logger.Info($"{state.Name} took approximately {o} ms ({m} ms preparing, {n} ms applying)");
-            l += n;
+            var preparationMillis = state.PreparationNanos / 1000000L;
+            var reloadMillis = state.ReloadNanos / 1000000L;
+            var totalMillis = preparationMillis + reloadMillis;
+            Logger.Info($"{state.Name} took approximately {totalMillis} ms ({preparationMillis} ms preparing, {reloadMillis} ms applying)");
+            blockingTime += reloadMillis;
         }
         
-        Logger.Info($"Total blocking time: {l} ms");
+        Logger.Info($"Total blocking time: {blockingTime} ms");
         return list;
     }
 
-    private static Task<State> ProfiledStateFactory(IPreparableReloadListener.IPreparationBarrier barrier,
-        IResourceManager manager, IPreparableReloadListener listener, IExecutor executor, IExecutor executor2)
+    private static Task<State> PerformReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier,
+        IResourceManager manager, IPreparableReloadListener listener, IExecutor preparationExecutor, IExecutor reloadExecutor)
     {
-        var l1 = 0L;
-        var l2 = 0L;
-        var profiler = new ActiveProfiler(Util.TimeSource.GetNanos, () => 0, false);
-        var profiler2 = new ActiveProfiler(Util.TimeSource.GetNanos, () => 0, false);
+        var preparationNanos = 0L;
+        var reloadNanos = 0L;
+        var preparationProfiler = new ActiveProfiler(Util.TimeSource.GetNanos, () => 0, false);
+        var reloadProfiler = new ActiveProfiler(Util.TimeSource.GetNanos, () => 0, false);
         
-        return listener.ReloadAsync(barrier, manager, profiler, profiler2, IExecutor.Create(r =>
-            {
-                executor.Execute(() =>
+        return listener
+            .ReloadAsync(barrier, manager, preparationProfiler, reloadProfiler,
+                // Wrap the preparation executor
+                IExecutor.Create(r =>
                 {
-                    var l = Util.GetNanos();
-                    r.Run();
-                    l1 += Util.GetNanos() - l;
-                });
-            }), IExecutor.Create(r =>
-            {
-                executor2.Execute(() =>
+                    preparationExecutor.Execute(() =>
+                    {
+                        var l = Util.GetNanos();
+                        r.Run();
+                        preparationNanos += Util.GetNanos() - l;
+                    });
+                }),
+                // Wrap the reload executor
+                IExecutor.Create(r =>
                 {
-                    var l = Util.GetNanos();
-                    r.Run();
-                    l2 += Util.GetNanos() - l;
-                });
-            })
-        ).ThenApplyAsync(() =>
-        {
-            Logger.Verbose($"Finished reloading {listener.Name}");
-            return new State(listener.Name, profiler.Results, profiler2.Results, l1, l2);
-        }, executor2);
+                    reloadExecutor.Execute(() =>
+                    {
+                        var l = Util.GetNanos();
+                        r.Run();
+                        reloadNanos += Util.GetNanos() - l;
+                    });
+                })
+            )
+            .ThenApplyAsync(() =>
+            {
+                Logger.Verbose($"Finished reloading {listener.Name}");
+                return new State(listener.Name, preparationProfiler.Results, reloadProfiler.Results, 
+                    preparationNanos, reloadNanos);
+            }, reloadExecutor);
     }
 
     public class State

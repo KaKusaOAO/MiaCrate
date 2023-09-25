@@ -30,21 +30,41 @@ public sealed class ItemStack
     public int PopTime { get; private set; }
     public Item Item => _item ?? Item.Air;
     public bool IsEmpty => this == Empty || _item == Item.Air || Count <= 0;
+    
+    public NbtCompound? Tag
+    {
+        get => _compound;
+        set
+        {
+            _compound = value;
 
+            if (Item.CanBeDepleted)
+            {
+                // Seems redundant but it ensures damage value is set in NBT tag
+                DamageValue = DamageValue;
+            }
+
+            if (value != null)
+            {
+                Item.VerifyTagAfterLoad(value);
+            }
+        }
+    }
+    
     public int DamageValue
     {
-        get => _compound?.GetInt(TagDamage) ?? 0;
+        get => _compound?[TagDamage]?.GetValue<int>() ?? 0;
         set => GetOrCreateTag()[TagDamage] = Math.Max(0, value);
     }
 
     public int BarWidth => Item.GetBarWidth(this);
     public int BarColor => Item.GetBarColor(this);
 
-    public ItemStack(Mochi.Utils.IHolder<Item> holder, int count = 1) : this(holder.Value, count) { }
+    public ItemStack(IHolder<Item> holder, int count = 1) : this(holder.Value, count) { }
 
     public ItemStack(IItemLike itemLike, int count, IOptional<NbtCompound> compound) : this(itemLike, count)
     {
-        compound.IfPresent(SetTag);
+        compound.IfPresent(tag => Tag = tag);
     }
     
     public ItemStack(IItemLike itemLike, int count = 1)
@@ -60,13 +80,13 @@ public sealed class ItemStack
 
     private ItemStack(NbtCompound tag)
     {
-        _item = BuiltinRegistries.Item.Get(new ResourceLocation(tag.GetString("id")));
+        _item = BuiltinRegistries.Item.Get(new ResourceLocation(tag["id"]!.GetValue<string>()));
         Count = tag.GetByte("Count");
 
         var data = tag["tag"];
-        if (data != null! && data.Type == NbtTag.TagType.Compound)
+        if (data is NbtCompound compound)
         {
-            _compound = data.As<NbtCompound>();
+            _compound = compound;
             Item.VerifyTagAfterLoad(_compound);
         }
 
@@ -93,27 +113,5 @@ public sealed class ItemStack
 
     public bool IsItemEnabled(FeatureFlagSet features) => IsEmpty || Item.IsEnabled(features);
 
-    public NbtCompound GetOrCreateTag()
-    {
-        if (_compound == null)
-            SetTag(new NbtCompound());
-
-        return _compound!;
-    }
-
-    public void SetTag(NbtCompound? compound)
-    {
-        _compound = compound;
-
-        if (Item.CanBeDepleted)
-        {
-            // Seems redundant but it ensures damage value is set in NBT tag
-            DamageValue = DamageValue;
-        }
-
-        if (compound != null)
-        {
-            Item.VerifyTagAfterLoad(compound);
-        }
-    }
+    public NbtCompound GetOrCreateTag() => Tag ??= new NbtCompound();
 }

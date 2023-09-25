@@ -15,8 +15,8 @@ public class VertexBuffer : IDisposable
     private VertexFormat? _format;
     private RenderSystem.AutoStorageIndexBuffer? _sequencialIndices;
     private int _indexCount;
-    private VertexFormat.IndexType _indexType;
-    private VertexFormat.Mode _mode;
+    private VertexFormat.IndexType? _indexType;
+    private VertexFormat.Mode? _mode;
 
     public bool IsInvalid => _arrayObjectId == -1;
     
@@ -126,6 +126,11 @@ public class VertexBuffer : IDisposable
 
     public void Draw()
     {
+        // Should only be called after upload!
+        // _mode and _indexType are always set to notnull after upload
+        if (_mode == null || _indexType == null)
+            throw new InvalidOperationException("Upload the buffer first!");
+        
         RenderSystem.DrawElements(_mode.Type, _indexCount, _indexType.GlType);
     }
     

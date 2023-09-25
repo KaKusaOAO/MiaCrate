@@ -10,4 +10,11 @@ public class Font
         _fonts = fonts;
         _filterFishyGlyphs = filterFishyGlyphs;
     }
+
+    public enum DisplayMode
+    {
+        Normal,
+        SeeThrough,
+        PolygonOffset
+    }
 }

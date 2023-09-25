@@ -50,7 +50,7 @@ public class SimpleBakedModel : IBakedModel
 
         public Builder(bool hasAmbientOcclusion, bool usesBlockLight, bool isGui3D, ItemTransforms transforms, ItemOverrides overrides)
         {
-            foreach (var direction in Direction.GetDirections())
+            foreach (var direction in Direction.Values)
             {
                 _culledFaces.Add(direction, new List<BakedQuad>());   
             }

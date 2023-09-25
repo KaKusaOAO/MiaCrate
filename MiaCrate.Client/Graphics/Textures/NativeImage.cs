@@ -62,7 +62,7 @@ public sealed class NativeImage : IDisposable
             bitmap.Width, bitmap.Height, true, bitmap);
     }
 
-    public int GetPixelRgba(int x, int y)
+    public Rgba32 GetPixelRgba(int x, int y)
     {
         if (Format != FormatInfo.Rgba)
             throw new ArgumentException($"GetPixelRgba() only works on RGBA images; have {Format}");
@@ -70,16 +70,10 @@ public sealed class NativeImage : IDisposable
         if (IsOutsideBounds(x, y))
             throw new ArgumentException($"({x}, {y}) outside of image bounds ({Width}, {Height})");
 
-        var color = _bitmap.GetPixel(x, y);
-        var arr = new[]
-        {
-            color.Red, color.Green, color.Blue, color.Alpha
-        };
-        
-        return BitConverter.ToInt32(arr, 0);
+        return _bitmap.GetPixel(x, y);
     }
     
-    public void SetPixelRgba(int x, int y, int color)
+    public void SetPixelRgba(int x, int y, Rgba32 color)
     {
         if (Format != FormatInfo.Rgba)
             throw new ArgumentException($"GetPixelRgba() only works on RGBA images; have {Format}");
@@ -87,8 +81,7 @@ public sealed class NativeImage : IDisposable
         if (IsOutsideBounds(x, y))
             throw new ArgumentException($"({x}, {y}) outside of image bounds ({Width}, {Height})");
 
-        var arr = BitConverter.GetBytes(color);
-        _bitmap.SetPixel(x, y, new SKColor(arr[0], arr[1], arr[2], arr[3]));
+        _bitmap.SetPixel(x, y, new SKColor(color.Red, color.Green, color.Blue, color.Alpha));
     }
 
     public NativeImage MappedCopy(Func<int, int> transform)

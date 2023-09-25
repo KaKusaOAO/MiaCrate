@@ -20,7 +20,7 @@ public sealed class Direction : IEnumLike<Direction>, IStringRepresentable
         new(5, 4, 3, "east", AxisDirection.Positive, DirectionAxis.X, new Vec3I(1, 0, 0));
 
     public static readonly IStringRepresentable.EnumCodec<Direction> Codec =
-        IStringRepresentable.FromEnum(GetDirections);
+        IStringRepresentable.FromEnum<Direction>();
 
     public int Data3d { get; }
     private readonly int _oppositeIndex;
@@ -51,7 +51,7 @@ public sealed class Direction : IEnumLike<Direction>, IStringRepresentable
         Ordinal = ordinal;
     }
 
-    public static Direction[] GetDirections() => _values.Values.ToArray();
+    public static Direction[] Values => _values.Values.ToArray();
     
     public override string ToString() => Name;
 
@@ -67,7 +67,7 @@ public sealed class Direction : IEnumLike<Direction>, IStringRepresentable
         var result = North;
         var i = float.MinValue;
         
-        foreach (var direction in GetDirections())
+        foreach (var direction in Values)
         {
             var j = x * direction.Normal.X + y * direction.Normal.Y + z * direction.Normal.Z;
             if (j > i)

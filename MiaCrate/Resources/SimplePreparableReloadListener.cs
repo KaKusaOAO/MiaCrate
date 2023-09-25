@@ -5,13 +5,13 @@ namespace MiaCrate.Resources;
 public abstract class SimplePreparableReloadListener<T> : IPreparableReloadListener
 {
     public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager,
-        IProfilerFiller profiler, IProfilerFiller profiler2, 
-        IExecutor executor, IExecutor executor2)
+        IProfilerFiller preparationProfiler, IProfilerFiller reloadProfiler, 
+        IExecutor preparationExecutor, IExecutor reloadExecutor)
     {
         return Tasks
-            .SupplyAsync(() => Prepare(manager, profiler), executor)
+            .SupplyAsync(() => Prepare(manager, preparationProfiler), preparationExecutor)
             .ThenComposeAsync(barrier.Wait)
-            .ThenAcceptAsync(o => Apply(o, manager, profiler2), executor2);
+            .ThenAcceptAsync(o => Apply(o, manager, reloadProfiler), reloadExecutor);
     }
 
     public virtual string Name => GetType().Name;

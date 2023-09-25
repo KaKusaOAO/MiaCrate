@@ -36,7 +36,7 @@ public static unsafe class GLX
             throw new Exception("Failed to initialize GLFW");
         }
 
-        return () => (long) (GLFW.GetTime() * 1.0E9);
+        return () => (long) (GLFW.GetTime() * 1.0e9);
     }
 
     public static string OpenGlVersion

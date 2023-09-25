@@ -246,6 +246,8 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         MainRenderTarget.Clear(OnMacOs);
         
         _resourceManager = new ReloadableResourceManager(PackType.ClientResources);
+        
+	    // Find all the available packs and apply vanilla pack if not
         _resourcePackRepository.Reload();
 
         TextureManager = new TextureManager(_resourceManager);
@@ -304,11 +306,13 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         LoadingOverlay.RegisterTextures(this);
         var list = _resourcePackRepository.OpenAllSelected();
         _reloadStateTracker.StartReload(ResourceLoadStateTracker.ReloadReason.Initial, list);
+        
+        var cookie = new GameLoadCookie(realmsClient, config.QuickPlay);
   
         // Create a new reload instance and set overlay
-        var cookie = new GameLoadCookie(realmsClient, config.QuickPlay);
         var reloadInstance = _resourceManager
 	        .CreateReload(Util.BackgroundExecutor, this, _resourceReloadInitialTask, list);
+        
         Overlay = new LoadingOverlay(this, reloadInstance, exception =>
         {
 	        exception

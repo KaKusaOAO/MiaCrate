@@ -21,6 +21,21 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
         _resourceManager = resourceManager;
     }
 
+    public void BindForSetup(ResourceLocation location) => 
+        RenderSystem.EnsureOnRenderThread(() => InternalBind(location));
+
+    private void InternalBind(ResourceLocation location)
+    {
+        // TODO: Maybe replace these with a GetTexture() call?
+        if (!_byPath.TryGetValue(location, out var texture))
+        {
+            texture = new SimpleTexture(location);
+            Register(location, texture);
+        }
+        
+        texture.Bind();
+    }
+
     private AbstractTexture LoadTexture(ResourceLocation location, AbstractTexture texture)
     {
         try
@@ -61,6 +76,21 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
             _tickableTextures.Add(tickable);
     }
 
+    public ResourceLocation RegisterDynamic(string name, DynamicTexture texture)
+    {
+        if (!_prefixRegister.TryGetValue(name, out var i))
+        {
+            // Ensure 'i' is set to 0 just in case that is an undefined behavior 
+            i = 0;
+        }
+
+        _prefixRegister[name] = ++i;
+
+        var location = new ResourceLocation($"dynamic/{name}_{i}");
+        Register(location, texture);
+        return location;
+    }
+
     public AbstractTexture GetTexture(ResourceLocation location)
     {
         if (!_byPath.TryGetValue(location, out var texture))
@@ -97,7 +127,7 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
 
     public Task PreloadAsync(ResourceLocation location, IExecutor executor)
     {
-        if (!_byPath.ContainsKey(location)) return Task.CompletedTask;
+        if (_byPath.ContainsKey(location)) return Task.CompletedTask;
         
         var preloaded = new PreloadedTexture(_resourceManager, location, executor);
         _byPath[location] = preloaded;
@@ -113,12 +143,12 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
         }));
     }
 
-    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller profiler,
-        IProfilerFiller profiler2, IExecutor executor, IExecutor executor2)
+    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller preparationProfiler,
+        IProfilerFiller reloadProfiler, IExecutor preparationExecutor, IExecutor reloadExecutor)
     {
         var source = new TaskCompletionSource();
         TitleScreen
-            .PreloadResourcesAsync(this, executor)
+            .PreloadResourcesAsync(this, preparationExecutor)
             .ThenApplyAsync(() => barrier.Wait(Unit.Instance))
             .ThenAcceptAsync(_ =>
             {
@@ -136,7 +166,7 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
                     }
                     else
                     {
-                        texture.Reset(this, manager, location, executor2);
+                        texture.Reset(this, manager, location, reloadExecutor);
                     }
                 }
 

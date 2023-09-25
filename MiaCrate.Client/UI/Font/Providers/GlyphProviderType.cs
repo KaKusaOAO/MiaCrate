@@ -17,8 +17,10 @@ public sealed class GlyphProviderType : IEnumLike<GlyphProviderType>, IStringRep
     public static readonly GlyphProviderType Reference = new("reference",
         ProviderReferenceDefinition.Codec.Cast<IGlyphProviderDefinition>());
 
+    public static GlyphProviderType[] Values => _values.Values.ToArray();
+
     public static ICodec<GlyphProviderType> Codec { get; } =
-        IStringRepresentable.FromEnum(() => _values.Values.ToArray());
+        IStringRepresentable.FromEnum<GlyphProviderType>();
     
     public string SerializedName { get; }
     public IMapCodec<IGlyphProviderDefinition> MapCodec { get; }

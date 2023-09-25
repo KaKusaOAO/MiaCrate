@@ -7,14 +7,30 @@ public abstract class RenderType : RenderStateShard
     public static RenderType Solid { get; } = Create("solid", DefaultVertexFormat.Block, VertexFormat.Mode.Quads,
         0x200000, true, false,
         CompositeState.Builder
+            .SetLightmapState(Lightmap)
             .SetShaderState(RenderTypeSolidShader)
+            .SetTextureState(BlockSheetMipped)
             .CreateCompositeState(true));
 
     public static RenderType CutoutMipped { get; } = Create("cutout_mipped", DefaultVertexFormat.Block,
         VertexFormat.Mode.Quads, 0x20000, true, false,
         CompositeState.Builder
+            .SetLightmapState(Lightmap)
             .SetShaderState(RenderTypeCutoutMippedShader)
-            .CreateCompositeState(false));
+            .SetTextureState(BlockSheetMipped)
+            .CreateCompositeState(true));
+        
+    public static RenderType Cutout { get; } = Create("cutout", DefaultVertexFormat.Block,
+        VertexFormat.Mode.Quads, 0x20000, true, false,
+        CompositeState.Builder
+            .SetLightmapState(Lightmap)
+            .SetShaderState(RenderTypeCutoutShader)
+            .SetTextureState(BlockSheet)
+            .CreateCompositeState(true));
+    
+    public static RenderType Translucent { get; } = Create("translucent", DefaultVertexFormat.Block,
+        VertexFormat.Mode.Quads, 0x200000, true, true,
+        CreateTranslucentState(RenderTypeTranslucentShader));
 
     private static readonly Func<ResourceLocation, bool, RenderType> _entityCutoutNoCull = Util.Memoize(
         (ResourceLocation location, bool outline) =>
@@ -24,11 +40,79 @@ public abstract class RenderType : RenderStateShard
                 .SetTextureState(new TextureStateShard(location, false, false))
                 .SetTransparencyState(NoTransparency)
                 .SetCullState(NoCull)
+                .SetLightmapState(Lightmap)
+                .SetOverlayState(Overlay)
                 .CreateCompositeState(outline);
                 
             return Create("entity_cutout_no_cull", DefaultVertexFormat.NewEntity, VertexFormat.Mode.Quads, 0x100,
                 true, false, state);
         });
+
+    private static readonly Func<ResourceLocation, RenderType> _textIntensity = Util.Memoize((ResourceLocation l) =>
+        Create("text_intensity", DefaultVertexFormat.PositionColorTexLightmap,
+            VertexFormat.Mode.Quads, 0x100, false, true,
+            CompositeState.Builder
+                .SetShaderState(RenderTypeTextIntensityShader)
+                .SetTextureState(new TextureStateShard(l, false, false))
+                .SetTransparencyState(TranslucentTransparency)
+                .SetLightmapState(Lightmap)
+                .CreateCompositeState(false)));
+    
+    private static readonly Func<ResourceLocation, RenderType> _textIntensityPolygonOffset = Util.Memoize((ResourceLocation l) =>
+        Create("text_intensity_polygon_offset", DefaultVertexFormat.PositionColorTexLightmap,
+            VertexFormat.Mode.Quads, 0x100, false, true,
+            CompositeState.Builder
+                .SetShaderState(RenderTypeTextIntensityShader)
+                .SetTextureState(new TextureStateShard(l, false, false))
+                .SetTransparencyState(TranslucentTransparency)
+                .SetLightmapState(Lightmap)
+                .SetLayeringState(PolygonOffsetLayering)
+                .CreateCompositeState(false)));
+    
+    private static readonly Func<ResourceLocation, RenderType> _textIntensitySeeThrough = Util.Memoize((ResourceLocation l) =>
+        Create("text_intensity_see_through", DefaultVertexFormat.PositionColorTexLightmap,
+            VertexFormat.Mode.Quads, 0x100, false, true,
+            CompositeState.Builder
+                .SetShaderState(RenderTypeTextIntensitySeeThroughShader)
+                .SetTextureState(new TextureStateShard(l, false, false))
+                .SetTransparencyState(TranslucentTransparency)
+                .SetLightmapState(Lightmap)
+                .SetDepthTestState(NoDepthTest)
+                .SetWriteMaskState(ColorWrite)
+                .CreateCompositeState(false)));
+    
+    private static readonly Func<ResourceLocation, RenderType> _text = Util.Memoize((ResourceLocation l) =>
+        Create("text", DefaultVertexFormat.PositionColorTexLightmap,
+            VertexFormat.Mode.Quads, 0x100, false, true,
+            CompositeState.Builder
+                .SetShaderState(RenderTypeTextShader)
+                .SetTextureState(new TextureStateShard(l, false, false))
+                .SetTransparencyState(TranslucentTransparency)
+                .SetLightmapState(Lightmap)
+                .CreateCompositeState(false)));
+    
+    private static readonly Func<ResourceLocation, RenderType> _textPolygonOffset = Util.Memoize((ResourceLocation l) =>
+        Create("text_polygon_offset", DefaultVertexFormat.PositionColorTexLightmap,
+            VertexFormat.Mode.Quads, 0x100, false, true,
+            CompositeState.Builder
+                .SetShaderState(RenderTypeTextShader)
+                .SetTextureState(new TextureStateShard(l, false, false))
+                .SetTransparencyState(TranslucentTransparency)
+                .SetLightmapState(Lightmap)
+                .SetLayeringState(PolygonOffsetLayering)
+                .CreateCompositeState(false)));
+    
+    private static readonly Func<ResourceLocation, RenderType> _textSeeThrough = Util.Memoize((ResourceLocation l) =>
+        Create("text_see_through", DefaultVertexFormat.PositionColorTexLightmap,
+            VertexFormat.Mode.Quads, 0x100, false, true,
+            CompositeState.Builder
+                .SetShaderState(RenderTypeTextSeeThroughShader)
+                .SetTextureState(new TextureStateShard(l, false, false))
+                .SetTransparencyState(TranslucentTransparency)
+                .SetLightmapState(Lightmap)
+                .SetDepthTestState(NoDepthTest)
+                .SetWriteMaskState(ColorWrite)
+                .CreateCompositeState(false)));
 
     public static RenderType Gui { get; } = Create("gui", DefaultVertexFormat.PositionColor,
         VertexFormat.Mode.Quads, 0x100,
@@ -49,7 +133,7 @@ public abstract class RenderType : RenderStateShard
 
     public static List<RenderType> ChunkBufferLayers { get; } = new()
     {
-        Solid, CutoutMipped, // Cutout, Translucent, Tripwire
+        Solid, CutoutMipped, Cutout, Translucent, // Tripwire
     };
 
     private readonly IOptional<RenderType> _asOptional;
@@ -86,8 +170,37 @@ public abstract class RenderType : RenderStateShard
         bool affectsCrumbling, bool sortOnUpload, CompositeState state) =>
         new(name, format, mode, bufferSize, affectsCrumbling, sortOnUpload, state);
 
+    public static CompositeState CreateTranslucentState(ShaderStateShard state)
+    {
+        return CompositeState.Builder
+            .SetLightmapState(Lightmap)
+            .SetShaderState(state)
+            .SetTextureState(BlockSheetMipped)
+            .SetTransparencyState(TranslucentTransparency)
+            .SetOutputState(TranslucentTarget)
+            .CreateCompositeState(true);
+    }
+
     public static RenderType EntityCutoutNoCull(ResourceLocation location, bool outline = true) => 
         _entityCutoutNoCull(location, outline);
+    
+    public static RenderType TextIntensity(ResourceLocation location) => 
+        _textIntensity(location);
+    
+    public static RenderType TextIntensitySeeThrough(ResourceLocation location) => 
+        _textIntensitySeeThrough(location);
+    
+    public static RenderType TextIntensityPolygonOffset(ResourceLocation location) => 
+        _textIntensityPolygonOffset(location);
+    
+    public static RenderType Text(ResourceLocation location) => 
+        _text(location);
+    
+    public static RenderType TextSeeThrough(ResourceLocation location) => 
+        _textSeeThrough(location);
+    
+    public static RenderType TextPolygonOffset(ResourceLocation location) => 
+        _textPolygonOffset(location);
 
     public void End(BufferBuilder builder, IVertexSorting vertexSorting)
     {
@@ -105,8 +218,7 @@ public abstract class RenderType : RenderStateShard
         public CompositeState State { get; }
         public override IOptional<RenderType> Outline { get; }
         public override bool IsOutline { get; }
-        
-        
+
         public CompositeRenderType(string name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
             bool affectsCrumbling, bool sortOnUpload, CompositeState state)
             : base(name, format, mode, bufferSize, affectsCrumbling, sortOnUpload,
@@ -131,6 +243,8 @@ public abstract class RenderType : RenderStateShard
         public TransparencyStateShard TransparencyState { get; }
         public DepthTestStateShard DepthTestState { get; }
         public CullStateShard CullState { get; }
+        public LightmapStateShard LightmapState { get; }
+        public LayeringStateShard LayeringState { get; }
         public WriteMaskStateShard WriteMaskState { get; }
         public List<RenderStateShard> States { get; }
         public OutlineProperty OutlineProperty { get; }
@@ -141,6 +255,8 @@ public abstract class RenderType : RenderStateShard
             TransparencyStateShard transparencyState,
             DepthTestStateShard depthTestState,
             CullStateShard cullState,
+            LightmapStateShard lightmapState,
+            LayeringStateShard layeringState,
             WriteMaskStateShard writeMaskState,
             OutlineProperty outline
         )
@@ -150,6 +266,8 @@ public abstract class RenderType : RenderStateShard
             TransparencyState = transparencyState;
             DepthTestState = depthTestState;
             CullState = cullState;
+            LightmapState = lightmapState;
+            LayeringState = layeringState;
             WriteMaskState = writeMaskState;
             
             Util.LogFoobar();
@@ -160,7 +278,11 @@ public abstract class RenderType : RenderStateShard
                 TextureState,
                 ShaderState,
                 TransparencyState,
-                DepthTestState
+                DepthTestState,
+                CullState,
+                LightmapState,
+                LayeringState,
+                WriteMaskState
             };
         }
 
@@ -172,8 +294,12 @@ public abstract class RenderType : RenderStateShard
             public ShaderStateShard ShaderState { get; set; } = NoShader;
             public TransparencyStateShard TransparencyState { get; set; } = NoTransparency;
             public DepthTestStateShard DepthTestState { get; set; } = LequalDepthTest;
-            public WriteMaskStateShard WriteMaskState { get; set; } = ColorDepthWrite;
             public CullStateShard CullState { get; set; } = Cull;
+            public LightmapStateShard LightmapState { get; set; } = NoLightmap;
+            public OverlayStateShard OverlayState { get; set; } = NoOverlay;
+            public LayeringStateShard LayeringState { get; set; } = NoLayering;
+            public OutputStateShard OutputState { get; set; } = MainTarget;
+            public WriteMaskStateShard WriteMaskState { get; set; } = ColorDepthWrite;
 
             public CompositeStateBuilder SetTextureState(EmptyTextureStateShard state)
             {
@@ -205,6 +331,30 @@ public abstract class RenderType : RenderStateShard
                 return this;
             }
 
+            public CompositeStateBuilder SetLightmapState(LightmapStateShard state)
+            {
+                LightmapState = state;
+                return this;
+            }
+            
+            public CompositeStateBuilder SetOverlayState(OverlayStateShard state)
+            {
+                OverlayState = state;
+                return this;
+            }
+
+            public CompositeStateBuilder SetLayeringState(LayeringStateShard state)
+            {
+                LayeringState = state;
+                return this;
+            }
+
+            public CompositeStateBuilder SetOutputState(OutputStateShard state)
+            {
+                OutputState = state;
+                return this;
+            }
+            
             public CompositeStateBuilder SetWriteMaskState(WriteMaskStateShard state)
             {
                 WriteMaskState = state;
@@ -216,7 +366,8 @@ public abstract class RenderType : RenderStateShard
             
             public CompositeState CreateCompositeState(OutlineProperty outline) =>
                 new(
-                    TextureState, ShaderState, TransparencyState, DepthTestState, CullState, WriteMaskState,
+                    TextureState, ShaderState, TransparencyState, DepthTestState, CullState, LightmapState, 
+                    LayeringState, WriteMaskState,
                     outline
                 );
         }

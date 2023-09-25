@@ -40,24 +40,24 @@ public class ModelManager : IPreparableReloadListener, IDisposable
         _atlases = new AtlasSet(_vanillaAtlases, textureManager);
     }
 
-    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller profiler,
-        IProfilerFiller profiler2, IExecutor executor, IExecutor executor2)
+    public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller preparationProfiler,
+        IProfilerFiller reloadProfiler, IExecutor preparationExecutor, IExecutor reloadExecutor)
     {
-        profiler.StartTick();
-        var task = LoadBlockModelsAsync(manager, executor);
-        var task2 = LoadBlockStatesAsync(manager, executor);
+        preparationProfiler.StartTick();
+        var task = LoadBlockModelsAsync(manager, preparationExecutor);
+        var task2 = LoadBlockStatesAsync(manager, preparationExecutor);
         var task3 = task.ThenCombineAsync(task2, (dict, dict2) => 
-            new ModelBakery(_blockColors, profiler, dict, dict2), executor);
+            new ModelBakery(_blockColors, preparationProfiler, dict, dict2), preparationExecutor);
 
-        var dict = _atlases.ScheduleLoad(manager, _maxMipmapLevels, executor);
+        var dict = _atlases.ScheduleLoad(manager, _maxMipmapLevels, preparationExecutor);
         return Task
             .WhenAll(dict.Values.Append((Task) task3))
-            .ThenApplyAsync(() => LoadModels(profiler,
+            .ThenApplyAsync(() => LoadModels(preparationProfiler,
                 dict.ToDictionary(e => e.Key, e => e.Value.Result),
-                task3.Result), executor)
+                task3.Result), preparationExecutor)
             .ThenComposeAsync(state => state.ReadyForUpload.ThenApplyAsync(() => state))
             .ThenComposeAsync(barrier.Wait)
-            .ThenAcceptAsync(s => Apply(s, profiler2), executor2);
+            .ThenAcceptAsync(s => Apply(s, reloadProfiler), reloadExecutor);
     }
 
     private void Apply(ReloadState state, IProfilerFiller profiler)
@@ -70,7 +70,7 @@ public class ModelManager : IPreparableReloadListener, IDisposable
         }
         
         profiler.PopPush("cache");
-        
+        Util.LogFoobar();
         profiler.Pop();
         profiler.EndTick();
     }

@@ -12,12 +12,12 @@ public class PanoramaRenderer
         _cubeMap = cubeMap;
     }
 
-    public void Render(float f, float g)
+    public void Render(float f, float alpha)
     {
         var h = f; // * panoramaSpeed
         _spin = Wrap(_spin + h * 0.1f, 360);
         _bob = Wrap(_bob + h * 0.001f, float.Pi * 2);
-        _cubeMap.Render(_game, 10, -_spin, g);
+        _cubeMap.Render(_game, 10, -_spin, alpha);
     }
 
     private static float Wrap(float f, float g) => f > g ? f - g : f;

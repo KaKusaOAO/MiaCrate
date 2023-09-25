@@ -27,9 +27,12 @@ public static class Component
         var strikethrough = GetNullableValueFrom("strikethrough", n => n.GetValue<bool>());
         var obfuscated = GetNullableValueFrom("obfuscated", n => n.GetValue<bool>());
 
-        return Style.Empty.WithColor(color)
-            .WithBold(bold).WithItalic(italic)
-            .WithUnderline(underline).WithStrikethrough(strikethrough)
+        return Style.Empty
+            .WithColor(color)
+            .WithBold(bold)
+            .WithItalic(italic)
+            .WithUnderlined(underline)
+            .WithStrikethrough(strikethrough)
             .WithObfuscated(obfuscated);
     }
     
@@ -69,7 +72,7 @@ public static class Component
         for (var i = 0; i < message.Length; i++)
         {
             var c = message[i];
-            if (c == '\u00a7')
+            if (c == ChatFormatting.PrefixCode)
             {
                 if (++i >= message.Length) break;
                 c = message[i];
@@ -77,9 +80,15 @@ public static class Component
                 // lower case
                 if (c >= 'A' && c <= 'Z') c += (char)32;
 
-                ChatColor? color;
+                ChatFormatting? formatting;
+                TextColor? color;
+                var isHex = false;
+                
                 if (c == 'x' && i + 12 < message.Length)
                 {
+                    formatting = null;
+                    isHex = true;
+                    
                     StringBuilder hex = new("#");
                     for (var j = 0; j < 6; j++)
                     {
@@ -88,7 +97,7 @@ public static class Component
 
                     try
                     {
-                        color = ChatColor.Of(hex.ToString());
+                        color = TextColor.Of(hex.ToString());
                     }
                     catch (ArgumentException)
                     {
@@ -97,10 +106,19 @@ public static class Component
                 }
                 else
                 {
-                    color = ChatColor.Of(c);
+                    formatting = ChatFormatting.GetByCode(c);
+                    
+                    if (formatting is { IsColor: true })
+                    {
+                        color = formatting.ToTextColor();
+                    }
+                    else
+                    {
+                        color = null;
+                    }
                 }
                 
-                if (color == null) continue;
+                if (!isHex && formatting == null) continue;
 
                 // push old text to the list
                 if (sb.Length > 0)
@@ -113,31 +131,29 @@ public static class Component
                     texts.Add(old);
                 }
 
-                if (color == ChatColor.Bold)
+                if (formatting == ChatFormatting.Bold)
                 {
                     t.SetBold(true);
                 } 
-                else if (color == ChatColor.Italic)
+                else if (formatting == ChatFormatting.Italic)
                 {
                     t.SetItalic(true);
                 }
-                else if (color == ChatColor.Underline)
+                else if (formatting == ChatFormatting.Underline)
                 {
-                    t.SetUnderline(true);
+                    t.SetUnderlined(true);
                 }
-                else if (color == ChatColor.Strikethrough)
+                else if (formatting == ChatFormatting.Strikethrough)
                 {
                     t.SetStrikethrough(true);
                 }
-                else if (color == ChatColor.Obfuscated)
+                else if (formatting == ChatFormatting.Obfuscated)
                 {
                     t.SetObfuscated(true);
                 }
                 else
                 {
-                    var tc = color.Color.HasValue ? TextColor.Of(color.Color!.Value) : null;
-                    if (color == ChatColor.Reset) tc = null;
-                    t = Literal("").SetColor(tc);
+                    t = Literal("").SetColor(color);
                 }
                 continue;
             }

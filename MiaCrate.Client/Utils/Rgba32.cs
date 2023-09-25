@@ -1,9 +1,13 @@
 ﻿using System.Runtime.CompilerServices;
+using SkiaSharp;
 
 namespace MiaCrate.Client.Utils;
 
 public readonly struct Rgba32
 {
+    public static Rgba32 White { get; } = -1;
+    public static Rgba32 Black { get; } = new(0, 0, 0);
+    
     // ReSharper disable InconsistentNaming
     public readonly byte Red;
     public readonly byte Green;
@@ -20,6 +24,7 @@ public readonly struct Rgba32
 
     public int RGBA => Unsafe.As<Rgba32, int>(ref Unsafe.AsRef(this));
 
+    public static implicit operator Rgba32(SKColor value) => new(value.Red, value.Green, value.Blue, value.Alpha);
     public static implicit operator Rgba32(Argb32 value) => new(value.Red, value.Green, value.Blue, value.Alpha);
     public static implicit operator Rgba32(int value) => Unsafe.As<int, Rgba32>(ref value);
     public static implicit operator Rgba32(uint value) => Unsafe.As<uint, Rgba32>(ref value);
