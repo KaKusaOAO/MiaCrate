@@ -36,12 +36,14 @@ public class HoverEvent
             new ActionType<IComponent>("show_text", true,
             Component.FromJson, c => c.ToJson(), c => c));
 
+        /*
         public static ActionType<IComponent> ShowItem { get; } =
             Register(new ActionType<IComponent>("show_item", true));
 
         public static ActionType<IComponent> ShowEntity { get; } =
             Register(new ActionType<IComponent>("show_entity", true));
-
+        */
+        
         private static ActionType<T> Register<T>(ActionType<T> type)
         {
             _lookup.Add(type.Name, type);
