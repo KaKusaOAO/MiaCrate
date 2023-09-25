@@ -12,4 +12,18 @@ public interface ICentralProcessor
     public int LogicalProcessorCount { get; }
     public int PhysicalProcessorCount { get; }
     public double[] GetSystemLoadAverage();
+
+    public record ProcessorCache(byte Level, byte Associativity, short LineSize, int CacheSize, ProcessorCache.CacheType Type)
+    {
+        public ProcessorCache(int level, int associativity, int lineSize, long cacheSize, CacheType type) 
+            : this((byte) level, (byte) associativity, (short) lineSize, (int) cacheSize, type) {}
+        
+        public enum CacheType
+        {
+            Unified,
+            Instruction,
+            Data,
+            Trace
+        }
+    }
 }
