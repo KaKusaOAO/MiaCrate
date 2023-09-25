@@ -1,16 +1,21 @@
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Text;
+using System.Text.RegularExpressions;
 using MiaCrate.Data;
 using Mochi.Utils;
 
 namespace MiaCrate.Client.Oshi.MacOs;
 
 [SupportedOSPlatform("macos")]
-public class MacCentralProcessor : AbstractCentralProcessor
+public partial class MacCentralProcessor : AbstractCentralProcessor
 {
     private const uint ArmCpuType  = 0x0100000c;
     private const uint M1CpuFamily = 0x1b588bb3;
     private const uint M2CpuFamily = 0xda33d83d;
     private const long DefaultFrequency = 2_400_000_000L;
+
+    private static readonly Regex _cpuN = CreateCpuNRegex();
 
     // Equivalents of hw.cpufrequency on Apple Silicon, defaulting to Rosetta value
     // Will update during initialization
@@ -27,8 +32,73 @@ public class MacCentralProcessor : AbstractCentralProcessor
 
     protected override IPair<List<LogicalProcessor>, List<PhysicalProcessor>> InitProcessorCounts()
     {
-        var str = _vendor.Value;
-        throw new NotImplementedException();
+        var logicalProcessorCount = SystemB.Sysctl("hw.logicalcpu", 1);
+        var physicalProcessorCount = SystemB.Sysctl("hw.physicalcpu", 1);
+        var physicalPackageCount = SystemB.Sysctl("hw.packages", 1);
+        var logProcs = new List<LogicalProcessor>();
+        var pkgCoreKeys = new HashSet<int>();
+        
+        for (var i = 0; i < logicalProcessorCount; i++)
+        {
+            var coreId = (int) (i * physicalProcessorCount / logicalProcessorCount);
+            var pkgId = (int) (i * physicalPackageCount / logicalProcessorCount);
+            logProcs.Add(new LogicalProcessor(i, coreId, pkgId));
+            pkgCoreKeys.Add((pkgId << 16) + coreId);
+        }
+
+        var compatMap = QueryCompatibleStrings();
+        var perflevels = SystemB.Sysctl("hw.nperflevels", 1);
+        var physProcs = pkgCoreKeys.Order().Select(k =>
+        {
+            var compat = compatMap.GetValueOrDefault(k, "").ToLowerInvariant();
+            var efficiency = 0;
+            
+            if (compat.Contains("firestorm") || compat.Contains("avalanche"))
+            {
+                efficiency = 1;
+            }
+
+            return new PhysicalProcessor(k >> 16, k & 0xffff, efficiency, compat);
+        }).ToList();
+
+        return Pair.Of(logProcs, physProcs);
+        // var caches = OrderedProcCaches(GetCacheValues((int) perflevels));
+    }
+
+    private static Dictionary<int, string> QueryCompatibleStrings()
+    {
+        var dict = new Dictionary<int, string>();
+
+        var iter = IOKitUtil.GetMatchingServices("IOPlatformDevice");
+        if (iter.Handle == 0) return dict;
+
+        var cpu = IOKit.IOIteratorNext(iter);
+        while (cpu.Handle != 0)
+        {
+            var namePtr = Marshal.AllocHGlobal(128);
+            if (IOKit.IORegistryEntryGetName(cpu, namePtr) != 0)
+                throw new Exception();
+
+            var name = Marshal.PtrToStringUTF8(namePtr)!;
+            Marshal.FreeHGlobal(namePtr);
+            
+            var matches = _cpuN.Matches(name.ToLowerInvariant());
+            if (matches.Any())
+            {
+                if (!int.TryParse(matches[0].Groups[1].Value, out var procId))
+                    procId = 0;
+
+                var data = cpu.GetByteArray("compatible");
+                if (data != null)
+                    dict[procId] = Encoding.UTF8.GetString(data).Replace("\u0000", "");
+            }
+            
+            cpu.Base.Dispose();
+            cpu = IOKit.IOIteratorNext(iter);
+        }
+        
+        iter.Base.Dispose();
+        return dict;
     }
 
     protected override ProcessorIdentifier QueryProcessorId()
@@ -70,10 +140,55 @@ public class MacCentralProcessor : AbstractCentralProcessor
         else
         {
             // Processing an Intel chip
-            
+            throw new NotSupportedException();
         }
 
-        throw new NotImplementedException();
+        Util.LogFoobar();
+        var cpuFreq = DefaultFrequency;
+        var cpu64Bit = SystemB.Sysctl("hw.cpu64bit_capable", 0) != 0;
+        return new ProcessorIdentifier(cpuVendor, cpuName, cpuFamily, cpuModel, cpuStepping, processorId, cpu64Bit,
+            cpuFreq);;
+    }
+
+    private HashSet<ICentralProcessor.ProcessorCache> GetCacheValues(int perflevels)
+    {
+        var lineSize = (int) SystemB.Sysctl("hw.cachelinesize", 0L);
+        var l1Associativity = (int) SystemB.Sysctl("machdep.cpu.cache.L1_associativity", 0, false);
+        var l2Associativity = (int) SystemB.Sysctl("machdep.cpu.cache.L2_associativity", 0, false);
+        var caches = new HashSet<ICentralProcessor.ProcessorCache>();
+        
+        for (var i = 0; i < perflevels; i++)
+        {
+            var size = SystemB.Sysctl($"hw.perflevel{i}.l1icachesize", 0, false);
+            if (size > 0)
+            {
+                caches.Add(new ICentralProcessor.ProcessorCache(1, l1Associativity, lineSize, size,
+                    ICentralProcessor.ProcessorCache.CacheType.Instruction));
+            }
+            
+            size = SystemB.Sysctl($"hw.perflevel{i}.l1dcachesize", 0, false);
+            if (size > 0)
+            {
+                caches.Add(new ICentralProcessor.ProcessorCache(1, l1Associativity, lineSize, size,
+                    ICentralProcessor.ProcessorCache.CacheType.Data));
+            }
+            
+            size = SystemB.Sysctl($"hw.perflevel{i}.l2cachesize", 0, false);
+            if (size > 0)
+            {
+                caches.Add(new ICentralProcessor.ProcessorCache(2, l2Associativity, lineSize, size,
+                    ICentralProcessor.ProcessorCache.CacheType.Unified));
+            }
+            
+            size = SystemB.Sysctl($"hw.perflevel{i}.l3cachesize", 0, false);
+            if (size > 0)
+            {
+                caches.Add(new ICentralProcessor.ProcessorCache(3, 0, lineSize, size,
+                    ICentralProcessor.ProcessorCache.CacheType.Unified));
+            }
+        }
+
+        return caches;
     }
 
     private static string GetPlatformExpert()
@@ -82,7 +197,7 @@ public class MacCentralProcessor : AbstractCentralProcessor
         var platformExpert = IOKitUtil.GetMatchingService("IOPlatformExpertDevice");
         if (platformExpert.Handle != 0)
         {
-            Logger.Info("Test");
+            Util.LogFoobar();
         }
 
         return "Apple Inc.";
@@ -90,4 +205,7 @@ public class MacCentralProcessor : AbstractCentralProcessor
 
     private bool InternalCheckIsArmCpu() =>
         PhysicalProcessors.Select(p => p.Efficiency).Any(e => e > 0);
+    
+    [GeneratedRegex("^cpu(\\d+)$")]
+    private static partial Regex CreateCpuNRegex();
 }

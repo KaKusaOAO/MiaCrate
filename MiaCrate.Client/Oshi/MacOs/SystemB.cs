@@ -79,7 +79,7 @@ public static partial class SystemB
         }
     }
     
-    public static uint Sysctl(string name, uint def)
+    public static uint Sysctl(string name, uint def, bool logWarning = true)
     {
         nint size = sizeof(uint);
         var ptr = Marshal.AllocHGlobal(size);
@@ -88,7 +88,9 @@ public static partial class SystemB
             var errno = SysCtlByName(name, ptr, ref size, IntPtr.Zero, 0);
             if (errno != StdLibError.Ok)
             {
-                Logger.Warn($"Failed sysctl call: {name}, Error code: {errno}");
+                if (logWarning)
+                    Logger.Warn($"Failed sysctl call: {name}, Error code: {errno}");
+                
                 return def;
             }
 

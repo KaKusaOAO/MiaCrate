@@ -71,4 +71,32 @@ public abstract class AbstractCentralProcessor : ICentralProcessor
     {
         throw new NotImplementedException();
     }
+
+    public static List<ICentralProcessor.ProcessorCache> OrderedProcCaches(
+        IEnumerable<ICentralProcessor.ProcessorCache> caches)
+    {
+        return caches.OrderBy(c =>
+                -1000 * c.Level + 100 * (int)c.Type - HighestOneBit(c.CacheSize))
+            .ToList();
+    }
+
+    private static int HighestOneBit(int i) => i & (int.MinValue >>> NumberOfLeadingZeros(i));
+    
+    private static int NumberOfLeadingZeros(int i)
+    {
+        if (i <= 0)
+            return i == 0 ? 32 : 0;
+
+        var n = 31;
+        
+        // @formatter:off
+        if (i >= 1 << 16) n -= 16; i >>>= 16;
+        if (i >= 1 <<  8) n -=  8; i >>>=  8;
+        if (i >= 1 <<  4) n -=  4; i >>>=  4;
+        if (i >= 1 <<  2) n -=  2; i >>>=  2;
+        // @formatter:on
+
+        return n - (i >>> 1);
+    }
+    
 }

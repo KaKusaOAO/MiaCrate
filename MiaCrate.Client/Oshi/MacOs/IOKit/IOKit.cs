@@ -37,5 +37,14 @@ public static partial class IOKit
     public static partial IOService IOServiceGetMatchingService(int v, CFDictionaryRef dict);
     
     [LibraryImport(DllName)]
+    public static partial StdLibError IOServiceGetMatchingServices(int v, CFDictionaryRef dict, out IOIterator iterator);
+    
+    [LibraryImport(DllName)]
+    public static partial IORegistryEntry IOIteratorNext(IOIterator iterator);
+
+    [LibraryImport(DllName)]
     public static partial IORegistryEntry IORegistryGetRootEntry(int v);
+    
+    [LibraryImport(DllName)]
+    public static partial CFTypeRef IORegistryEntryCreateCFProperty(IORegistryEntry entry, CFStringRef key, CFAllocatorRef allocator, int v);
 }

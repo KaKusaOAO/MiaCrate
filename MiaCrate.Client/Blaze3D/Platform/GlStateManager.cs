@@ -1,11 +1,19 @@
-﻿using MiaCrate.Client.Systems;
+﻿using System.Runtime.InteropServices;
+using MiaCrate.Client.Systems;
+using MiaCrate.Extensions;
+using MiaCrate.Texts;
+using Mochi.Texts;
 using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
+using Component = MiaCrate.Texts.Component;
 
 namespace MiaCrate.Client.Platform;
 
 public static class GlStateManager
 {
+    private static readonly Dictionary<string, bool> _funcSupportCache = new();
     private static readonly BlendState _blend = new();
     private static readonly DepthState _depth = new();
     private static readonly CullState _cull = new();
@@ -651,21 +659,47 @@ public static class GlStateManager
         GL.ColorMask(red, green, blue, alpha);
     }
     
+    private static bool ResolveFuncSupport(string funcName)
+    {
+        var ptr = new GLFWBindingsContext().GetProcAddress("glObjectLabel");
+        if (ptr == 0)
+        {
+            Logger.Warn(
+                Component.Translatable("GL function %s not supported!")
+                    .AddWith(Component.Literal($"{funcName}()")
+                        .SetColor(TextColor.Aqua)
+                    )
+            );
+            return false;
+        }
+
+        return true;
+    }
+    
     public static void ObjectLabel(ObjectLabelIdentifier identifier, int name, string label)
     {
         RenderSystem.AssertOnRenderThread();
+        if (!_funcSupportCache.ComputeIfAbsent("glObjectLabel", ResolveFuncSupport))
+            return;
+        
         GL.ObjectLabel(identifier, name, label.Length, label);
     }
 
     public static void PushDebugGroup(string message)
     {
         RenderSystem.AssertOnRenderThread();
+        if (!_funcSupportCache.ComputeIfAbsent("glPushDebugGroup", ResolveFuncSupport))
+            return;
+
         GL.PushDebugGroup(DebugSourceExternal.DebugSourceApplication, 0, message.Length, message);
     }
     
     public static void PopDebugGroup()
     {
         RenderSystem.AssertOnRenderThread();
+        if (!_funcSupportCache.ComputeIfAbsent("glPopDebugGroup", ResolveFuncSupport))
+            return;
+        
         GL.PopDebugGroup();
     }
 
