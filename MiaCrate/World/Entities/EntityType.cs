@@ -19,7 +19,7 @@ public static partial class EntityType
     }
 }
 
-public interface IEntityType : IRegistryEntry<IEntityType>
+public interface IEntityType : IBuiltinRegistryEntryWithHolder<IEntityType>
 {
     public Entity? Create(Level level);
 }

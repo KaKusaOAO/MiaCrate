@@ -17,37 +17,37 @@ public partial class NbtParser
     public static SimpleCommandExceptionType ErrorTrailingData { get; } =
         BrigadierUtil.CreateSimpleExceptionType(
             // Unexpected trailing data
-            Component.Translatable("argument.nbt.trailing")
+            MiaComponent.Translatable("argument.nbt.trailing")
         );
     
     public static SimpleCommandExceptionType ErrorExpectedKey { get; } =
         BrigadierUtil.CreateSimpleExceptionType(
             // Expected key
-            Component.Translatable("argument.nbt.expected.key")
+            MiaComponent.Translatable("argument.nbt.expected.key")
         );
     
     public static SimpleCommandExceptionType ErrorExpectedValue { get; } =
         BrigadierUtil.CreateSimpleExceptionType(
             // Expected value
-            Component.Translatable("argument.nbt.expected.value")
+            MiaComponent.Translatable("argument.nbt.expected.value")
         );
     
     public static Dynamic2CommandExceptionType ErrorInsertMixedList { get; } =
         BrigadierUtil.CreateDynamic2ExceptionType((a, b) =>
             // Can't insert %s into list of %s
-            Component.Translatable("argument.nbt.list.mixed", a, b)
+            MiaComponent.Translatable("argument.nbt.list.mixed", a, b)
         );
     
     public static Dynamic2CommandExceptionType ErrorInsertMixedArray { get; } =
         BrigadierUtil.CreateDynamic2ExceptionType((a, b) =>
             // Can't insert %s into %s
-            Component.Translatable("argument.nbt.array.mixed", a, b)
+            MiaComponent.Translatable("argument.nbt.array.mixed", a, b)
         );
     
     public static DynamicCommandExceptionType ErrorInvalidArray { get; } =
         BrigadierUtil.CreateDynamicExceptionType(a =>
             // Invalid array type '%s'
-            Component.Translatable("argument.nbt.array.invalid", a)
+            MiaComponent.Translatable("argument.nbt.array.invalid", a)
         );
 
     public const char ElementSeparator = ',';

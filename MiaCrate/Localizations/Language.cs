@@ -2,6 +2,8 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using MiaCrate.Resources;
+using MiaCrate.Texts;
+using Mochi.Core;
 using Mochi.Utils;
 
 namespace MiaCrate.Localizations;
@@ -14,6 +16,8 @@ public abstract class Language
     
     public static Language Instance { get; private set; } = LoadDefault();
 
+    public abstract bool IsDefaultRightToLeft { get; }
+
     public static void Inject(Language language) => Instance = language;
 
     public string GetOrDefault(string key) => GetOrDefault(key, key);
@@ -22,7 +26,7 @@ public abstract class Language
 
     public abstract bool Has(string key);
 
-    public abstract bool IsDefaultRightToLeft { get; }
+    public abstract FormattedCharSequence GetVisualOrder(IFormattedText text);
 
     private static Language LoadDefault()
     {
@@ -65,6 +69,8 @@ public abstract class Language
     private class DefaultLanguage : Language
     {
         private readonly Dictionary<string, string> _map;
+        
+        public override bool IsDefaultRightToLeft => false;
 
         public DefaultLanguage(Dictionary<string, string> map)
         {
@@ -75,7 +81,14 @@ public abstract class Language
             _map.GetValueOrDefault(key, defaultValue);
 
         public override bool Has(string key) => _map.ContainsKey(key);
+        
+        public override FormattedCharSequence GetVisualOrder(IFormattedText text)
+        {
+            return sink => text.Visit((style, str) =>
+                StringDecomposer.IterateFormatted(str, style, sink)
+                    ? Optional.Empty<Unit>()
+                    : IFormattedText.StopIteration, Style.Empty).IsPresent;
+        }
 
-        public override bool IsDefaultRightToLeft => false;
     }
 }

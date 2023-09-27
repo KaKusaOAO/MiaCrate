@@ -1,5 +1,6 @@
 ﻿using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Systems;
+using MiaCrate.Client.Utils;
 using Mochi.Texts;
 
 namespace MiaCrate.Client.UI.Screens;
@@ -37,6 +38,11 @@ public class TitleScreen : Screen
         );
     }
 
+    protected override void Init()
+    {
+        
+    }
+
     public override void RenderBackground(GuiGraphics graphics, int mouseX, int mouseY, float f)
     {
         
@@ -59,5 +65,12 @@ public class TitleScreen : Screen
 
         var h = _fading ? Math.Clamp(fadeInProgress - 1, 0, 1) : 1;
         _logoRenderer.RenderLogo(graphics, Width, h);
+
+        var k = (byte) Math.Ceiling(h * 255);
+        if ((k & 0xfc) != 0)
+        {
+            var str = $"{MiaCore.ProductName} {SharedConstants.CurrentVersion.Name}";
+            graphics.DrawString(Font, str, 2, Height - 10, Argb32.White.WithAlpha(k));
+        }
     }
 }

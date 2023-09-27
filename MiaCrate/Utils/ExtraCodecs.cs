@@ -25,7 +25,7 @@ public static class ExtraCodecs
     {
         try
         {
-            var node = JsonNode.Parse(str);
+            var node = JsonNode.Parse(str!);
             return DataResult.Success(Mochi.Texts.Component.FromJson(node));
         }
         catch (Exception ex)
@@ -258,6 +258,28 @@ public static class ExtraCodecs
                     ? DataResult.Error<int>(() => $"Element with unknown id: {obj}")
                     : DataResult.Success(j);
             });
+
+    public static ICodec<T>
+        OverrideLifecycle<T>(ICodec<T> codec, Func<T, Lifecycle> apply, Func<T, Lifecycle> coApply) =>
+        codec.SelectResult(new OverrideLifecycleResultFunction<T>(apply, coApply));
+
+    private class OverrideLifecycleResultFunction<T> : ICodec<T>.IResultFunction
+    {
+        private readonly Func<T, Lifecycle> _apply;
+        private readonly Func<T, Lifecycle> _coApply;
+
+        public OverrideLifecycleResultFunction(Func<T, Lifecycle> apply, Func<T, Lifecycle> coApply)
+        {
+            _apply = apply;
+            _coApply = coApply;
+        }
+
+        public IDataResult<IPair<T, TOps>> Apply<TOps>(IDynamicOps<TOps> ops, TOps input, IDataResult<IPair<T, TOps>> a) => 
+            a.Result.Select(p => a.SetLifecycle(_apply(p.First!))).OrElse(a);
+
+        public IDataResult<TOps> CoApply<TOps>(IDynamicOps<TOps> ops, T input, IDataResult<TOps> t) => 
+            t.SetLifecycle(_coApply(input));
+    }
 
     private sealed class StrictOptionalFieldCodec<T> : MapCodec<IOptional<T>>
     {

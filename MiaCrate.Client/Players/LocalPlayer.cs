@@ -9,6 +9,6 @@ public class LocalPlayer : AbstractClientPlayer
         ClientRecipeBook recipeBook, bool wasShiftLeyDOwn, bool wasSprinting)
         : base(level, connection.LocalGameProfile)
     {
-        
+        throw new NotImplementedException();
     }
 }

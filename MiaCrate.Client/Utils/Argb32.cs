@@ -3,8 +3,13 @@ using SkiaSharp;
 
 namespace MiaCrate.Client.Utils;
 
+/// <summary>
+/// The native color format used by <see cref="SKColor"/>.
+/// </summary>
 public readonly struct Argb32
 {
+    public static Argb32 White { get; } = new(255, 255, 255);
+    
     // -> Values are intended to be defined in reversed order here
     
     // ReSharper disable InconsistentNaming
@@ -25,7 +30,9 @@ public readonly struct Argb32
     
     public static implicit operator Argb32(SKColor value) => Unsafe.As<SKColor, Argb32>(ref value);
     public static implicit operator Argb32(int value) => Unsafe.As<int, Argb32>(ref value);
+    public static implicit operator int(Argb32 value) => Unsafe.As<Argb32, int>(ref value);
     public static implicit operator Argb32(uint value) => Unsafe.As<uint, Argb32>(ref value);
+    public static implicit operator uint(Argb32 value) => Unsafe.As<Argb32, uint>(ref value);
 
     public Argb32 WithRed(byte red) => new(red, Green, Blue, Alpha);
     public Argb32 WithGreen(byte green) => new(Red, green, Blue, Alpha);

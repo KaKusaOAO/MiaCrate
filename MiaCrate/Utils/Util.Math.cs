@@ -80,4 +80,20 @@ public static partial class Util
         
         return r;
     }
+
+    public static float WrapDegrees(float f)
+    {
+        var g = f % 360f;
+        if (g >= 180) g -= 360;
+        if (g < -180) g += 360;
+        return g;
+    }
+    
+    public static double WrapDegrees(double f)
+    {
+        var g = f % 360.0;
+        if (g >= 180) g -= 360;
+        if (g < -180) g += 360;
+        return g;
+    }
 }

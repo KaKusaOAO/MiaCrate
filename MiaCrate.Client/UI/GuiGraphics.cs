@@ -3,6 +3,8 @@ using MiaCrate.Client.Platform;
 using MiaCrate.Client.Resources;
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.Utils;
+using MiaCrate.Extensions;
+using Mochi.Texts;
 using SkiaSharp;
 
 namespace MiaCrate.Client.UI;
@@ -150,7 +152,40 @@ public class GuiGraphics
         FlushIfManaged();
         RenderSystem.SetShaderColor(r, g, b, a);
     }
+
+    public int DrawString(Font font, string? str, int x, int y, Argb32 color) =>
+        DrawString(font, str, x, y, color, true);
+
+    public int DrawString(Font font, string? str, int x, int y, Argb32 color, bool drawShadow)
+    {
+        if (str == null) return 0;
+        
+        var lastPose = Pose.Last;
+        var pose = lastPose.Pose;
+        var l = font.DrawInBatch(str, x, y, color, drawShadow, ref pose, BufferSource, Font.DisplayMode.Normal, 0, 0xf000f0, font.IsBidirectional);
+        lastPose.Pose = pose;
+        
+        FlushIfUnmanaged();
+        return l;
+    }
+
+    public int DrawString(Font font, IComponent component, int i, int j, int k) =>
+        DrawString(font, component, i, j, k, true);
+
+    public int DrawString(Font font, IComponent component, int i, int j, int k, bool bl) =>
+        DrawString(font, component.GetVisualOrderText(), i, j, k, bl);
     
+    public int DrawString(Font font, FormattedCharSequence seq, int i, int j, int k, bool bl)
+    {
+        var lastPose = Pose.Last;
+        var pose = lastPose.Pose;
+        var l = font.DrawInBatch(seq, i, j, k, bl, ref pose, BufferSource, Font.DisplayMode.Normal, 0, 0xf000f0);
+        lastPose.Pose = pose;
+        
+        FlushIfUnmanaged();
+        return l;
+    }
+
     public void Blit(ResourceLocation location, int x, int y, int z, float u, float v, int width, int height, int texWidth, int texHeight)
     {
         Blit(location, x, x + width, y, y + height, z, width, height, u, v, texWidth, texHeight);

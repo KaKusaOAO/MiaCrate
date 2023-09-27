@@ -13,18 +13,21 @@ namespace MiaCrate.Core;
 /// </summary>
 public static class Registries
 {
-    public static readonly IResourceKey<IRegistry<Block>> Block = 
+    public static IResourceKey<IRegistry<Block>> Block { get; } = 
         CreateRegistryKey<Block>("block");
     
-    public static readonly IResourceKey<IRegistry<Item>> Item = 
+    public static IResourceKey<IRegistry<Item>> Item { get; } = 
         CreateRegistryKey<Item>("item");
     
-    public static readonly IResourceKey<IRegistry<IEntityType>> EntityType = 
+    public static IResourceKey<IRegistry<IEntityType>> EntityType { get; } = 
         CreateRegistryKey<IEntityType>("entity_type");
     
-    public static readonly IResourceKey<IRegistry<Attribute>> Attribute = 
+    public static IResourceKey<IRegistry<Attribute>> Attribute { get; } = 
         CreateRegistryKey<Attribute>("attribute");
-    
+
+    public static IResourceKey<IRegistry<IIntProviderType>> IntProviderType { get; } =
+        CreateRegistryKey<IIntProviderType>("int_provider_type");
+
     private static IResourceKey<IRegistry<T>> CreateRegistryKey<T>(string str) where T : class => 
-        ResourceKey<IRegistry<T>>.CreateRegistryKey(new ResourceLocation(str));
+        ResourceKey.CreateRegistryKey<IRegistry<T>>(new ResourceLocation(str));
 }

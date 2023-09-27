@@ -2,11 +2,12 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using MiaCrate.Core;
 using MiaCrate.Data.Codecs;
 using MiaCrate.Extensions;
+using MiaCrate.Texts;
 using Mochi.Texts;
 using Mochi.Utils;
-using Component = MiaCrate.Texts.Component;
 using TextExtension = Mochi.Texts.TextExtension;
 
 namespace MiaCrate;
@@ -107,21 +108,21 @@ public static partial class Util
         [CallerLineNumber] int lineNumber = -1,
         [CallerMemberName] string methodName = "")
     {
-        Logger.Warn(Component.Literal("")
-            .AddExtra(Component.Literal(filePath)
+        Logger.Warn(MiaComponent.Literal("")
+            .AddExtra(MiaComponent.Literal(filePath)
                 .SetColor(TextColor.Aqua))
-            .AddExtra(Component.Literal("::")
+            .AddExtra(MiaComponent.Literal("::")
                 .SetColor(TextColor.Gray))
-            .AddExtra(Component.Literal(methodName)
+            .AddExtra(MiaComponent.Literal(methodName)
                 .SetColor(TextColor.Gold))
-            .AddExtra(Component.Translatable("(%s)")
+            .AddExtra(MiaComponent.Translatable("(%s)")
                 .SetColor(TextColor.Gray)
-                .AddWith(Component.Literal("...")
+                .AddWith(MiaComponent.Literal("...")
                     .SetColor(TextColor.DarkGray)
                 ))
-            .AddExtra(Component.Literal($" (line {lineNumber})")
+            .AddExtra(MiaComponent.Literal($" (line {lineNumber})")
                 .SetColor(TextColor.DarkGray))
-            .AddExtra(Component.Literal(" is foobar!"))
+            .AddExtra(MiaComponent.Literal(" is foobar!"))
         );
     }
 
@@ -186,7 +187,7 @@ public static partial class Util
         return result.Result.OrElseGet(() => throw new InvalidOperationException());
     }
 
-    public static Func<T, TR> Memoize<T, TR>(Func<T, TR> func)
+    public static Func<T, TR> Memoize<T, TR>(Func<T, TR> func) where T : notnull
     {
         var dict = new Dictionary<T, TR>();
         return a => dict.ComputeIfAbsent(a, _ => func(a));
@@ -197,6 +198,14 @@ public static partial class Util
         var dict = new Dictionary<(TA, TB), TR>();
         return (a, b) => dict.ComputeIfAbsent((a, b), _ => func(a, b));
     }
+    
+    public static T GetRandom<T>(List<T> contents, IRandomSource randomSource) => 
+        contents[randomSource.Next(contents.Count)];
+
+    public static IOptional<T> GetRandomSafe<T>(List<T> contents, IRandomSource randomSource) => 
+        !contents.Any() 
+            ? Optional.Empty<T>() 
+            : Optional.Of(GetRandom(contents, randomSource));
 
     private class TaskExecutor : IExecutor
     {
@@ -217,8 +226,8 @@ public static partial class Util
 
                 void Run(IRunnable r)
                 {
-                    Task.Run(() =>
-                    {
+                    // Task.Run(() =>
+                    // {
                         try
                         {
                             r.Run();
@@ -228,7 +237,7 @@ public static partial class Util
                             Logger.Error($"--> Unhandled exception in: {r}");
                             Logger.Error(ex);
                         }
-                    });
+                    // });
                 }
 
                 Run(runnable);

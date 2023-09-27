@@ -12,6 +12,7 @@ public class Screen : AbstractContainerEventHandler, IRenderable
     public override List<IGuiEventListener> Children { get; } = new();
     public IComponent Title { get; }
 
+    protected Font Font { get; private set; }
     protected Game? Game { get; set; }
     public int Width { get; set; }
     public int Height { get; set; }
@@ -54,6 +55,8 @@ public class Screen : AbstractContainerEventHandler, IRenderable
     public void Init(Game game, int width, int height)
     {
         Game = game;
+        Font = game.Font;
+        
         Width = width;
         Height = height;
 

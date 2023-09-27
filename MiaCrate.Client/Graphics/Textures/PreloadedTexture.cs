@@ -3,7 +3,6 @@ using MiaCrate.Resources;
 using MiaCrate.Texts;
 using Mochi.Texts;
 using Mochi.Utils;
-using Component = MiaCrate.Texts.Component;
 
 namespace MiaCrate.Client.Graphics;
 

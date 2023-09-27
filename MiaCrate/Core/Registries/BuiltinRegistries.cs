@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using MiaCrate.Data;
 using MiaCrate.Extensions;
 using MiaCrate.Resources;
 using MiaCrate.World;
@@ -17,7 +18,7 @@ namespace MiaCrate.Core;
 public static class BuiltinRegistries
 {
     private static readonly ResourceLocation _rootRegistryName = new("root");
-    private static readonly Dictionary<ResourceLocation, Func<object>> _loaders = new();
+    private static readonly Dictionary<ResourceLocation, Func<object?>> _loaders = new();
  
     /// <summary>
     /// The root registry of builtin registries.
@@ -50,7 +51,10 @@ public static class BuiltinRegistries
     /// </summary>
     public static readonly IRegistry<Attribute> Attribute = 
         RegisterSimple<Attribute>(Registries.Attribute, _ => Attributes.Luck);
-    
+
+    public static IRegistry<IIntProviderType> IntProviderType { get; } =
+        RegisterSimple<IIntProviderType>(Registries.IntProviderType, _ => IIntProviderType.Constant);
+
     #endregion
     
     public static ResourceLocation RootRegistryName => _rootRegistryName;
@@ -58,20 +62,31 @@ public static class BuiltinRegistries
 
     private static IRegistry<T> RegisterSimple<T>(IResourceKey<IRegistry> key, RegistryBootstrap<T> bootstrap) 
         where T : class =>
-        InternalRegister(key, new MappedRegistry<T>(key), bootstrap);
+        InternalRegister(key, new MappedRegistry<T>(key), bootstrap, Lifecycle.Stable);
+    
+    private static IRegistry<T> RegisterSimple<T>(IResourceKey<IRegistry> key, Lifecycle lifecycle, 
+        RegistryBootstrap<T> bootstrap) where T : class =>
+        InternalRegister(key, new MappedRegistry<T>(key), bootstrap, lifecycle);
 
-    private static DefaultedMappedRegistry<T> RegisterDefaulted<T>(IResourceKey<IRegistry> key, string str, RegistryBootstrap<T> bootstrap) where T : class =>
-        InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, false), bootstrap);
-    private static DefaultedMappedRegistry<T> RegisterDefaultedWithIntrusiveHolders<T>(IResourceKey<IRegistry> key, string str, RegistryBootstrap<T> bootstrap) where T : class =>
-        InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, true), bootstrap);
+    private static DefaultedMappedRegistry<T> RegisterDefaulted<T>(IResourceKey<IRegistry> key, string str,
+        Lifecycle lifecycle, RegistryBootstrap<T> bootstrap) where T : class =>
+        InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, false), bootstrap, lifecycle);
+
+    private static DefaultedMappedRegistry<T> RegisterDefaultedWithIntrusiveHolders<T>(IResourceKey<IRegistry> key,
+        string str, RegistryBootstrap<T> bootstrap) where T : class =>
+        RegisterDefaultedWithIntrusiveHolders(key, str, Lifecycle.Stable, bootstrap);
+    
+    private static DefaultedMappedRegistry<T> RegisterDefaultedWithIntrusiveHolders<T>(IResourceKey<IRegistry> key, 
+        string str, Lifecycle lifecycle, RegistryBootstrap<T> bootstrap) where T : class =>
+        InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, true), bootstrap, lifecycle);
 
     private static TRegistry InternalRegister<T, TRegistry>(IResourceKey<IRegistry> key, TRegistry registry,
-        RegistryBootstrap<T> bootstrap) 
+        RegistryBootstrap<T> bootstrap, Lifecycle lifecycle) 
         where TRegistry : IWritableRegistry<T> where T : class
     {
         var location = key.Location;
         _loaders[location] = () => bootstrap(registry);
-        _writableRegistry.Register(key, registry);
+        _writableRegistry.Register(key, registry, lifecycle);
         return registry;
     }
 

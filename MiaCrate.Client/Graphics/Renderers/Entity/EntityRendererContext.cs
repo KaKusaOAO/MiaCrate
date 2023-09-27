@@ -1,4 +1,5 @@
 using MiaCrate.Client.Models;
+using MiaCrate.Client.UI;
 using MiaCrate.Resources;
 
 namespace MiaCrate.Client.Graphics;

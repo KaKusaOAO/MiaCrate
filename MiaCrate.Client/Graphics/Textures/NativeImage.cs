@@ -84,7 +84,7 @@ public sealed class NativeImage : IDisposable
         _bitmap.SetPixel(x, y, new SKColor(color.Red, color.Green, color.Blue, color.Alpha));
     }
 
-    public NativeImage MappedCopy(Func<int, int> transform)
+    public NativeImage MappedCopy(Func<Argb32, Argb32> transform)
     {
         if (Format != FormatInfo.Rgba)
             throw new ArgumentException($"Function application only works on RGBA images; have {Format}");
@@ -94,8 +94,8 @@ public sealed class NativeImage : IDisposable
         
         unsafe
         {
-            var src = (int*) _bitmap.GetPixels();
-            var dst = (int*) image._bitmap.GetPixels();
+            var src = (Argb32*) _bitmap.GetPixels();
+            var dst = (Argb32*) image._bitmap.GetPixels();
 
             for (var i = 0; i < size; i++)
             {
@@ -104,6 +104,24 @@ public sealed class NativeImage : IDisposable
         }
 
         return image;
+    }
+    
+    public void ApplyToAllPixels(Func<Argb32, Argb32> transform)
+    {
+        if (Format != FormatInfo.Rgba)
+            throw new ArgumentException($"Function application only works on RGBA images; have {Format}");
+
+        var size = Width * Height;
+        
+        unsafe
+        {
+            var ptr = (Argb32*) _bitmap.GetPixels();
+
+            for (var i = 0; i < size; i++)
+            {
+                *ptr++ = transform(*ptr);
+            }
+        }
     }
 
     public byte GetLuminanceOrAlpha(int x, int y)
@@ -225,6 +243,17 @@ public sealed class NativeImage : IDisposable
         }
     }
 
+    public void WriteToFile(string path)
+    {
+        using var stream = File.OpenWrite(path);
+        _bitmap.Encode(stream, SKEncodedImageFormat.Png, 10);
+    }
+
+    public void Dispose()
+    {
+        _bitmap.Dispose();
+    }
+    
     public sealed class FormatInfo
     {
         public static readonly FormatInfo Rgba = 
@@ -315,10 +344,5 @@ public sealed class NativeImage : IDisposable
         }
 
         public override string ToString() => Name;
-    }
-
-    public void Dispose()
-    {
-        _bitmap.Dispose();
     }
 }

@@ -9,6 +9,6 @@ public abstract class AbstractClientPlayer : Player
     protected AbstractClientPlayer(ClientLevel level, GameProfile profile)
         : base(level, level.SharedSpawnPos, level.SharedSpawnAngle, profile)
     {
-        
+        throw new NotImplementedException();
     }
 }

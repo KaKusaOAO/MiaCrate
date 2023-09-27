@@ -1,4 +1,5 @@
 ﻿using JetBrains.Annotations;
+using MiaCrate.Data;
 using MiaCrate.Resources;
 using MiaCrate.World.Entities;
 using MiaCrate.World.Entities.AI;
@@ -22,7 +23,13 @@ public static class Registry
 
     public static T Register<T>(IRegistry<T> registry, IResourceKey<T> key, T obj) where T : class
     {
-        ((IWritableRegistry<T>) registry).Register(key, obj);
+        ((IWritableRegistry<T>) registry).Register(key, obj, Lifecycle.Stable);
         return obj;
     }
+    
+    public static IReferenceHolder<T> RegisterForHolder<T>(IRegistry<T> registry, IResourceKey<T> key, T obj) 
+        where T : class => ((IWritableRegistry<T>) registry).Register(key, obj, Lifecycle.Stable);
+
+    public static IReferenceHolder<T> RegisterForHolder<T>(IRegistry<T> registry, ResourceLocation location, T obj) 
+        where T : class => RegisterForHolder(registry, ResourceKey.Create<T>(registry.Key, location), obj);
 }

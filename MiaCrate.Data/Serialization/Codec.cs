@@ -13,7 +13,7 @@ public static class Codec
     public static IPrimitiveCodec<long> Long { get; } = new LongPrimitiveCodec();
     public static IPrimitiveCodec<float> Float { get; } = new FloatPrimitiveCodec();
     public static IPrimitiveCodec<double> Double { get; } = new DoublePrimitiveCodec();
-    public static IPrimitiveCodec<string?> String { get; } = new StringPrimitiveCodec();
+    public static IPrimitiveCodec<string> String { get; } = new StringPrimitiveCodec();
     public static ICodec<IDynamic> Passthrough { get; } = new PassthroughCodec();
 
     public static ICodec<T> Unit<T>(T defaultValue) => MapCodec.Unit(defaultValue).Codec;
@@ -44,6 +44,23 @@ public static class Codec
     public static UnboundedMapCodec<TKey, TValue> UnboundedMap<TKey, TValue>(ICodec<TKey> keyCodec,
         ICodec<TValue> elementCodec) where TKey : notnull => new(keyCodec, elementCodec);
 
+    private static Func<T, IDataResult<T>> CheckRange<T>(T minInclusive, T maxInclusive) where T : IComparable<T>
+    {
+        return v =>
+        {
+            if (v.CompareTo(minInclusive) >= 0 && v.CompareTo(maxInclusive) <= 0)
+                return DataResult.Success(v);
+            
+            return DataResult.Error(() => $"Value {v} outside of range [{minInclusive}:{maxInclusive}]", v);
+        };
+    }
+
+    public static ICodec<int> IntRange(int minInclusive, int maxInclusive)
+    {
+        var checker = CheckRange(minInclusive, maxInclusive);
+        return Int.FlatCrossSelect(checker, checker);
+    }
+    
     private class CompositionCodec<T> : ICodec<T>
     {
         private readonly IEncoder<T> _encoder;

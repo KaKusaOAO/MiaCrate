@@ -1,4 +1,5 @@
-﻿using Mochi.Texts;
+﻿using MiaCrate.Localizations;
+using Mochi.Texts;
 
 namespace MiaCrate.Extensions;
 
@@ -13,4 +14,7 @@ public static class ComponentExtension
 
         return component;
     }
+
+    public static FormattedCharSequence GetVisualOrderText(this IComponent component) => 
+        Language.Instance.GetVisualOrder(IFormattedText.FromComponent(component));
 }

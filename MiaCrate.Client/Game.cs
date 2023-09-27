@@ -27,7 +27,6 @@ using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 using ClientPackSource = MiaCrate.Client.Resources.ClientPackSource;
-using Component = MiaCrate.Texts.Component;
 
 namespace MiaCrate.Client;
 
@@ -36,9 +35,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	public static Game Instance { get; private set; } = null!;
     public static readonly bool OnMacOs = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
     private const int MaxTicksPerUpdate = SharedConstants.TicksPerSecond / 2; // Redstone ticks
-    public static readonly ResourceLocation DefaultFont = new("default");
-    public static readonly ResourceLocation UniformFont = new("uniform");
-    public static readonly ResourceLocation AltFont = new("alt");
+    public static ResourceLocation DefaultFont { get; } = new("default");
+    public static ResourceLocation UniformFont { get; } = new("uniform");
+    public static ResourceLocation AltFont { get;  } = new("alt");
     private static readonly ResourceLocation _regionalCompliances = new("regional_compliances.json");
     private static readonly Task _resourceReloadInitialTask = Task.CompletedTask;
     private static readonly IComponent _socialInteractionsNotAvailable = TranslateText.Of("multiplayer.socialInteractions.not_available");
@@ -60,7 +59,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	// private readonly SearchRegistry _searchRegistry = new SearchRegistry();
 	public User User { get; }
 	public Font Font { get; }
-	public readonly Font fontFilterFishy;
+	public Font FontFilterFishy { get; }
 
 	public GameRenderer GameRenderer { get; }
 
@@ -258,6 +257,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         
         _fontManager = new FontManager(TextureManager);
         Font = _fontManager.CreateFont();
+        FontFilterFishy = _fontManager.CreateFontFilterFishy();
         _resourceManager.RegisterReloadListener(_fontManager);
 
         Window.SetErrorSection("Startup");

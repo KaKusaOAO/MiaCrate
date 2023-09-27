@@ -7,5 +7,6 @@ public class RemotePlayer : AbstractClientPlayer
 {
     public RemotePlayer(ClientLevel level, GameProfile profile) : base(level, profile)
     {
+        throw new NotImplementedException();
     }
 }

@@ -118,6 +118,54 @@ public static class Tasks
         return source.Task;
     }
     
+    public static Task ExceptionallyAsync(this Task task, Action<Exception> action)
+    {
+        var source = new TaskCompletionSource<Unit>();
+        task.ContinueWith(t =>
+        {
+            TryRun(source, () =>
+            {
+                try
+                {
+                    // Ensure the errors in the previous task is handled
+                    t.Wait();
+                }
+                catch (Exception ex)
+                {
+                    // Handle in the action
+                    action(ex);
+                }
+                
+                return Unit.Instance;
+            });
+        });
+
+        return source.Task;
+    }
+    
+    public static Task<T> ExceptionallyAsync<T>(this Task<T> task, Func<Exception, T> func)
+    {
+        var source = new TaskCompletionSource<T>();
+        task.ContinueWith(t =>
+        {
+            TryRun(source, () =>
+            {
+                try
+                {
+                    // Ensure the errors in the previous task is handled
+                    return t.Result;
+                }
+                catch (Exception ex)
+                {
+                    // Handle in the action
+                    return func(ex);
+                }
+            });
+        });
+
+        return source.Task;
+    }
+    
     public static Task ThenRunAsync(this Task task, Action action, IExecutor executor)
     {
         var source = new TaskCompletionSource();

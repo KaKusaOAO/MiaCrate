@@ -1,5 +1,8 @@
+using System.Text;
+using MiaCrate.Data;
 using MiaCrate.Resources;
 using MiaCrate.Extensions;
+using MiaCrate.Tags;
 using Mochi.Utils;
 
 namespace MiaCrate.Core;
@@ -10,13 +13,20 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
     public IResourceKey<IRegistry> Key { get; }
     private readonly Dictionary<int, IReferenceHolder<T>> _byId = new();
     private readonly Dictionary<T, int> _toId = new();
+    private readonly Dictionary<ResourceLocation, IReferenceHolder<T>> _byLocation = new();
     private readonly Dictionary<IResourceKey<T>, IReferenceHolder<T>> _byKey = new();
     private readonly Dictionary<T, IReferenceHolder<T>> _byValue = new();
-    private readonly Dictionary<ResourceLocation, IReferenceHolder<T>> _byLocation = new();
+    private readonly Dictionary<T, Lifecycle> _lifecycles = new();
+    private Dictionary<ITagKey<T>, INamedHolderSet<T>> _tags = new();
+
     private bool _frozen;
     private Dictionary<T, IReferenceHolder<T>>? _unregisteredIntrusiveHolders;
     private List<IReferenceHolder<T>>? _holdersInOrder;
     private readonly Lookup _lookup;
+
+    public bool IsEmpty => !_byKey.Any();
+    public ISet<ResourceLocation> KeySet => _byLocation.Keys.ToHashSet();
+    public IHolderOwner<T> HolderOwner => _lookup;
 
     public MappedRegistry(IResourceKey<IRegistry> key, bool hasIntrusiveHolders = false)
     {
@@ -29,17 +39,14 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
         }
     }
 
-    public IHolder<T> Register(IResourceKey<T> key, T obj) => 
-        RegisterMapping(_nextId, key, obj);
+    public IReferenceHolder<T> Register(IResourceKey<T> key, T obj, Lifecycle lifecycle) => 
+        RegisterMapping(_nextId, key, obj, lifecycle);
 
-    public virtual IHolder<T> RegisterMapping(int id, IResourceKey<T> key, T obj) => 
-        RegisterMapping(id, key, obj, true);
-
-    private IHolder<T> RegisterMapping(int id, IResourceKey<T> key, T obj, bool checkKey)
+    public virtual IReferenceHolder<T> RegisterMapping(int id, IResourceKey<T> key, T obj, Lifecycle lifecycle)
     {
-        _toId.Add(obj, id);
+        ValidateWrite(key);
 
-        if (checkKey && _byKey.ContainsKey(key))
+        if (_byKey.ContainsKey(key))
         {
             Logger.Warn($"Adding duplicate key {key} to registry");
         }
@@ -63,7 +70,7 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
         else
         {
             reference = _byKey.ComputeIfAbsent(key, k => 
-                ReferenceHolder<T>.CreateStandalone(_lookup, k));
+                Holder.Reference.CreateStandalone(_lookup, k));
         }
 
         _byKey[key] = reference;
@@ -71,11 +78,13 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
         _byValue[obj] = reference;
         _byId[id] = reference;
         _toId[obj] = id;
+        
         if (_nextId <= id)
         {
             _nextId = id + 1;
         }
-        
+
+        _lifecycles[obj] = lifecycle;
         return reference;
     }
 
@@ -85,6 +94,12 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
     public virtual T? Get(ResourceLocation location) => _byLocation.GetValueOrDefault(location)?.Value;
 
     public virtual ResourceLocation? GetKey(T obj) => _byValue.GetValueOrDefault(obj)?.Key.Location;
+    
+    public IOptional<IResourceKey<T>> GetResourceKey(T obj) => 
+        Optional.OfNullable(_byValue.GetValueOrDefault(obj)).Select(h => h.Key);
+
+    public Lifecycle Lifecycle(T obj) => _lifecycles[obj];
+
     public IOptional<IReferenceHolder<T>> GetHolder(int id) => 
         id >= 0 && id < _byId.Count ? Optional.OfNullable(_byId[id]) : Optional.Empty<IReferenceHolder<T>>();
 
@@ -99,11 +114,9 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
         }
 
         return _unregisteredIntrusiveHolders
-            .ComputeIfAbsent(obj, o => ReferenceHolder<T>.CreateIntrusive(_lookup, o));
+            .ComputeIfAbsent(obj, o => Holder.Reference.CreateIntrusive(_lookup, o));
     }
-
-    public ISet<ResourceLocation> KeySet => _byLocation.Keys.ToHashSet();
-
+    
     private List<IReferenceHolder<T>> HoldersInOrder() =>
         _holdersInOrder ??= _byId.ToList()
             .OrderBy(x => x.Key)
@@ -113,8 +126,7 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
     public IEnumerator<T> GetEnumerator() => HoldersInOrder()
         .Select(x => x.Value)
         .GetEnumerator();
-
-    public IHolderOwner<T> HolderOwner => _lookup;
+    
     public IHolderLookup<T> AsLookup() => _lookup;
 
     public IRegistry<T> Freeze()
@@ -145,6 +157,72 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
         return this;
     }
 
+    public IHolderGetter CreateRegistrationLookup()
+    {
+        ValidateWrite();
+        return new Getter(this);
+    }
+    
+    private void ValidateWrite(IResourceKey<T>? key = null)
+    {
+        if (!_frozen) return;
+        
+        var sb = new StringBuilder("Registry is already frozen");
+        if (key != null)
+            sb.Append($" (trying to add key {key})");
+        
+        throw new InvalidOperationException(sb.ToString());
+    }
+
+    private IReferenceHolder<T> GetOrCreateHolderOrThrow(IResourceKey<T> key)
+    {
+        return _byKey.ComputeIfAbsent(key, k =>
+        {
+            if (_unregisteredIntrusiveHolders != null)
+                throw new InvalidOperationException("This registry can't create new holders without value");
+
+            ValidateWrite(k);
+            return Holder.Reference.CreateStandalone(HolderOwner, k);
+        });
+    }
+
+    private INamedHolderSet<T> GetOrCreateTag(ITagKey<T> tagKey)
+    {
+        var named = _tags.GetValueOrDefault(tagKey);
+        if (named != null) return named;
+        
+        var tag = CreateTag(tagKey);
+
+        // Why?
+        _tags = new Dictionary<ITagKey<T>, INamedHolderSet<T>>(_tags)
+        {
+            [tagKey] = tag
+        };
+
+        return tag;
+    }
+
+    private INamedHolderSet<T> CreateTag(ITagKey<T> tagKey) => HolderSet.CreateNamed(HolderOwner, tagKey);
+
+    private IOptional<INamedHolderSet<T>> GetTag(ITagKey<T> tagKey) => 
+        Optional.OfNullable(_tags.GetValueOrDefault(tagKey));
+
+    private class Getter : IHolderGetter<T>
+    {
+        private readonly MappedRegistry<T> _inner;
+
+        public Getter(MappedRegistry<T> inner)
+        {
+            _inner = inner;
+        }
+
+        public IOptional<IReferenceHolder<T>> Get(IResourceKey<T> key) => Optional.Of(GetOrThrow(key));
+        
+        public IReferenceHolder<T> GetOrThrow(IResourceKey<T> key) => _inner.GetOrCreateHolderOrThrow(key);
+        public IOptional<INamedHolderSet<T>> Get(ITagKey<T> tagKey) => Optional.Of(GetOrThrow(tagKey));
+        public INamedHolderSet<T> GetOrThrow(ITagKey<T> tagKey) => _inner.GetOrCreateTag(tagKey);
+    }
+
     private class Lookup : IRegistryLookup<T>
     {
         private readonly MappedRegistry<T> _registry;
@@ -156,5 +234,6 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
 
         public IResourceKey<IRegistry> Key => _registry.Key;
         public IOptional<IReferenceHolder<T>> Get(IResourceKey<T> key) => _registry.GetHolder(key);
+        public IOptional<INamedHolderSet<T>> Get(ITagKey<T> tagKey) => _registry.GetTag(tagKey);
     }
 }

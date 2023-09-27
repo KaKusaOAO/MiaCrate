@@ -8,7 +8,6 @@ using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
-using Component = MiaCrate.Texts.Component;
 
 namespace MiaCrate.Client.Platform;
 
@@ -666,8 +665,8 @@ public static class GlStateManager
         if (ptr == 0)
         {
             Logger.Warn(
-                Component.Translatable("GL function %s not supported!")
-                    .AddWith(Component.Literal($"{funcName}()")
+                MiaComponent.Translatable("GL function %s not supported!")
+                    .AddWith(MiaComponent.Literal($"{funcName}()")
                         .SetColor(TextColor.Aqua)
                     )
             );

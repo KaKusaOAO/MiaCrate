@@ -1,5 +1,7 @@
 ﻿using MiaCrate.Localizations;
 using MiaCrate.Resources;
+using MiaCrate.Texts;
+using Mochi.Core;
 using Mochi.Utils;
 
 namespace MiaCrate.Client.Resources;
@@ -65,5 +67,14 @@ public class ClientLanguage : Language
     public override bool Has(string key)
     {
         throw new NotImplementedException();
+    }
+
+    public override FormattedCharSequence GetVisualOrder(IFormattedText text)
+    {
+        // TODO: Bidi support
+        return sink => text.Visit((style, str) =>
+            StringDecomposer.IterateFormatted(str, style, sink)
+                ? Optional.Empty<Unit>()
+                : IFormattedText.StopIteration, Style.Empty).IsPresent;
     }
 }

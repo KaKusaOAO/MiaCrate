@@ -19,6 +19,8 @@ public class SpaceProvider : IGlyphProvider
 
     public ISet<int> GetSupportedGlyphs() => _glyphs.Keys.ToHashSet();
 
+    public IGlyphInfo? GetGlyph(int id) => _glyphs.GetValueOrDefault(id);
+
     public record Definition(Dictionary<int, float> Advances) : IGlyphProviderDefinition
     {
         public static IMapCodec<Definition> Codec { get; } =

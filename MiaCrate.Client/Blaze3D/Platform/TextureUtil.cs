@@ -1,4 +1,7 @@
-﻿using MiaCrate.Client.Systems;
+﻿using MiaCrate.Client.Graphics;
+using MiaCrate.Client.Systems;
+using MiaCrate.Client.Utils;
+using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Platform;
@@ -55,5 +58,34 @@ public static class TextureUtil
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         GlStateManager.BindTexture(texture);
+    }
+
+    public static void WriteAsPng(string path, string str, int id, int j, int k, int l, Func<Argb32, Argb32>? transform)
+    {
+        RenderSystem.AssertOnRenderThread();
+        Bind(id);
+
+        for (var m = 0; m <= j; m++)
+        {
+            var n = k >> m;
+            var o = l >> m;
+
+            try
+            {
+                using var image = new NativeImage(n, o, false);
+
+                image.DownloadTexture(m, false);
+                if (transform != null) image.ApplyToAllPixels(transform);
+
+                var p = Path.Combine(path, $"{str}_{m}.png");
+                image.WriteToFile(p);
+                Logger.Verbose($"Exported png to: {Path.GetFullPath(p)}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Verbose("Unable to write: ");
+                Logger.Verbose(ex);
+            }
+        }
     }
 }

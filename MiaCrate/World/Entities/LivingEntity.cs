@@ -12,6 +12,7 @@ public abstract class LivingEntity : Entity
     
     protected LivingEntity(IEntityType type, Level level) : base(type, level)
     {
+        Util.LogFoobar();
     }
 
     protected override void DefineSynchedData()

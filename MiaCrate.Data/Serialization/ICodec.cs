@@ -70,6 +70,28 @@ public interface ICodec<T> : ICodec, IEncoder<T>, IDecoder<T>
 
     public ICodec<List<T>> ListCodec => Codec.ListOf(this);
 
+    public ICodec<T> SelectResult(IResultFunction function) => new ResultMappedCodec(this, function);
+
+    private class ResultMappedCodec : ICodec<T>
+    {
+        private readonly ICodec<T> _inner;
+        private readonly IResultFunction _func;
+
+        public ResultMappedCodec(ICodec<T> inner, IResultFunction func)
+        {
+            _inner = inner;
+            _func = func;
+        }
+        
+        public IDataResult<TDynamic> Encode<TDynamic>(T input, IDynamicOps<TDynamic> ops, TDynamic prefix) => 
+            _func.CoApply(ops, input, _inner.Encode(input, ops, prefix));
+
+        public IDataResult<IPair<T, TIn>> Decode<TIn>(IDynamicOps<TIn> ops, TIn input) =>
+            _func.Apply(ops, input, _inner.Decode(ops, input));
+
+        public override string ToString() => $"{_inner}[mapResult {_func}]";
+    }
+
     private class LifecycleCodec : ICodec<T>
     {
         private readonly ICodec<T> _inner;
@@ -88,6 +110,15 @@ public interface ICodec<T> : ICodec, IEncoder<T>, IDecoder<T>
             _inner.Decode(ops, input).SetLifecycle(_lifecycle);
 
         public override string ToString() => _inner.ToString()!;
+    }
+    
+    public interface IResultFunction
+    {
+        public IDataResult<IPair<T, TOps>>
+            Apply<TOps>(IDynamicOps<TOps> ops, TOps input, IDataResult<IPair<T, TOps>> a);
+        
+        public IDataResult<TOps>
+            CoApply<TOps>(IDynamicOps<TOps> ops, T input, IDataResult<TOps> t);
     }
 }
 

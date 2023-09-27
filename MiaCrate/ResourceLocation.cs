@@ -150,6 +150,8 @@ public class ResourceLocation : IComparable<ResourceLocation>
         }
     }
 
+    public string ToDebugFileName() => ToString().Replace('/', '_').Replace(':', '_');
+
     // ReSharper disable once ClassNeverInstantiated.Global
     protected record Dummy;
 
