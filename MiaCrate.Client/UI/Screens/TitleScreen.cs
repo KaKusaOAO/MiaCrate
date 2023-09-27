@@ -42,9 +42,30 @@ public class TitleScreen : Screen
     protected override void Init()
     {
         var i = Font.Width(CopyrightText);
-        var j = Width - i / 2;
+        var j = Width - i - 2;
         var l = Height / 4 + 48;
         CreateNormalMenuOptions(l, 24);
+
+        AddRenderableWidget(
+            Button.CreateBuilder(
+                    MiaComponent.Translatable("menu.options"),
+                    _ => Game!.Screen = new TitleScreen())
+                .Bounds(Width / 2 - 100, l + 72 + 12, 98, Button.DefaultHeight)
+                .Build()
+        );
+        
+        AddRenderableWidget(
+            Button.CreateBuilder(
+                    MiaComponent.Translatable("menu.quit"),
+                    _ => Game!.Screen = new TitleScreen())
+                .Bounds(Width / 2 + 2, l + 72 + 12, 98, Button.DefaultHeight)
+                .Build()
+        );
+        
+        AddRenderableWidget(
+            new PlainTextButton(j, Height - 10, i, 10, CopyrightText, 
+                _ => Game!.Screen = new TitleScreen(), Font)
+        );
     }
 
     private void CreateNormalMenuOptions(int i, int j)

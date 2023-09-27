@@ -175,20 +175,20 @@ public class GuiGraphics
         return l;
     }
 
-    public int DrawString(Font font, IComponent component, int i, int j, int k) =>
-        DrawString(font, component, i, j, k, true);
+    public int DrawString(Font font, IComponent component, int x, int y, Argb32 color) =>
+        DrawString(font, component, x, y, color, true);
 
-    public int DrawString(Font font, IComponent component, int i, int j, int k, bool bl) =>
-        DrawString(font, component.GetVisualOrderText(), i, j, k, bl);
+    public int DrawString(Font font, IComponent component, int x, int y, Argb32 color, bool drawShadow) =>
+        DrawString(font, component.GetVisualOrderText(), x, y, color, drawShadow);
 
-    public int DrawString(Font font, FormattedCharSequence seq, int i, int j, int k) => 
-        DrawString(font, seq, i, j, k, true);
+    public int DrawString(Font font, FormattedCharSequence seq, int x, int y, Argb32 color) => 
+        DrawString(font, seq, x, y, color, true);
 
-    public int DrawString(Font font, FormattedCharSequence seq, int i, int j, int k, bool bl)
+    public int DrawString(Font font, FormattedCharSequence seq, int x, int y, Argb32 color, bool drawShadow)
     {
         var lastPose = Pose.Last;
         var pose = lastPose.Pose;
-        var l = font.DrawInBatch(seq, i, j, k, bl, ref pose, BufferSource, Font.DisplayMode.Normal, 0, 0xf000f0);
+        var l = font.DrawInBatch(seq, x, y, color, drawShadow, ref pose, BufferSource, Font.DisplayMode.Normal, 0, 0xf000f0);
         lastPose.Pose = pose;
         
         FlushIfUnmanaged();

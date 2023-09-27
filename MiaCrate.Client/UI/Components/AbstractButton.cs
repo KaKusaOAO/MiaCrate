@@ -20,6 +20,11 @@ public abstract class AbstractButton : AbstractWidget
         
     }
 
+    public override void OnClick(double x, double y)
+    {
+        OnPress();
+    }
+
     public abstract void OnPress();
 
     protected override void RenderWidget(GuiGraphics graphics, int mouseX, int mouseY, float f)
@@ -37,5 +42,5 @@ public abstract class AbstractButton : AbstractWidget
     }
 
     public void RenderString(GuiGraphics graphics, Font font, int i) => 
-        RenderScrollingString(graphics, font, 2, i);
+        RenderScrollingString(graphics, font, TextMargin, i);
 }

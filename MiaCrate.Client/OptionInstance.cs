@@ -117,5 +117,30 @@ public sealed class OptionInstance<T> : IOptionInstance<T>
 
 public static class OptionInstance
 {
-    // public static OptionInstance<bool> CreateBool()
+    private static readonly OptionInstance<bool>.CaptionBasedToString _boolToStr = (_, b) =>
+        b ? CommonComponents.OptionOn : CommonComponents.OptionOff;
+    
+    private static readonly OptionInstance<bool>.EnumValue _boolValues = new(new List<bool> {true, false}, Codec.Bool);
+
+    public static OptionInstance<T>.TooltipSupplier NoTooltip<T>() => _ => null;
+
+    public static OptionInstance<bool> CreateBool(string name, bool bl, Action<bool> onChanged) =>
+        CreateBool(name, NoTooltip<bool>(), bl, onChanged);
+
+    public static OptionInstance<bool> CreateBool(string name, bool bl) =>
+        CreateBool(name, NoTooltip<bool>(), bl, _ => { });
+    
+    public static OptionInstance<bool> CreateBool(string name, OptionInstance<bool>.TooltipSupplier tooltipSupplier,
+        bool bl) =>
+        CreateBool(name, tooltipSupplier, bl, _ => { }); 
+    
+    public static OptionInstance<bool> CreateBool(string name, OptionInstance<bool>.TooltipSupplier tooltipSupplier,
+        bool bl, Action<bool> onChanged) =>
+        CreateBool(name, tooltipSupplier, _boolToStr, bl, onChanged);
+    
+    public static OptionInstance<bool> CreateBool(string name, OptionInstance<bool>.TooltipSupplier tooltipSupplier,
+        OptionInstance<bool>.CaptionBasedToString captionBasedToString, bool bl, Action<bool> onChanged)
+    {
+        return new OptionInstance<bool>(name, tooltipSupplier, captionBasedToString, _boolValues, bl, onChanged);
+    }
 }

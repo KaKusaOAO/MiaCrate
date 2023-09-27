@@ -144,11 +144,24 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 			{
 				value = new TitleScreen();
 			}
+			else
+			{
+				Util.LogFoobar();
+			}
 
 			_screen = value;
 			_screen?.Added();
 			
 			BufferUploader.Reset();
+
+			if (value != null)
+			{
+				MouseHandler.ReleaseMouse();
+				KeyMapping.ReleaseAll();
+				value.Init(this, Window.GuiScaledWidth, Window.GuiScaledHeight);
+				NoRender = false;
+			}
+			
 			UpdateTitle();
 		}
 	}
@@ -195,6 +208,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 
     public Game(GameConfig config) : base("Client")
     {
+	    LastInputType = InputType.None;
 	    Instance = this;
         GameDirectory = config.Location.GameDirectory;
         _resourcePackDirectory = config.Location.ResourcePackDirectory;
@@ -436,6 +450,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
     protected override Thread RunningThread => _gameThread;
 
     public float DeltaFrameTime => _timer.TickDelta;
+    public InputType LastInputType { get; set; }
 
     protected override IRunnable WrapRunnable(IRunnable runnable) => runnable;
 

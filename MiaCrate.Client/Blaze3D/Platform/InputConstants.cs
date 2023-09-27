@@ -65,7 +65,7 @@ public static class InputConstants
     {
         public const string KeyKeyboardUnknown = "key.keyboard.unknown";
         
-        public static readonly KeyType KeySym = new("key.keyboard", (i, s) =>
+        public static KeyType KeySym { get; } = new("key.keyboard", (i, s) =>
         {
             if (s == KeyKeyboardUnknown) return TranslateText.Of(s);
 
@@ -75,7 +75,7 @@ public static class InputConstants
                 : TranslateText.Of(s);
         });
 
-        public static readonly KeyType ScanCode = new("scancode", (i, s) =>
+        public static KeyType ScanCode { get; } = new("scancode", (i, s) =>
         {
             var name = GLFW.GetKeyName(Keys.Unknown, i);
             return name != null
@@ -83,7 +83,7 @@ public static class InputConstants
                 : TranslateText.Of(s);
         });
 
-        public static readonly KeyType Mouse = new("key.mouse", (i, s) => Language.Instance.Has(s)
+        public static KeyType Mouse { get; } = new("key.mouse", (i, s) => Language.Instance.Has(s)
             ? TranslateText.Of(s)
             : TranslateText.Of("key.mouse", Component.Literal($"{i + 1}")));
 

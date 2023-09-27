@@ -10,6 +10,8 @@ public class Screen : AbstractContainerEventHandler, IRenderable
     private readonly List<IRenderable> _renderables = new();
     private readonly List<INarratableEntry> _narratables = new();
     private bool _initialized;
+    private long _nextNarrationTime;
+    private long _narrationSuppressTime;
 
     public override List<IGuiEventListener> Children { get; } = new();
     public IComponent Title { get; }
@@ -149,5 +151,27 @@ public class Screen : AbstractContainerEventHandler, IRenderable
             _narratables.Remove(n);
         
         Children.Remove(widget);
+    }
+
+    public static void WrapScreenError(Action action, string message, string name)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex)
+        {
+            var report = CrashReport.ForException(ex, message);
+            throw new ReportedException(report);
+        }
+    }
+
+    public void AfterMouseMove() => ScheduleNarration(750L, false);
+    public void AfterMouseAction() => ScheduleNarration(200L, true);
+
+    private void ScheduleNarration(long narrateAfterMillis, bool b)
+    {
+        _nextNarrationTime = Util.GetMillis() + narrateAfterMillis;
+        if (b) _narrationSuppressTime = long.MaxValue;
     }
 }

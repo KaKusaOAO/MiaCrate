@@ -4,7 +4,7 @@ using MiaCrate.Data;
 using Mochi.Structs;
 using Mochi.Texts;
 
-namespace MiaCrate;
+namespace MiaCrate.Texts;
 
 public sealed partial class ChatFormatting : IEnumLike<ChatFormatting>, IStringRepresentable
 {

@@ -1,12 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using MiaCrate.Localizations;
-using MiaCrate.Texts;
+using Mochi.Texts;
 
-namespace Mochi.Texts;
+namespace MiaCrate.Texts;
 
 public partial class TranslatableContent : IContent<TranslatableContent>
 {

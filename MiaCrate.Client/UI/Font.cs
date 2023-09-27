@@ -40,13 +40,13 @@ public class Font
         IMultiBufferSource source, DisplayMode mode, Argb32 effectColor, int packedLightCoords, bool bidi) =>
         DrawInternal(str, x, y, color, drawShadow, ref matrix, source, mode, effectColor, packedLightCoords, bidi);
     
-    public int DrawInBatch(IComponent component, float f, float g, int i, bool bl, ref Matrix4 matrix,
-        IMultiBufferSource source, DisplayMode mode, int j, int packedLightCoords) =>
-        DrawInBatch(component.GetVisualOrderText(), f, g, i, bl, ref matrix, source, mode, j, packedLightCoords);
+    public int DrawInBatch(IComponent component, float x, float y, Argb32 color, bool bl, ref Matrix4 matrix,
+        IMultiBufferSource source, DisplayMode mode, Argb32 effectColor, int packedLightCoords) =>
+        DrawInBatch(component.GetVisualOrderText(), x, y, color, bl, ref matrix, source, mode, effectColor, packedLightCoords);
     
-    public int DrawInBatch(FormattedCharSequence seq, float f, float g, int i, bool bl, ref Matrix4 matrix,
-        IMultiBufferSource source, DisplayMode mode, int j, int packedLightCoords) =>
-        DrawInternal(seq, f, g, i, bl, ref matrix, source, mode, j, packedLightCoords);
+    public int DrawInBatch(FormattedCharSequence seq, float x, float y, Argb32 color, bool drawShadow, ref Matrix4 matrix,
+        IMultiBufferSource source, DisplayMode mode, Argb32 effectColor, int packedLightCoords) =>
+        DrawInternal(seq, x, y, color, drawShadow, ref matrix, source, mode, effectColor, packedLightCoords);
 
     private int DrawInternal(string str, float x, float y, Argb32 color, bool drawShadow, ref Matrix4 matrix, IMultiBufferSource source,
         DisplayMode mode, Argb32 effectColor, int packedLightCoords, bool bl2)
@@ -154,7 +154,7 @@ public class Font
             _r = color.Red / 255f * _dimFactor;
             _g = color.Green / 255f * _dimFactor;
             _b = color.Blue / 255f * _dimFactor;
-            _a = color.Alpha / 255f * _dimFactor;
+            _a = color.Alpha / 255f;
             _pose = pose;
             _mode = mode;
             _packedLightCoords = packedLightCoords;

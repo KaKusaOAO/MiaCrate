@@ -1,4 +1,5 @@
 using MiaCrate.Resources;
+using MiaCrate.Sounds;
 using MiaCrate.World;
 using MiaCrate.World.Blocks;
 using MiaCrate.World.Entities;
@@ -27,6 +28,12 @@ public static class Registries
 
     public static IResourceKey<IRegistry<IIntProviderType>> IntProviderType { get; } =
         CreateRegistryKey<IIntProviderType>("int_provider_type");
+        
+    public static IResourceKey<IRegistry<IFloatProviderType>> FloatProviderType { get; } =
+        CreateRegistryKey<IFloatProviderType>("float_provider_type");
+
+    public static IResourceKey<IRegistry<SoundEvent>> SoundEvent { get; } =
+        CreateRegistryKey<SoundEvent>("sound_event");
 
     private static IResourceKey<IRegistry<T>> CreateRegistryKey<T>(string str) where T : class => 
         ResourceKey.CreateRegistryKey<IRegistry<T>>(new ResourceLocation(str));

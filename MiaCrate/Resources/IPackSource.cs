@@ -24,7 +24,7 @@ public interface IPackSource
     {
         var text = TranslateText.Of(key);
         return c => TranslateText.Of("pack.nameAndSource", c, text)
-            .WithStyle(TextColor.Gray);
+            .WithColor(TextColor.Gray);
     }
 
     private class Simple : IPackSource

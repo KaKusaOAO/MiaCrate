@@ -15,7 +15,7 @@ public sealed class PackCompatibility
     
     public PackCompatibility(string type)
     {
-        Description = TranslateText.Of($"pack.incompatible.{type}").WithStyle(TextColor.Gray);
+        Description = TranslateText.Of($"pack.incompatible.{type}").WithColor(TextColor.Gray);
         Confirmation = TranslateText.Of($"pack.incompatible.confirm.{type}");
     }
 

@@ -1,6 +1,8 @@
 using MiaCrate.Client.Platform;
+using MiaCrate.Client.Resources;
 using MiaCrate.Client.Sounds;
 using MiaCrate.Client.UI.Narration;
+using MiaCrate.Sounds;
 using MiaCrate.Texts;
 using Mochi.Texts;
 using Mochi.Utils;
@@ -139,7 +141,7 @@ public abstract class AbstractWidget : IRenderable, IGuiEventListener, ILayoutEl
 
     public virtual void PlayDownSound(SoundManager manager)
     {
-        
+        manager.Play(SimpleSoundInstance.ForUi(SoundEvents.UiButtonClick, 1f));
     }
 
     protected virtual bool IsValidClickButton(MouseButton button) => button == MouseButton.Left;

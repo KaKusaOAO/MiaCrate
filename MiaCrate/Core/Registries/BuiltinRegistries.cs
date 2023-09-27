@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using MiaCrate.Data;
 using MiaCrate.Extensions;
 using MiaCrate.Resources;
+using MiaCrate.Sounds;
 using MiaCrate.World;
 using MiaCrate.World.Blocks;
 using MiaCrate.World.Entities;
@@ -27,7 +28,12 @@ public static class BuiltinRegistries
         new MappedRegistry<IRegistry>(ResourceKey<IRegistry>.CreateRegistryKey(_rootRegistryName));
 
     #region ## Built-in registries
-    
+
+    public static IRegistry<SoundEvent> SoundEvent { get; } =
+        RegisterSimple<SoundEvent>(Registries.SoundEvent,
+            _ => SoundEvents.ItemPickup);
+        
+
     /// <summary>
     /// The registry of all the block types.
     /// </summary>
@@ -54,6 +60,9 @@ public static class BuiltinRegistries
 
     public static IRegistry<IIntProviderType> IntProviderType { get; } =
         RegisterSimple<IIntProviderType>(Registries.IntProviderType, _ => IIntProviderType.Constant);
+        
+    public static IRegistry<IFloatProviderType> FloatProviderType { get; } =
+        RegisterSimple<IFloatProviderType>(Registries.FloatProviderType, _ => IFloatProviderType.Constant);
 
     #endregion
     

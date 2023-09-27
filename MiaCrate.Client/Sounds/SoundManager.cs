@@ -1,3 +1,4 @@
+using MiaCrate.Client.Resources;
 using MiaCrate.Resources;
 
 namespace MiaCrate.Client.Sounds;
@@ -16,16 +17,24 @@ public class SoundManager : SimplePreparableReloadListener<SoundManager.Preparat
 
     protected override Preparations Prepare(IResourceManager manager, IProfilerFiller profiler)
     {
-        return new Preparations();
+        var preparations = new Preparations();
+        Util.LogFoobar();
+
+        return preparations;
     }
 
     protected override void Apply(Preparations obj, IResourceManager manager, IProfilerFiller profiler)
     {
-        
+        Util.LogFoobar();
     }
     
     public class Preparations
     {
         
+    }
+
+    public void Play(ISoundInstance soundInstance)
+    {
+        _soundEngine.Play(soundInstance);
     }
 }
