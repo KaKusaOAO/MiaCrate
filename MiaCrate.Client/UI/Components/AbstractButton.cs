@@ -1,4 +1,5 @@
 using MiaCrate.Client.Systems;
+using MiaCrate.Client.Utils;
 using Mochi.Texts;
 
 namespace MiaCrate.Client.UI;
@@ -29,5 +30,12 @@ public abstract class AbstractButton : AbstractWidget
         RenderSystem.EnableDepthTest();
 
         graphics.BlitSprite(Sprites.Get(IsActive, IsHoveredOrFocused), X, Y, Width, Height);
+        graphics.SetColor(1, 1, 1, 1);
+
+        var k = IsActive ? 0xFFFFFF : 0xA0A0A0;
+        RenderString(graphics, game.Font, ((Argb32) k).WithAlpha((byte) Math.Ceiling(Alpha * 255)));
     }
+
+    public void RenderString(GuiGraphics graphics, Font font, int i) => 
+        RenderScrollingString(graphics, font, 2, i);
 }

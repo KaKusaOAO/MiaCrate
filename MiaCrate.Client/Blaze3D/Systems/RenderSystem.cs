@@ -646,6 +646,19 @@ public static class RenderSystem
         AssertOnRenderThread();
         SetShaderTexture(1, 0);
     }
+    
+    public static void EnableScissor(int x, int y, int width, int height)
+    {
+        AssertOnGameThreadOrInit();
+        GlStateManager.EnableScissorTest();
+        GlStateManager.ScissorBox(x, y, width, height);
+    }
+    
+    public static void DisableScissor()
+    {
+        AssertOnGameThreadOrInit();
+        GlStateManager.DisableScissorTest();
+    }
 
     #region => AutoStorageIndexBuffer
     public sealed class AutoStorageIndexBuffer

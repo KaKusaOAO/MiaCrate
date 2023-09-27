@@ -117,7 +117,7 @@ public static partial class Util
                 .SetColor(TextColor.Gold))
             .AddExtra(MiaComponent.Translatable("(%s)")
                 .SetColor(TextColor.Gray)
-                .AddWith(MiaComponent.Literal("...")
+                .AppendWith(MiaComponent.Literal("...")
                     .SetColor(TextColor.DarkGray)
                 ))
             .AddExtra(MiaComponent.Literal($" (line {lineNumber})")

@@ -739,6 +739,24 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThread();
         _polyOffset.FillState.Disable();
     }
+    
+    public static void EnableScissorTest()
+    {
+        RenderSystem.AssertOnRenderThreadOrInit();
+        _scissor.State.Enable();
+    }
+
+    public static void ScissorBox(int x, int y, int width, int height)
+    {
+        RenderSystem.AssertOnRenderThreadOrInit();
+        GL.Scissor(x, y, width, height);
+    }
+
+    public static void DisableScissorTest()
+    {
+        RenderSystem.AssertOnRenderThreadOrInit();
+        _scissor.State.Disable();
+    }
 
     // Why is this needed?
     private static class ViewportState

@@ -1,6 +1,7 @@
 ﻿using MiaCrate.Data;
 using MiaCrate.IO;
 using MiaCrate.Resources;
+using MiaCrate.Texts;
 using Mochi.Texts;
 
 namespace MiaCrate.Client.Resources;

@@ -1,7 +1,9 @@
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Sounds;
 using MiaCrate.Client.UI.Narration;
+using MiaCrate.Texts;
 using Mochi.Texts;
+using Mochi.Utils;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace MiaCrate.Client.UI;
@@ -58,6 +60,45 @@ public abstract class AbstractWidget : IRenderable, IGuiEventListener, ILayoutEl
     }
 
     protected abstract void RenderWidget(GuiGraphics graphics, int mouseX, int mouseY, float f);
+
+    protected void RenderScrollingString(GuiGraphics graphics, Font font, int i, int j)
+    {
+        var k = X + i;
+        var l = X + Width - i;
+        RenderScrollingString(graphics, font, Message, k, Y, l, Y + Height, j);
+    }
+
+    protected static void RenderScrollingString(GuiGraphics graphics, Font font, IComponent component, int i, int j,
+        int k, int l, int m) =>
+        RenderScrollingString(graphics, font, component, (i + k) / 2, i, j, k, l, m);
+
+    protected static void RenderScrollingString(GuiGraphics graphics, Font font, IComponent component, int i, int j,
+        int k, int l, int m, int n)
+    {
+        var o = font.Width(component);
+        var p = (k + m - 9) / 2 + 1;
+        var q = l - j;
+
+        int r;
+        if (o > q)
+        {
+            r = o - q;
+
+            var d = Util.GetMillis() / 1000.0;
+            var e = Math.Max(r * 0.5, 3.0);
+            var f = Math.Sin(1.5707963267948966 * Math.Cos(6.283185307179586 * d / e)) / 2.0 + 0.5;
+            var g = Mth.Lerp(f, 0.0, (double) r);
+
+            graphics.EnableScissor(j, k, l, m);
+            graphics.DrawString(font, component, j - (int) g, p, n);
+            graphics.DisableScissor();
+        }
+        else
+        {
+            r = Math.Clamp(i, j + o / 2, l - o / 2);
+            graphics.DrawCenteredString(font, component, r, p, n);
+        }
+    }
 
     private void UpdateTooltip()
     {

@@ -141,11 +141,9 @@ public class Uniform : AbstractUniform, IDisposable
         unsafe
         {
             var numPtr = &matrix.Row0.X;
-            var buffer = new byte[sizeof(float) * 16];
+            var buffer = new float[16];
             Marshal.Copy((IntPtr) numPtr, buffer, 0, buffer.Length);
-
-            var fs = buffer.Chunk(sizeof(float)).Select(t => BitConverter.ToSingle(t)).ToArray();
-            Array.Copy(fs, 0, _floatValues!, 0, 16);
+            Array.Copy(buffer, 0, _floatValues!, 0, 16);
         }
         MarkDirty();
     }
@@ -155,11 +153,9 @@ public class Uniform : AbstractUniform, IDisposable
         unsafe
         {
             var numPtr = &matrix.Row0.X;
-            var buffer = new byte[sizeof(float) * 9];
+            var buffer = new float[9];
             Marshal.Copy((IntPtr) numPtr, buffer, 0, buffer.Length);
-
-            var fs = buffer.Chunk(sizeof(float)).Select(t => BitConverter.ToSingle(t)).ToArray();
-            Array.Copy(fs, 0, _floatValues!, 0, 9);
+            Array.Copy(buffer, 0, _floatValues!, 0, 9);
         }
         MarkDirty();
     }

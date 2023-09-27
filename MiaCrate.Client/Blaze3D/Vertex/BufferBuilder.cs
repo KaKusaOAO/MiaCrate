@@ -1,4 +1,6 @@
-﻿using MiaCrate.Client.Graphics;
+﻿using System.Runtime.CompilerServices;
+using MiaCrate.Client.Graphics;
+using MiaCrate.Client.Utils;
 using Mochi.Utils;
 using OpenTK.Mathematics;
 
@@ -91,32 +93,33 @@ public class BufferBuilder : DefaultedVertexConsumer, IBufferVertexConsumer
 
     private Vector3[] MakeQuadSortingPoints()
     {
-        var buffer = _buffer
-            .Chunk(sizeof(float))
-            .Select(buf => BitConverter.ToSingle(buf)).ToArray();
-        var i = _renderedBufferPointer / sizeof(float);
-        var j = _format.IntegerSize;
-        var k = j * _mode.PrimitiveStride;
-        var l = _vertices / _mode.PrimitiveStride;
-
-        var arr = new Vector3[l];
-
-        for (var m = 0; m < l; m++)
+        unsafe
         {
-            var f = buffer[i + m * k + 0];
-            var g = buffer[i + m * k + 1];
-            var h = buffer[i + m * k + 2];
-            var n = buffer[i + m * k + j * 2 + 0];
-            var o = buffer[i + m * k + j * 2 + 1];
-            var p = buffer[i + m * k + j * 2 + 2];
+            var buffer = UnsafeUtil.AsFixed<float>(_buffer);
+            var i = _renderedBufferPointer / sizeof(float);
+            var j = _format.IntegerSize;
+            var k = j * _mode.PrimitiveStride;
+            var l = _vertices / _mode.PrimitiveStride;
 
-            var q = (f + n) / 2;
-            var r = (g + o) / 2;
-            var s = (h + p) / 2;
-            arr[m] = new Vector3(q, r, s);
+            var arr = new Vector3[l];
+
+            for (var m = 0; m < l; m++)
+            {
+                var f = buffer[i + m * k + 0];
+                var g = buffer[i + m * k + 1];
+                var h = buffer[i + m * k + 2];
+                var n = buffer[i + m * k + j * 2 + 0];
+                var o = buffer[i + m * k + j * 2 + 1];
+                var p = buffer[i + m * k + j * 2 + 2];
+
+                var q = (f + n) / 2;
+                var r = (g + o) / 2;
+                var s = (h + p) / 2;
+                arr[m] = new Vector3(q, r, s);
+            }
+
+            return arr;
         }
-
-        return arr;
     }
 
     private RenderedBuffer StoreRenderedBuffer()

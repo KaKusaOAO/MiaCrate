@@ -1,6 +1,7 @@
 ﻿using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.Utils;
+using MiaCrate.Texts;
 using Mochi.Texts;
 
 namespace MiaCrate.Client.UI.Screens;
@@ -8,39 +9,69 @@ namespace MiaCrate.Client.UI.Screens;
 public class TitleScreen : Screen
 {
     private const string DemoLevelId = "Demo_World";
-    public static readonly CubeMap CubeMap = new(new ResourceLocation("textures/gui/title/background/panorama"));
+
+    public static IComponent CopyrightText { get; } = MiaComponent.Translatable("title.credits");
+    public static CubeMap CubeMap { get; } = new(new ResourceLocation("textures/gui/title/background/panorama"));
+    private static ResourceLocation PanoramaOverlay { get; } = new("textures/gui/title/background/panorama_overlay.png");
     
     private readonly bool _fading;
     private readonly LogoRenderer _logoRenderer;
     private readonly PanoramaRenderer _panorama;
     private long _fadeInStart;
 
-    private static readonly ResourceLocation _panoramaOverlay =
-        new("textures/gui/title/background/panorama_overlay.png");
+    public override bool IsPauseScreen => false;
 
-
-    public TitleScreen(bool fading = false, LogoRenderer? logoRenderer = null) : base(TranslateText.Of("narrator.screen.title"))
+    public TitleScreen(bool fading = false, LogoRenderer? logoRenderer = null) 
+        : base(MiaComponent.Translatable("narrator.screen.title"))
     {
         _panorama = new PanoramaRenderer(CubeMap);
         _fading = fading;
         _logoRenderer = logoRenderer ?? new LogoRenderer(false);
     }
 
-    public override bool IsPauseScreen => false;
-
     public static Task PreloadResourcesAsync(TextureManager manager, IExecutor executor)
     {
         return Task.WhenAll(
             manager.PreloadAsync(LogoRenderer.Logo, executor),
             manager.PreloadAsync(LogoRenderer.Edition, executor),
-            manager.PreloadAsync(_panoramaOverlay, executor),
+            manager.PreloadAsync(PanoramaOverlay, executor),
             CubeMap.PreloadAsync(manager, executor)
         );
     }
 
     protected override void Init()
     {
+        var i = Font.Width(CopyrightText);
+        var j = Width - i / 2;
+        var l = Height / 4 + 48;
+        CreateNormalMenuOptions(l, 24);
+    }
+
+    private void CreateNormalMenuOptions(int i, int j)
+    {
+        AddRenderableWidget(
+            Button.CreateBuilder(
+                MiaComponent.Translatable("menu.singleplayer"),
+                _ => Game!.Screen = new TitleScreen())
+                .Bounds(Width / 2 - 100, i, 200, Button.DefaultHeight)
+                .Build()
+        );
         
+        AddRenderableWidget(
+            Button.CreateBuilder(
+                    MiaComponent.Translatable("menu.multiplayer"),
+                    _ => Game!.Screen = new TitleScreen())
+                .Bounds(Width / 2 - 100, i + j * 1, 200, Button.DefaultHeight)
+                .Build()
+        );
+        
+        AddRenderableWidget(
+            Button.CreateBuilder(
+                    MiaComponent.Translatable("menu.online"),
+                    _ => Game!.Screen = new TitleScreen())
+                .Bounds(Width / 2 - 100, i + j * 2, 200, Button.DefaultHeight)
+                .Build()
+        );
     }
 
     public override void RenderBackground(GuiGraphics graphics, int mouseX, int mouseY, float f)
@@ -60,7 +91,7 @@ public class TitleScreen : Screen
         
         RenderSystem.EnableBlend();
         graphics.SetColor(1, 1, 1, _fading ? MathF.Ceiling(Math.Clamp(fadeInProgress, 0, 1)) : 1);
-        graphics.Blit(_panoramaOverlay, 0, 0, Width, Height, 0, 0, 16, 128, 16, 128);
+        graphics.Blit(PanoramaOverlay, 0, 0, Width, Height, 0, 0, 16, 128, 16, 128);
         graphics.SetColor(1, 1, 1, 1);
 
         var h = _fading ? Math.Clamp(fadeInProgress - 1, 0, 1) : 1;
@@ -71,6 +102,16 @@ public class TitleScreen : Screen
         {
             var str = $"{MiaCore.ProductName} {SharedConstants.CurrentVersion.Name}";
             graphics.DrawString(Font, str, 2, Height - 10, Argb32.White.WithAlpha(k));
+            
+            foreach (var listener in Children)
+            {
+                if (listener is AbstractWidget widget)
+                {
+                    widget.SetAlpha(h);
+                }
+            }
+            
+            base.Render(graphics, mouseX, mouseY, f);
         }
     }
 }

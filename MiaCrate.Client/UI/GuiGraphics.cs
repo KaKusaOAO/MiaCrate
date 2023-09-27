@@ -153,6 +153,12 @@ public class GuiGraphics
         RenderSystem.SetShaderColor(r, g, b, a);
     }
 
+    public void DrawCenteredString(Font font, IComponent component, int i, int j, int k)
+    {
+        var seq = component.GetVisualOrderText();
+        DrawString(font, seq, i - font.Width(seq) / 2, j, k);
+    }
+
     public int DrawString(Font font, string? str, int x, int y, Argb32 color) =>
         DrawString(font, str, x, y, color, true);
 
@@ -174,7 +180,10 @@ public class GuiGraphics
 
     public int DrawString(Font font, IComponent component, int i, int j, int k, bool bl) =>
         DrawString(font, component.GetVisualOrderText(), i, j, k, bl);
-    
+
+    public int DrawString(Font font, FormattedCharSequence seq, int i, int j, int k) => 
+        DrawString(font, seq, i, j, k, true);
+
     public int DrawString(Font font, FormattedCharSequence seq, int i, int j, int k, bool bl)
     {
         var lastPose = Pose.Last;
@@ -257,11 +266,9 @@ public class GuiGraphics
         }
     }
 
-    public void BlitSprite(ResourceLocation location, int x, int y, int width, int height)
-    {
+    public void BlitSprite(ResourceLocation location, int x, int y, int width, int height) => 
         BlitSprite(location, x, y, 0, width, height);
-    }
-    
+
     public void BlitSprite(ResourceLocation location, int x, int y, int z, int width, int height)
     {
         var sprite = _sprites.GetSprite(location);
@@ -379,5 +386,30 @@ public class GuiGraphics
                 BlitTiledSprite(sprite, x + width - o, y + p, z, n, height - q - p, nineSlice.Width - o, p, o, nineSlice.Height - q - p, nineSlice.Width, nineSlice.Height);
             }
         });
+    }
+
+    public void EnableScissor(int x0, int y0, int x1, int y1) => 
+        ApplyScissor(_scissorStack.Push(new ScreenRectangle(x0, y0, x1 - x0, y1 - y0)));
+
+    public void DisableScissor() => ApplyScissor(_scissorStack.Pop());
+
+    private void ApplyScissor(ScreenRectangle? rect)
+    {
+        FlushIfManaged();
+
+        if (rect == null)
+        {
+            RenderSystem.DisableScissor();
+            return;
+        }
+
+        var window = Game.Instance.Window;
+        var i = window.Height;
+        var d = window.GuiScale;
+        var e = rect.Left * d;
+        var f = i - rect.Bottom * d;
+        var g = rect.Width * d;
+        var h = rect.Height * d;
+        RenderSystem.EnableScissor((int) e, (int) f, Math.Max(0, (int) g), Math.Max(0, (int) h));
     }
 }

@@ -109,6 +109,14 @@ public class Font
         bakedGlyph.Render(italic, x + boldOffset, y, matrix, consumer, red, green, blue, alpha, packedLightCoords);
     }
 
+    public int Width(string str) => (int) Math.Ceiling(_splitter.StringWidth(str));
+    
+    public int Width(IFormattedText text) => (int) Math.Ceiling(_splitter.StringWidth(text));
+
+    public int Width(IComponent comp) => Width(IFormattedText.FromComponent(comp));
+    
+    public int Width(FormattedCharSequence seq) => (int) Math.Ceiling(_splitter.StringWidth(seq));
+
     public enum DisplayMode
     {
         Normal,

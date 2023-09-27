@@ -16,8 +16,9 @@ public abstract class TextureAtlasHolder : IPreparableReloadListener, IDisposabl
         IEnumerable<IMetadataSectionSerializer> serializers)
     {
         _atlasInfoLocation = atlasInfoLocation;
-        _serializers = serializers;
         _textureAtlas = new TextureAtlas(textureAtlas);
+        manager.Register(_textureAtlas.Location, _textureAtlas);
+        _serializers = serializers;
     }
 
     public virtual TextureAtlasSprite GetSprite(ResourceLocation location)

@@ -2,6 +2,7 @@
 using MiaCrate.Client.UI;
 using MiaCrate.Client.UI.Screens;
 using MiaCrate.Resources;
+using MiaCrate.Texts;
 using Mochi.Texts;
 using OpenTK.Graphics.OpenGL4;
 
@@ -19,7 +20,7 @@ public abstract class RealmsScreen : Screen
 
 public class RealmsPopupScreen : RealmsScreen
 {
-    public static readonly IComponent PopupText = Component.Translatable("mco.selectServer.popup");
+    public static readonly IComponent PopupText = MiaComponent.Translatable("mco.selectServer.popup");
 
     private static List<ResourceLocation> _carouselImages = new();
     private readonly Screen _backgroundScreen;

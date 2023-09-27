@@ -1,4 +1,5 @@
-﻿using Mochi.Texts;
+﻿using MiaCrate.Client.UI.Narration;
+using Mochi.Texts;
 
 namespace MiaCrate.Client.UI.Screens;
 
@@ -7,6 +8,7 @@ public class Screen : AbstractContainerEventHandler, IRenderable
     public static ResourceLocation BackgroundLocation { get; } = new("textures/gui/options_background.png");
     
     private readonly List<IRenderable> _renderables = new();
+    private readonly List<INarratableEntry> _narratables = new();
     private bool _initialized;
 
     public override List<IGuiEventListener> Children { get; } = new();
@@ -117,5 +119,35 @@ public class Screen : AbstractContainerEventHandler, IRenderable
     protected virtual void Init()
     {
         
+    }
+
+    protected virtual T AddRenderableWidget<T>(T widget) where T : IGuiEventListener, IRenderable, INarratableEntry
+    {
+        _renderables.Add(widget);
+        return AddWidget(widget);
+    }
+
+    protected virtual T AddRenderable<T>(T widget) where T : IRenderable
+    {
+        _renderables.Add(widget);
+        return widget;
+    }
+    
+    protected virtual T AddWidget<T>(T widget) where T : IGuiEventListener, INarratableEntry
+    {
+        Children.Add(widget);
+        _narratables.Add(widget);
+        return widget;
+    }
+
+    protected void RemoveWidget(IGuiEventListener widget)
+    {
+        if (widget is IRenderable r) 
+            _renderables.Remove(r);
+        
+        if (widget is INarratableEntry n) 
+            _narratables.Remove(n);
+        
+        Children.Remove(widget);
     }
 }

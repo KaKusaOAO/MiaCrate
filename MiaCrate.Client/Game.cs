@@ -21,6 +21,7 @@ using MiaCrate.Client.UI.Screens;
 using MiaCrate.Client.Utils;
 using MiaCrate.Data;
 using MiaCrate.Resources;
+using MiaCrate.Texts;
 using MiaCrate.World.Entities;
 using Mochi.Texts;
 using Mochi.Utils;

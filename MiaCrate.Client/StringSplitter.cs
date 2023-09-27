@@ -19,7 +19,7 @@ public class StringSplitter
         var f = 0f;
         StringDecomposer.IterateFormatted(str, Style.Empty, IFormattedCharSink.Create((_, style, j) =>
         {
-            f += -_widthProvider(j, style);
+            f += _widthProvider(j, style);
             return true;
         }));
 
@@ -31,7 +31,19 @@ public class StringSplitter
         var f = 0f;
         StringDecomposer.IterateFormatted(text, Style.Empty, IFormattedCharSink.Create((_, style, j) =>
         {
-            f += -_widthProvider(j, style);
+            f += _widthProvider(j, style);
+            return true;
+        }));
+
+        return f;
+    }
+    
+    public float StringWidth(FormattedCharSequence seq)
+    {
+        var f = 0f;
+        seq(IFormattedCharSink.Create((_, style, j) =>
+        {
+            f += _widthProvider(j, style);
             return true;
         }));
 
@@ -40,7 +52,5 @@ public class StringSplitter
 
     public float StringWidth(IComponent component) => StringWidth(IFormattedText.FromComponent(component));
     
-    
-
     public delegate float WidthProvider(int i, Style style);
 }

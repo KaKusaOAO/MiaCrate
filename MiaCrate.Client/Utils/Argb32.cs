@@ -43,4 +43,6 @@ public readonly struct Argb32
     public Argb32 WithGreen(int green) => WithGreen((byte) (green & 0xff));
     public Argb32 WithBlue(int blue) => WithBlue((byte) (blue & 0xff));
     public Argb32 WithAlpha(int alpha) => WithAlpha((byte) (alpha & 0xff));
+
+    public override string ToString() => $"#{ARGB:x8}";
 }

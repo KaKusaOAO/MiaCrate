@@ -11,7 +11,22 @@ public static class MiaComponent
         Component.Literal(message, Style.Empty);
 
     public static IMutableComponent<Style> Translatable(string message, params object[] parameters) =>
-        Component.Translatable(message, Style.Empty, parameters);
+        new MutableComponent<Style>(
+            new TranslatableContent(message, null, FromObjects(parameters)), Style.Empty);
+    
+    public static IMutableComponent<Style> TranslatableWithFallback(string message, string fallback, params object[] parameters) =>
+        new MutableComponent<Style>(
+            new TranslatableContent(message, fallback, FromObjects(parameters)), Style.Empty);
+    
+    private static IComponent[] FromObjects(object[] parameters)
+    {
+        return parameters.Select(p =>
+        {
+            if (p is IComponent comp) return comp;
+            if (p is string str) return Literal(str);
+            return Literal(p?.ToString() ?? "<null>");
+        }).ToArray();
+    }
 
     private static Style ParseStyle(JsonObject o)
     {

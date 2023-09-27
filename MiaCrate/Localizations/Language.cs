@@ -84,10 +84,13 @@ public abstract class Language
         
         public override FormattedCharSequence GetVisualOrder(IFormattedText text)
         {
-            return sink => text.Visit((style, str) =>
-                StringDecomposer.IterateFormatted(str, style, sink)
-                    ? Optional.Empty<Unit>()
-                    : IFormattedText.StopIteration, Style.Empty).IsPresent;
+            return sink =>
+            {
+                return text.Visit((style, str) =>
+                    StringDecomposer.IterateFormatted(str, style, sink)
+                        ? Optional.Empty<Unit>()
+                        : IFormattedText.StopIteration, Style.Empty).IsPresent;
+            };
         }
 
     }

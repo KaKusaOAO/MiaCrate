@@ -35,7 +35,7 @@ public class DataFixerBuilder
         var version = DataFixUtils.GetVersion(fix.VersionKey);
         if (version > DataVersion)
         {
-            Logger.Warn(TranslateText.Of("Ignored fix registered for version: %s as the DataVersion of the game is: %s")
+            Logger.Warn(FormattedText.Of("Ignored fix registered for version: %s as the DataVersion of the game is: %s")
                 .AddWith(Component.Represent(version))
                 .AddWith(Component.Represent(DataVersion))
             );
@@ -81,7 +81,7 @@ public class DataFixerBuilder
 
         Task.WhenAll(tasks.ToArray()).ContinueWith(_ =>
         {
-            Logger.Info(TranslateText.Of("%s datafixer optimizations took %s milliseconds")
+            Logger.Info(FormattedText.Of("%s datafixer optimizations took %s milliseconds")
                 .AddWith(Component.Represent(tasks.Count))
                 .AddWith(Component.Represent(stopwatch.Elapsed.TotalMilliseconds))
             );

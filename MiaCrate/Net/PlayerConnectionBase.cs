@@ -4,6 +4,7 @@ using MiaCrate.Events;
 using MiaCrate.Extensions;
 using MiaCrate.Net.Packets;
 using MiaCrate.Platforms;
+using MiaCrate.Texts;
 using Mochi.IO;
 using Mochi.Texts;
 using Mochi.Utils;

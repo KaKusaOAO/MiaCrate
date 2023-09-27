@@ -1,5 +1,6 @@
 ﻿using MiaCrate.Extensions;
 using MiaCrate.Localizations;
+using MiaCrate.Texts;
 using Mochi.Texts;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using NativeWindow = OpenTK.Windowing.GraphicsLibraryFramework.Window;
