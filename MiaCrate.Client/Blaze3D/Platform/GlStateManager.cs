@@ -133,7 +133,6 @@ public static class GlStateManager
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         GL.TexParameter(target, pName, value);
-        ;
     }
 
     public static void TexParameter(TextureTarget target, TextureParameterName pName, float value)
