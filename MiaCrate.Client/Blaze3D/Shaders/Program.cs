@@ -1,13 +1,8 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
-using MiaCrate.Client.Graphics;
-using MiaCrate.Client.Platform;
 using MiaCrate.Client.Preprocessor;
 using MiaCrate.Client.Systems;
-using OpenTK.Graphics.OpenGL4;
 using Veldrid;
-using Veldrid.SPIRV;
 
 namespace MiaCrate.Client.Shaders;
 
@@ -16,29 +11,20 @@ public class Program : IDisposable
     private const int MaxLogLength = 32678;
     private readonly ProgramType _type;
     public string Name { get; }
-    public int Id { get; private set; }
+    public Shader Id { get; private set; }
 
-    protected Program(ProgramType type, int id, string name)
+    public Program(ProgramType type, Shader id, string name)
     {
         Name = name;
         Id = id;
         _type = type;
     }
 
-    public void AttachToShader(IShader shader)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GlStateManager.AttachShader(shader.Id, Id);
-    }
-
     public void Dispose()
     {
-        if (Id == -1) return;
-        
         RenderSystem.AssertOnRenderThread();
         GC.SuppressFinalize(this);
-        GlStateManager.DeleteShader(Id);
-        Id = -1;
+        Id.Dispose();
         _type.Programs.Remove(Name);
     }
 
@@ -46,7 +32,9 @@ public class Program : IDisposable
         GlslPreprocessor preprocessor)
     {
         RenderSystem.AssertOnRenderThread();
-        return InternalCompileShader(type, name, stream, str2, preprocessor);
+        var result = InternalCompileShader(type, name, stream, str2, preprocessor);
+        type.Programs[name] = result;
+        return result;
     }
 
     protected static ConvertResult InternalCompileShader(ProgramType type, string name, Stream stream, string str2,

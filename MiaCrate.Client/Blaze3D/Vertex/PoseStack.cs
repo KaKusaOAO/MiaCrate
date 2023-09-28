@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
+﻿using OpenTK.Mathematics;
 
 namespace MiaCrate.Client;
 

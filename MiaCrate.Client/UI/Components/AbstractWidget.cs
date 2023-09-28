@@ -2,11 +2,11 @@ using MiaCrate.Client.Platform;
 using MiaCrate.Client.Resources;
 using MiaCrate.Client.Sounds;
 using MiaCrate.Client.UI.Narration;
+using MiaCrate.Client.Utils;
 using MiaCrate.Sounds;
 using MiaCrate.Texts;
 using Mochi.Texts;
 using Mochi.Utils;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace MiaCrate.Client.UI;
 

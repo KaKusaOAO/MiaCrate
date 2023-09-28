@@ -2,9 +2,8 @@ using System.Runtime.CompilerServices;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.Utils;
-using OpenTK.Graphics.OpenGL4;
 using SkiaSharp;
-using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
+using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -141,56 +140,33 @@ public sealed class NativeImage : IDisposable
         }
     }
 
-    private static void SetFilter(bool blur, bool mipmap)
+    private static void SetFilter(AbstractTexture texture, bool blur, bool mipmap)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        if (blur)
-        {
-            GlStateManager.TexMinFilter(TextureTarget.Texture2D, 
-                mipmap ? TextureMinFilter.LinearMipmapLinear : TextureMinFilter.Linear);
-            GlStateManager.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Linear);
-        }
-        else
-        {
-            GlStateManager.TexMinFilter(TextureTarget.Texture2D, 
-                mipmap ? TextureMinFilter.NearestMipmapLinear : TextureMinFilter.Nearest);
-            GlStateManager.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Nearest);
-        }
+        texture.SetFilter(blur, mipmap);
     }
     
-    public void Upload(int level, int xOffset, int yOffset, bool dispose) =>
-        Upload(level, xOffset, yOffset, 0, 0, Width, Height, false, dispose);
+    public void Upload(AbstractTexture texture, int level, int xOffset, int yOffset, bool dispose) =>
+        Upload(texture, level, xOffset, yOffset, 0, 0, Width, Height, false, dispose);
 
-    public void Upload(int level, int xOffset, int yOffset, int skipPixels, int skipRows, int width,
+    public void Upload(AbstractTexture texture, int level, int xOffset, int yOffset, int skipPixels, int skipRows, int width,
         int height, bool mipmap, bool dispose) =>
-        Upload(level, xOffset, yOffset, skipPixels, skipRows, width, height, false, false, mipmap, dispose);
+        Upload(texture, level, xOffset, yOffset, skipPixels, skipRows, width, height, false, false, mipmap, dispose);
 
-    public void Upload(int level, int xOffset, int yOffset, int skipPixels, int skipRows, int width,
+    public void Upload(AbstractTexture texture, int level, int xOffset, int yOffset, int skipPixels, int skipRows, int width,
         int height, bool isBlur, bool isClamp, bool mipmap, bool dispose)
     {
         RenderSystem.EnsureOnRenderThreadOrInit(() => 
-            InternalUpload(level, xOffset, yOffset, skipPixels, skipRows, width, height, isBlur, isClamp, mipmap, dispose));
+            InternalUpload(texture, level, xOffset, yOffset, skipPixels, skipRows, width, height, isBlur, isClamp, mipmap, dispose));
     }
     
-    private void InternalUpload(int level, int xOffset, int yOffset, int skipPixels, int skipRows, int width,
+    private void InternalUpload(AbstractTexture texture, int level, int xOffset, int yOffset, int skipPixels, int skipRows, int width,
         int height, bool isBlur, bool isClamp, bool mipmap, bool dispose)
     {
         try
         {
             RenderSystem.AssertOnRenderThreadOrInit();
-            SetFilter(isBlur, mipmap);
-            if (width == Width)
-            {
-                GlStateManager.PixelStore(PixelStoreParameter.UnpackRowLength, 0);
-            }
-            else
-            {
-                GlStateManager.PixelStore(PixelStoreParameter.UnpackRowLength, Width);
-            }
-
-            GlStateManager.PixelStore(PixelStoreParameter.UnpackSkipPixels, skipPixels);
-            GlStateManager.PixelStore(PixelStoreParameter.UnpackSkipRows, skipRows);
-            Format.SetUnpackPixelStoreState();
+            SetFilter(texture, isBlur, mipmap);
 
             // SKColor is stored in ARGB format, but the buffer data required that int to be ABGR,
             // which is the reverse of RGBA, the order represents in the buffer.
@@ -206,13 +182,17 @@ public sealed class NativeImage : IDisposable
                 .Select(c => new Rgba32(c.Red, c.Green, c.Blue, c.Alpha).RGBA)
                 .ToArray();
 
-            GlStateManager.TexSubImage2D(TextureTarget.Texture2D, level, xOffset, yOffset, width, height, Format.Format,
-                PixelType.UnsignedByte, pixels);
+            var device = GlStateManager.Device;
+            var factory = GlStateManager.ResourceFactory;
+            device.UpdateTexture(texture.Texture, pixels, (uint) xOffset, (uint) yOffset, 0, 
+                (uint) width, (uint) height, 0, (uint) level, 0);
 
             if (isClamp)
             {
-                GlStateManager.TexWrapS(TextureTarget.Texture2D, TextureWrapMode.ClampToEdge);
-                GlStateManager.TexWrapT(TextureTarget.Texture2D, TextureWrapMode.ClampToEdge);
+                texture._samplerDescription.AddressModeU = SamplerAddressMode.Clamp;
+                texture._samplerDescription.AddressModeV = SamplerAddressMode.Clamp;
+                texture.Sampler?.Dispose();
+                texture.Sampler = factory.CreateSampler(texture._samplerDescription);
             }
         }
         finally
@@ -221,11 +201,26 @@ public sealed class NativeImage : IDisposable
         }
     }
 
-    public void DownloadTexture(int level, bool noAlpha)
+    public void DownloadTexture(Texture texture, int level, bool noAlpha)
     {
         RenderSystem.AssertOnRenderThread();
-        Format.SetPackPixelStoreState();
-        GlStateManager.GetTexImage(TextureTarget.Texture2D, level, Format.Format, PixelType.UnsignedByte, _bitmap.GetPixels());
+        
+        var device = GlStateManager.Device;
+        var mapped = device.Map(texture, MapMode.Read);
+        var dest = _bitmap.GetPixels();
+
+        unsafe
+        {
+            var src = (int*) mapped.Data;
+            var dst = (int*) dest;
+            
+            for (var i = 0; i < mapped.SizeInBytes; i++)
+            {
+                *dst++ = *src++;
+            }
+        }
+        
+        device.Unmap(texture);
 
         if (noAlpha && Format.HasAlpha)
         {
@@ -257,13 +252,13 @@ public sealed class NativeImage : IDisposable
     public sealed class FormatInfo
     {
         public static readonly FormatInfo Rgba = 
-            new(4, PixelFormat.Rgba, true, true, true, false, true, 0, 8, 16, 255, 24);
+            new(4, PixelFormat.R8_G8_B8_A8_UNorm, true, true, true, false, true, 0, 8, 16, 255, 24);
         public static readonly FormatInfo Rgb = 
-            new(3, PixelFormat.Rgb, true, true, true, false, false, 0, 8, 16, 255, 255);
+            new(3, PixelFormat.BC1_Rgb_UNorm, true, true, true, false, false, 0, 8, 16, 255, 255);
         public static readonly FormatInfo LuminanceAlpha = 
-            new(2, PixelFormat.LuminanceAlpha, false, false, false, false, true, 255, 255, 255, 0, 8);
+            new(2, PixelFormat.R8_UNorm, false, false, false, false, true, 255, 255, 255, 0, 8);
         public static readonly FormatInfo Luminance = 
-            new(1, PixelFormat.Luminance, false, false, false, false, false, 0, 0, 0, 0, 255);
+            new(1, PixelFormat.R8_UNorm, false, false, false, false, false, 0, 0, 0, 0, 255);
         
         public int Components { get; }
         public PixelFormat Format { get; }
@@ -306,18 +301,6 @@ public sealed class NativeImage : IDisposable
             LuminanceOffset = luminanceOffset;
             AlphaOffset = alphaOffset;
             Name = name;
-        }
-
-        public void SetUnpackPixelStoreState()
-        {
-            RenderSystem.AssertOnRenderThreadOrInit();
-            GlStateManager.PixelStore(PixelStoreParameter.UnpackAlignment, Components);
-        }
-
-        public void SetPackPixelStoreState()
-        {
-            RenderSystem.AssertOnRenderThreadOrInit();
-            GlStateManager.PixelStore(PixelStoreParameter.PackAlignment, Components);
         }
 
         public static FormatInfo GetFormatFromByteCount(int count)

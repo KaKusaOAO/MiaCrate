@@ -1,6 +1,5 @@
 ﻿using MiaCrate.Client.Systems;
 using MiaCrate.Client.Utils;
-using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -53,7 +52,6 @@ public class LightTexture : IDisposable
     {
         RenderSystem.SetShaderTexture(2, _lightTextureLocation);
         _game.TextureManager.BindForSetup(_lightTextureLocation);
-        RenderSystem.TexMinFilter(TextureTarget.Texture2D, TextureMinFilter.Linear);
-        RenderSystem.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Linear);
+        _lightTexture.SetFilter(true, false);
     }
 }

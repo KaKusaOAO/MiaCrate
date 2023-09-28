@@ -1,12 +1,8 @@
 ﻿using System.Runtime.InteropServices;
-using System.Text;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.UI;
 using MiaCrate.Client.UI.Screens;
 using MiaCrate.Client.Utils;
-using OpenTK.Windowing.Desktop;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using NativeWindow = OpenTK.Windowing.GraphicsLibraryFramework.Window;
 
 namespace MiaCrate.Client;
 

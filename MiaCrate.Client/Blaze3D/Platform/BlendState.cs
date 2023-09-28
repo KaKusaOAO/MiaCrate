@@ -1,12 +1,12 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using Veldrid;
 
 namespace MiaCrate.Client.Platform;
 
 public class BlendState
 {
-    public BoolState State { get; } = new(EnableCap.Blend);
-    public BlendingFactorSrc SrcRgb { get; set; } = BlendingFactorSrc.One;
-    public BlendingFactorDest DstRgb { get; set; }
-    public BlendingFactorSrc SrcAlpha { get; set; } = BlendingFactorSrc.One;
-    public BlendingFactorDest DstAlpha { get; set; }
+    public BoolState State { get; } = new();
+    public BlendFactor SrcRgb { get; set; } = BlendFactor.One;
+    public BlendFactor DstRgb { get; set; }
+    public BlendFactor SrcAlpha { get; set; } = BlendFactor.One;
+    public BlendFactor DstAlpha { get; set; }
 }

@@ -35,10 +35,10 @@ public class OverlayTexture : IDisposable
             }
         }
         
-        RenderSystem.ActiveTexture(GlStateManager.TextureUnit + 1);
-        _texture.Bind();
-        image.Upload(0, 0, 0, 0, 0, image.Width, image.Height, false, true, false, false);
-        RenderSystem.ActiveTexture(GlStateManager.TextureUnit);
+        // RenderSystem.ActiveTexture(GlStateManager.TextureUnit + 1);
+        // _texture.Bind();
+        image.Upload(_texture, 0, 0, 0, 0, 0, image.Width, image.Height, false, true, false, false);
+        // RenderSystem.ActiveTexture(GlStateManager.TextureUnit);
     }
     
     public static int Pack(int a, int b) => a | b << Size;
@@ -50,7 +50,7 @@ public class OverlayTexture : IDisposable
 
     public void SetupOverlayColor()
     {
-        RenderSystem.SetupOverlayColor(() => _texture.Id, Size);
+        // RenderSystem.SetupOverlayColor(() => _texture.Id, Size);
     }
 
     public void TeardownOverlayColor()

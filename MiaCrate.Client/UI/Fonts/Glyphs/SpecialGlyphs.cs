@@ -55,9 +55,9 @@ public sealed class SpecialGlyphs : IGlyphInfo
 
         public float Oversample => 1;
 
-        public void Upload(int x, int y)
+        public void Upload(AbstractTexture texture, int x, int y)
         {
-            _instance._image.Upload(0, x, y, false);
+            _instance._image.Upload(texture, 0, x, y, false);
         }
     }
 }

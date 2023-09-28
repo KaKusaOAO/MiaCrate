@@ -1,4 +1,6 @@
-﻿namespace MiaCrate.Client.Fonts;
+﻿using MiaCrate.Client.Graphics;
+
+namespace MiaCrate.Client.Fonts;
 
 public interface ISheetGlyphInfo
 {
@@ -16,5 +18,5 @@ public interface ISheetGlyphInfo
     public float Up => BearingY;
     public float Down => Up + PixelHeight / Oversample;
 
-    public void Upload(int x, int y);
+    public void Upload(AbstractTexture texture, int x, int y);
 }

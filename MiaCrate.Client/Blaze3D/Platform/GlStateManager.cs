@@ -1,15 +1,6 @@
-using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
 using MiaCrate.Client.Systems;
-using MiaCrate.Extensions;
-using MiaCrate.Texts;
-using Mochi.Texts;
-using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using Veldrid;
-using Veldrid.OpenGLBinding;
-using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
 
 namespace MiaCrate.Client.Platform;
 
@@ -23,8 +14,6 @@ public static class GlStateManager
     private static readonly ColorLogicState _colorLogic = new();
     private static readonly ScissorState _scissor = new();
     private static readonly ColorMask _colorMask = new();
-    public const int TextureUnit = (int) OpenTK.Graphics.OpenGL4.TextureUnit.Texture0;
-    private static int _activeTexture;
 
     private static readonly TextureState[] _textures =
         Enumerable.Range(0, 12).Select(i => new TextureState()).ToArray();
@@ -50,274 +39,112 @@ public static class GlStateManager
         _device = device;
         _resourceFactory = device.ResourceFactory;
         _commandList = _resourceFactory.CreateCommandList();
+
+        _pipelineDescription = new GraphicsPipelineDescription
+        {
+            BlendState = new BlendStateDescription
+            {
+                BlendFactor = RgbaFloat.White,
+                AttachmentStates = new[]
+                {
+                    new BlendAttachmentDescription
+                    {
+                        BlendEnabled = false,
+                        SourceColorFactor = BlendFactor.One,
+                        DestinationColorFactor = BlendFactor.Zero,
+                        ColorFunction = BlendFunction.Add,
+                        SourceAlphaFactor = BlendFactor.One,
+                        DestinationAlphaFactor = BlendFactor.Zero,
+                        AlphaFunction = BlendFunction.Add,
+                        ColorWriteMask = ColorWriteMask.All
+                    }
+                }
+            },
+            RasterizerState = new RasterizerStateDescription
+            {
+                CullMode = FaceCullMode.Back,
+                ScissorTestEnabled = false
+            }
+        };
     }
 
     private static void BuildPipelineIfDirty()
     {
         if (_pipeline != null && !_pipelineDirty) return;
         
+        _pipeline?.Dispose();
         _pipeline = _resourceFactory!.CreateGraphicsPipeline(_pipelineDescription);
         _pipelineDirty = false;
     }
-
-    public static void AttachShader(int program, int shader)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.AttachShader(program, shader);
-    }
-
-    public static int GetInteger(GetPName name)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        return GL.GetInteger(name);
-    }
-
-    public static string GetString(StringName name)
-    {
-        RenderSystem.AssertOnRenderThread();
-        return GL.GetString(name);
-    }
-
-    public static void EnableVertexAttribArray(int index)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.EnableVertexAttribArray(index);
-    }
-
-    public static void DisableVertexAttribArray(int index)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.DisableVertexAttribArray(index);
-    }
-
-    public static void VertexAttribPointer(int index, int size, VertexAttribPointerType type, bool normalized,
-        int stride, IntPtr ptr)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.VertexAttribPointer(index, size, type, normalized, stride, ptr);
-    }
-
-    public static void VertexAttribIPointer(int index, int size, VertexAttribIntegerType type, int stride, IntPtr ptr)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.VertexAttribIPointer(index, size, type, stride, ptr);
-    }
-
-    public static void VertexAttribIPointer(int index, int size, VertexAttribPointerType type, int stride, IntPtr ptr)
-    {
-        var name = Enum.GetName(type);
-        if (Enum.TryParse<VertexAttribIntegerType>(name, out var t))
-        {
-            VertexAttribIPointer(index, size, t, stride, ptr);
-            return;
-        }
-
-        Logger.Warn($"Unknown {nameof(VertexAttribIntegerType)}: {type}");
-    }
-
-    public static void GenTextures(int[] textures)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.GenTextures(textures.Length, textures);
-    }
-
-    public static int[] GenTextures(int count)
-    {
-        var textures = new int[count];
-        GenTextures(textures);
-        return textures;
-    }
-
-    public static int GenTexture()
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.GenTextures(1, out int result);
-        return result;
-    }
-
-    public static void DeleteTextures(int[] textures)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        foreach (var state in _textures)
-        {
-            foreach (var texture in textures)
-            {
-                if (state.Binding == texture)
-                    state.Binding = -1;
-            }
-        }
-
-        GL.DeleteTextures(textures.Length, textures);
-    }
-
-    public static void DeleteTexture(int texture)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.DeleteTextures(1, ref texture);
-
-        foreach (var state in _textures)
-        {
-            if (state.Binding == texture)
-                state.Binding = -1;
-        }
-    }
-
-    public static void TexParameter(TextureTarget target, TextureParameterName pName, int value)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.TexParameter(target, pName, value);
-        ;
-    }
-
-    public static void TexParameter(TextureTarget target, TextureParameterName pName, float value)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.TexParameter(target, pName, value);
-    }
-
-    /// <summary>
-    /// For quick check, this applies to 10241 (<see cref="TextureParameterName.TextureMinFilter"/>).
-    /// </summary>
-    public static void TexMinFilter(TextureTarget target, TextureMinFilter filter) =>
-        TexParameter(target, TextureParameterName.TextureMinFilter, (int) filter);
-
-    /// <summary>
-    /// For quick check, this applies to 10240 (<see cref="TextureParameterName.TextureMagFilter"/>).
-    /// </summary>
-    public static void TexMagFilter(TextureTarget target, TextureMagFilter filter) =>
-        TexParameter(target, TextureParameterName.TextureMagFilter, (int) filter);
-
-    /// <summary>
-    /// For quick check, this applies to 34892 (<see cref="TextureParameterName.TextureCompareMode"/>).
-    /// </summary>
-    public static void TexCompareMode(TextureTarget target, TextureCompareMode mode) =>
-        TexParameter(target, TextureParameterName.TextureCompareMode, (int) mode);
-
-    /// <summary>
-    /// For quick check, this applies to 10242 (<see cref="TextureParameterName.TextureWrapS"/>).
-    /// </summary>
-    public static void TexWrapS(TextureTarget target, TextureWrapMode mode) =>
-        TexParameter(target, TextureParameterName.TextureWrapS, (int) mode);
-
-    /// <summary>
-    /// For quick check, this applies to 10243 (<see cref="TextureParameterName.TextureWrapT"/>).
-    /// </summary>
-    public static void TexWrapT(TextureTarget target, TextureWrapMode mode) =>
-        TexParameter(target, TextureParameterName.TextureWrapT, (int) mode);
-
-    public static void PixelStore(PixelStoreParameter pName, int param)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.PixelStore(pName, param);
-    }
-
-    public static void TexSubImage2D(TextureTarget target, int level, int xOffset, int yOffset, int width, int height,
-        PixelFormat format, PixelType type, IntPtr pixels)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.TexSubImage2D(target, level, xOffset, yOffset, width, height, format, type, pixels);
-    }
     
-    public static void TexSubImage2D(TextureTarget target, int level, int xOffset, int yOffset, int width, int height,
-        PixelFormat format, PixelType type, byte[] buffer)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.TexSubImage2D(target, level, xOffset, yOffset, width, height, format, type, buffer);
-    }
-    
-    public static void TexSubImage2D(TextureTarget target, int level, int xOffset, int yOffset, int width, int height,
-        PixelFormat format, PixelType type, int[] buffer)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.TexSubImage2D(target, level, xOffset, yOffset, width, height, format, type, buffer);
-    }
-
-    public static void GetTexImage(TextureTarget target, int level, PixelFormat format, PixelType type, IntPtr pixels)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.GetTexImage(target, level, format, type, pixels);
-    }
-
-    public static void BindTexture(int texture)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        if (texture != _textures[_activeTexture].Binding)
-        {
-            _textures[_activeTexture].Binding = texture;
-            GL.BindTexture(TextureTarget.Texture2D, texture);
-        }
-    }
-
-    private static void InternalActiveTexture(int textureUnit)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.ActiveTexture((TextureUnit) textureUnit);
-    }
-
-    public static int GetActiveTexture() => _activeTexture + TextureUnit;
-
-    public static void ActiveTexture(int textureUnit)
-    {
-        RenderSystem.AssertOnRenderThread();
-        if (_activeTexture != textureUnit - TextureUnit)
-        {
-            _activeTexture = textureUnit - TextureUnit;
-            InternalActiveTexture(textureUnit);
-        }
-    }
-
-    public static void TexImage2D(TextureTarget target, int level, PixelInternalFormat internalFormat, int width,
-        int height, int border, PixelFormat format, PixelType type, IntPtr pixels)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.TexImage2D(target, level, internalFormat, width, height, border, format, type, pixels);
-    }
-
     public static void EnableDepthTest()
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         _depth.State.Enable();
+
+        if (!_pipelineDescription.DepthStencilState.DepthTestEnabled)
+        {
+            _pipelineDescription.DepthStencilState.DepthTestEnabled = true;
+            _pipelineDirty = true;
+        }
     }
 
     public static void DisableDepthTest()
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         _depth.State.Disable();
+        
+        if (_pipelineDescription.DepthStencilState.DepthTestEnabled)
+        {
+            _pipelineDescription.DepthStencilState.DepthTestEnabled = false;
+            _pipelineDirty = true;
+        }
     }
 
-    public static void DepthFunc(DepthFunction func)
+    public static void DepthFunc(ComparisonKind func)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         if (func == _depth.DepthFunction) return;
-
         _depth.DepthFunction = func;
-        GL.DepthFunc(func);
+        
+        if (_pipelineDescription.DepthStencilState.DepthComparison != func)
+        {
+            _pipelineDescription.DepthStencilState.DepthComparison = func;
+            _pipelineDirty = true;
+        }
     }
 
     public static void DisableBlend()
     {
         RenderSystem.AssertOnRenderThread();
         _blend.State.Disable();
+
+        var state = _pipelineDescription.BlendState.AttachmentStates[0];
+        if (state.BlendEnabled)
+        {
+            state.BlendEnabled = false;
+            _pipelineDirty = true;
+        }
     }
 
     public static void EnableBlend()
     {
         RenderSystem.AssertOnRenderThread();
         _blend.State.Enable();
+        
+        var state = _pipelineDescription.BlendState.AttachmentStates[0];
+        if (state.BlendEnabled)
+        {
+            state.BlendEnabled = true;
+            _pipelineDirty = true;
+        }
     }
 
-    public static void BlendFunc(BlendingFactorSrc sourceFactor, BlendingFactorDest destFactor)
-    {
-        RenderSystem.AssertOnRenderThread();
-        if (sourceFactor == _blend.SrcRgb && destFactor == _blend.DstRgb) return;
+    public static void BlendFunc(BlendFactor sourceFactor, BlendFactor destFactor) => 
+        BlendFuncSeparate(sourceFactor, destFactor, sourceFactor, destFactor);
 
-        _blend.SrcRgb = sourceFactor;
-        _blend.DstRgb = destFactor;
-        GL.BlendFunc((BlendingFactor) sourceFactor, (BlendingFactor) destFactor);
-    }
-
-    public static void BlendFuncSeparate(BlendingFactorSrc sourceRgb, BlendingFactorDest destRgb,
-        BlendingFactorSrc sourceAlpha, BlendingFactorDest destAlpha)
+    public static void BlendFuncSeparate(BlendFactor sourceRgb, BlendFactor destRgb,
+        BlendFactor sourceAlpha, BlendFactor destAlpha)
     {
         RenderSystem.AssertOnRenderThread();
         if (sourceRgb == _blend.SrcRgb && destRgb == _blend.DstRgb &&
@@ -327,228 +154,35 @@ public static class GlStateManager
         _blend.DstRgb = destRgb;
         _blend.SrcAlpha = sourceAlpha;
         _blend.DstAlpha = destAlpha;
-        GL.BlendFuncSeparate(sourceRgb, destRgb, sourceAlpha, destAlpha);
+
+        var state = _pipelineDescription.BlendState.AttachmentStates[0];
+        if (state.SourceColorFactor == sourceRgb && state.DestinationColorFactor == destRgb &&
+            state.SourceAlphaFactor == sourceAlpha && state.DestinationAlphaFactor == destAlpha) return;
+        
+        state.SourceColorFactor = sourceRgb;
+        state.DestinationColorFactor = destRgb;
+        state.SourceAlphaFactor = sourceAlpha;
+        state.DestinationAlphaFactor = destAlpha;
+        _pipelineDirty = true;
     }
 
-    public static void Uniform1(int location, int[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.Uniform1(location, 1, buffer);
-    }
-
-    public static void Uniform1(int location, float[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.Uniform1(location, 1, buffer);
-    }
-
-    public static void Uniform1(int location, int value)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.Uniform1(location, value);
-    }
-
-    public static void Uniform2(int location, int[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.Uniform2(location, 1, buffer);
-    }
-
-    public static void Uniform2(int location, float[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.Uniform2(location, 1, buffer);
-    }
-
-    public static void Uniform3(int location, int[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.Uniform3(location, 1, buffer);
-    }
-
-    public static void Uniform3(int location, float[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.Uniform3(location, 1, buffer);
-    }
-
-    public static void Uniform4(int location, int[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.Uniform4(location, 1, buffer);
-    }
-
-    public static void Uniform4(int location, float[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.Uniform4(location, 1, buffer);
-    }
-
-    public static void UniformMatrix2(int location, bool transpose, float[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.UniformMatrix2(location, 1, transpose, buffer);
-    }
-
-    public static void UniformMatrix3(int location, bool transpose, float[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.UniformMatrix3(location, 1, transpose, buffer);
-    }
-
-    public static void UniformMatrix4(int location, bool transpose, float[] buffer)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.UniformMatrix4(location, 1, transpose, buffer);
-    }
-
-    public static void BlendEquation(BlendEquationMode func)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.BlendEquation(func);
-    }
-
-    public static int CreateShader(ShaderType type)
-    {
-        RenderSystem.AssertOnRenderThread();
-        return GL.CreateShader(type);
-    }
-
-    public static void ShaderSource(int shader, List<string> list)
+    public static void BlendEquation(BlendFunction func)
     {
         RenderSystem.AssertOnRenderThread();
 
-        var source = string.Join('\n', list);
-        GL.ShaderSource(shader, source);
+        var state = _pipelineDescription.BlendState.AttachmentStates[0];
+        if (state.ColorFunction == func && state.AlphaFunction == func) return;
+        
+        state.ColorFunction = func;
+        state.AlphaFunction = func;
+        _pipelineDirty = true;
     }
 
-    public static void CompileShader(int shader)
+    public static void UseProgram(ShaderSetDescription shaderSet)
     {
-        RenderSystem.AssertOnRenderThread();
-        GL.CompileShader(shader);
-    }
-
-    public static int GetShaderI(int shader, ShaderParameter pName)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.GetShader(shader, pName, out var result);
-        return result;
-    }
-
-    public static string GetShaderInfoLog(int shader, int maxLength)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.GetShaderInfoLog(shader, maxLength, out _, out var result);
-        return result;
-    }
-
-    public static string GetShaderInfoLog(int shader)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.GetShaderInfoLog(shader, out var result);
-        return result;
-    }
-
-    public static void UseProgram(int program)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.UseProgram(program);
-    }
-
-    public static void DeleteShader(int shader)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.DeleteSampler(shader);
-    }
-
-    public static void DeleteProgram(int program)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.DeleteProgram(program);
-    }
-
-    public static int CreateProgram()
-    {
-        RenderSystem.AssertOnRenderThread();
-        return GL.CreateProgram();
-    }
-
-    public static void LinkProgram(int program)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.LinkProgram(program);
-    }
-
-    public static int GetProgramI(int program, GetProgramParameterName pName)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.GetProgram(program, pName, out var result);
-        return result;
-    }
-
-    public static string GetProgramInfoLog(int program, int maxLength)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.GetProgramInfoLog(program, maxLength, out _, out var result);
-        return result;
-    }
-
-    public static string GetProgramInfoLog(int program)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.GetProgramInfoLog(program, out var result);
-        return result;
-    }
-
-    public static int GetUniformLocation(int program, string name)
-    {
-        RenderSystem.AssertOnRenderThread();
-        return GL.GetUniformLocation(program, name);
-    }
-
-    public static void BindAttribLocation(int program, int index, string name)
-    {
-        RenderSystem.AssertOnRenderThread();
-        GL.BindAttribLocation(program, index, name);
-    }
-
-    public static void BindFramebuffer(FramebufferTarget target, int framebuffer)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.BindFramebuffer(target, framebuffer);
-    }
-
-    public static void DeleteFramebuffers(int framebuffer)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.DeleteFramebuffers(1, ref framebuffer);
-    }
-
-    public static int GetTexLevelParameter(TextureTarget target, int level, GetTextureParameter pName)
-    {
-        RenderSystem.AssertInInitPhase();
-        GL.GetTexLevelParameter(target, level, pName, out int result);
-        return result;
-    }
-
-    public static int GenFramebuffers()
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.GenFramebuffers(1, out int result);
-        return result;
-    }
-
-    public static void FramebufferTexture2D(FramebufferTarget target, FramebufferAttachment attachment,
-        TextureTarget textureTarget, int texture, int level)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.FramebufferTexture2D(target, attachment, textureTarget, texture, level);
-    }
-
-    public static FramebufferErrorCode CheckFramebufferStatus(FramebufferTarget target)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        return GL.CheckFramebufferStatus(target);
+        if (_pipelineDescription.ShaderSet.Equals(shaderSet)) return;
+        _pipelineDescription.ShaderSet = shaderSet;
+        _pipelineDirty = true;
     }
 
     public static void Viewport(int x, int y, int width, int height)
@@ -558,125 +192,90 @@ public static class GlStateManager
         ViewportState.Y = y;
         ViewportState.Width = width;
         ViewportState.Height = height;
-        GL.Viewport(x, y, width, height);
+        
+        _commandList!.SetViewport(0, 
+            new Viewport(ViewportState.X, ViewportState.Y, ViewportState.Width, ViewportState.Height, 
+                0, 1));
     }
-
-    public static void ClearColor(float red, float green, float blue, float alpha)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.ClearColor(red, green, blue, alpha);
-    }
-
-    public static void Clear(ClearBufferMask mask, bool clearError)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.Clear(mask);
-
-        if (clearError) GetError();
-    }
-
-    public static ErrorCode GetError()
-    {
-        RenderSystem.AssertOnRenderThread();
-        return GL.GetError();
-    }
-
+    
     public static void ClearDepth(double depth)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        GL.ClearDepth(depth);
+        _commandList!.ClearDepthStencil((float) depth);
     }
 
-    public static void BlitFramebuffer(
-        int srcX0, int srcY0, int srcX1, int srcY1,
-        int dstX0, int dstY0, int dstX1, int dstY1,
-        ClearBufferMask clearMask, BlitFramebufferFilter filter)
+    public static void BindVertexBuffer(DeviceBuffer buffer)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        GL.BlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, clearMask, filter);
+        _commandList!.SetVertexBuffer(0, buffer);
     }
-
-    public static int GenBuffers()
+    
+    public static void BindIndexBuffer(DeviceBuffer buffer, IndexFormat format)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        GL.GenBuffers(1, out int result);
-        return result;
+        _commandList!.SetIndexBuffer(buffer, format);
     }
 
-    public static int GenVertexArrays()
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.GenVertexArrays(1, out int result);
-        return result;
-    }
-
-    public static void BindBuffer(BufferTarget target, int buffer)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.BindBuffer(target, buffer);
-    }
-
-    public static void BufferData(BufferTarget target, ReadOnlySpan<byte> span, BufferUsageHint usage)
+    public static void BufferData(DeviceBuffer buffer, ReadOnlySpan<byte> span)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         unsafe
         {
             fixed (byte* ptr = span)
             {
-                GL.BufferData(target, span.Length, (IntPtr) ptr, usage);
+                _commandList!.UpdateBuffer(buffer, 0, (IntPtr) ptr, (uint) span.Length);
             }
         }
     }
-
-    public static void BufferData(BufferTarget target, nint size, BufferUsageHint usage)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.BufferData(target, size, IntPtr.Zero, usage);
-    }
-
-    public static void DrawElements(PrimitiveType mode, int count, DrawElementsType type, IntPtr indices)
+    
+    public static void DrawElements(PrimitiveTopology mode, int count)
     {
         RenderSystem.AssertOnRenderThread();
-        GL.DrawElements(mode, count, type, indices);
+        if (_pipelineDescription.PrimitiveTopology != mode)
+        {
+            _pipelineDescription.PrimitiveTopology = mode;
+            _pipelineDirty = true;
+        } 
+        
+        BuildPipelineIfDirty();
+        
+        _commandList!.SetPipeline(_pipeline);
+        // TODO: Bind resource sets
+        // _commandList!.SetGraphicsResourceSet(0, );
+        // _commandList!.SetGraphicsResourceSet(1, );
+
+        _commandList.Draw((uint) count);
     }
 
     public static void EnableCull()
     {
         RenderSystem.AssertOnRenderThread();
         _cull.State.Enable();
+
+        if (_pipelineDescription.RasterizerState.CullMode != FaceCullMode.None) return;
+        _pipelineDescription.RasterizerState.CullMode = _cull.Mode;
+        _pipelineDirty = true;
     }
 
     public static void DepthMask(bool flag)
     {
         RenderSystem.AssertOnRenderThread();
         if (flag == _depth.EnableMask) return;
-
         _depth.EnableMask = flag;
-        GL.DepthMask(flag);
-    }
 
-    public static IntPtr MapBuffer(BufferTarget target, BufferAccess access)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        return GL.MapBuffer(target, access);
-    }
-
-    public static void UnmapBuffer(BufferTarget target)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.UnmapBuffer(target); // the bool result is discarded
-    }
-
-    public static void BindVertexArray(int array)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GL.BindVertexArray(array);
+        if (_pipelineDescription.DepthStencilState.DepthWriteEnabled == flag) return;
+        _pipelineDescription.DepthStencilState.DepthWriteEnabled = flag;
+        _pipelineDirty = true;
     }
     
     public static void DisableCull()
     {
         RenderSystem.AssertOnRenderThread();
         _cull.State.Disable();
+
+        if (_pipelineDescription.RasterizerState.CullMode == FaceCullMode.None) return;
+        _pipelineDescription.RasterizerState.CullMode = FaceCullMode.None;
+        _pipelineDirty = true;
     }
 
     public static void ColorMask(bool red, bool green, bool blue, bool alpha)
@@ -689,51 +288,40 @@ public static class GlStateManager
         _colorMask.Green = green;
         _colorMask.Blue = blue;
         _colorMask.Alpha = alpha;
-        GL.ColorMask(red, green, blue, alpha);
-    }
-    
-    private static bool ResolveFuncSupport(string funcName)
-    {
-        var ptr = new GLFWBindingsContext().GetProcAddress("glObjectLabel");
-        if (ptr == 0)
-        {
-            Logger.Warn(
-                MiaComponent.Translatable("GL function %s not supported!")
-                    .AddWith(MiaComponent.Literal($"{funcName}()")
-                        .SetColor(TextColor.Aqua)
-                    )
-            );
-            return false;
-        }
 
-        return true;
-    }
-    
-    public static void ObjectLabel(ObjectLabelIdentifier identifier, int name, string label)
-    {
-        RenderSystem.AssertOnRenderThread();
-        if (!_funcSupportCache.ComputeIfAbsent("glObjectLabel", ResolveFuncSupport))
-            return;
+        var state = _pipelineDescription.BlendState.AttachmentStates[0];
         
-        GL.ObjectLabel(identifier, name, label.Length, label);
+        var mask = ColorWriteMask.None;
+        if (red) mask |= ColorWriteMask.Red;
+        if (green) mask |= ColorWriteMask.Green;
+        if (blue) mask |= ColorWriteMask.Blue;
+        if (alpha) mask |= ColorWriteMask.Alpha;
+        
+        if (!state.ColorWriteMask.HasValue)
+        {
+            state.ColorWriteMask = mask;
+            _pipelineDirty = true;
+        }
+        else
+        {
+            var oldMask = state.ColorWriteMask.Value;
+            if (oldMask == mask) return;
+
+            state.ColorWriteMask = mask;
+            _pipelineDirty = true;
+        }
     }
 
     public static void PushDebugGroup(string message)
     {
         RenderSystem.AssertOnRenderThread();
-        if (!_funcSupportCache.ComputeIfAbsent("glPushDebugGroup", ResolveFuncSupport))
-            return;
-
-        GL.PushDebugGroup(DebugSourceExternal.DebugSourceApplication, 0, message.Length, message);
+        _commandList!.PushDebugGroup(message);
     }
     
     public static void PopDebugGroup()
     {
         RenderSystem.AssertOnRenderThread();
-        if (!_funcSupportCache.ComputeIfAbsent("glPopDebugGroup", ResolveFuncSupport))
-            return;
-        
-        GL.PopDebugGroup();
+        _commandList!.PopDebugGroup();
     }
 
     public static void WrapWithDebugGroup(string message, Action action)
@@ -758,7 +346,7 @@ public static class GlStateManager
 
         _polyOffset.Factor = factor;
         _polyOffset.Units = units;
-        GL.PolygonOffset(factor, units);
+        // TODO: GL.PolygonOffset(factor, units);
     }
     
     public static void EnablePolygonOffset()
@@ -777,18 +365,26 @@ public static class GlStateManager
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         _scissor.State.Enable();
+
+        if (_pipelineDescription.RasterizerState.ScissorTestEnabled) return;
+        _pipelineDescription.RasterizerState.ScissorTestEnabled = true;
+        _pipelineDirty = true;
     }
 
     public static void ScissorBox(int x, int y, int width, int height)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        GL.Scissor(x, y, width, height);
+        _commandList!.SetScissorRect(0, (uint) x, (uint) y, (uint) width, (uint) height);
     }
 
     public static void DisableScissorTest()
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         _scissor.State.Disable();
+        
+        if (!_pipelineDescription.RasterizerState.ScissorTestEnabled) return;
+        _pipelineDescription.RasterizerState.ScissorTestEnabled = false;
+        _pipelineDirty = true;
     }
 
     // Why is this needed?

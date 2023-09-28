@@ -1,15 +1,12 @@
-﻿using OpenTK.Graphics.OpenGL4;
-
-namespace MiaCrate.Client.Platform;
+﻿namespace MiaCrate.Client.Platform;
 
 public class BoolState
 {
-    private readonly EnableCap _state;
-    private bool _enabled;
+    public bool IsEnabled { get; private set; }
 
-    public BoolState(EnableCap state)
+    public BoolState()
     {
-        _state = state;
+        
     }
 
     public void Disable() => SetEnabled(false);
@@ -18,16 +15,6 @@ public class BoolState
 
     public void SetEnabled(bool enabled)
     {
-        if (enabled == _enabled) return;
-        _enabled = enabled;
-        
-        if (enabled)
-        {
-            GL.Enable(_state);
-        }
-        else
-        {
-            GL.Disable(_state);
-        }
+        IsEnabled = enabled;
     }
 }

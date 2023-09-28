@@ -3,7 +3,6 @@ using MiaCrate.Client.Systems;
 using MiaCrate.Resources;
 using MiaCrate.World.Inventories;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -79,8 +78,16 @@ public class TextureAtlas : AbstractTexture, IDumpable, ITickable
     public void Upload(SpriteLoader.Preparations preparations)
     {
         Logger.Info($"Created: {preparations.Width}x{preparations.Height}x{preparations.MipLevel} {Location}-atlas");
-        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, Id, $"TextureAtlas - {Location}-atlas");
-        TextureUtil.PrepareImage(Id, preparations.MipLevel, preparations.Width, preparations.Height);
+        var preparation = TextureUtil.PrepareImage(preparations.MipLevel, preparations.Width, preparations.Height);
+        _textureDescription = preparation.TextureDescription;
+        _samplerDescription = preparation.SamplerDescription;
+
+        var factory = GlStateManager.ResourceFactory;
+        Texture?.Dispose();
+        Texture = factory.CreateTexture(_textureDescription);
+        
+        Sampler?.Dispose();
+        Sampler = factory.CreateSampler(_samplerDescription);
 
         Width = preparations.Width;
         Height = preparations.Height;
@@ -97,7 +104,7 @@ public class TextureAtlas : AbstractTexture, IDumpable, ITickable
 
             try
             {
-                sprite.UploadFirstFrame();
+                sprite.UploadFirstFrame(this);
             }
             catch (Exception ex)
             {

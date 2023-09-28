@@ -1,7 +1,5 @@
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Nodes;
-using MiaCrate.Client.Pipeline;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Preprocessor;
 using MiaCrate.Client.Shaders;
@@ -9,7 +7,6 @@ using MiaCrate.Client.Systems;
 using MiaCrate.Json;
 using MiaCrate.Resources;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
 using Veldrid;
 using Veldrid.SPIRV;
 
@@ -40,9 +37,9 @@ public class ShaderInstance : IShader, IDisposable
 
     public int Id { get; }
     public string Name { get; }
-    public Shader VertexProgram { get; }
+    public Program VertexProgram { get; }
 
-    public Shader FragmentProgram { get; }
+    public Program FragmentProgram { get; }
     public VertexFormat VertexFormat { get; }
     
     public Uniform? ModelViewMatrix { get; }
@@ -160,8 +157,8 @@ public class ShaderInstance : IShader, IDisposable
             
             var layout = format.CreateVertexLayoutDescription();
 
-            VertexProgram = shaders[0];
-            FragmentProgram = shaders[1];
+            VertexProgram = new Program(ProgramType.Vertex, shaders[0], name);
+            FragmentProgram = new Program(ProgramType.Fragment, shaders[1], name);
             _shaderSetDesc = new ShaderSetDescription(new []{layout}, shaders);
             
             // GlStateManager.ResourceFactory.CreateShader()
@@ -315,19 +312,19 @@ public class ShaderInstance : IShader, IDisposable
     public void Clear()
     {
         RenderSystem.AssertOnRenderThread();
-        ProgramManager.UseProgram(0);
+        ProgramManager.UseProgram(new ShaderSetDescription());
         _lastProgramId = -1;
         _lastAppliedShader = null;
-
-        var i = GlStateManager.GetActiveTexture();
-        for (var j = 0; j < _samplerNames.Count; j++)
-        {
-            if (!_samplerMap.ContainsKey(_samplerNames[j]) || _samplerMap[_samplerNames[j]] == null) continue;
-            GlStateManager.ActiveTexture((int) TextureUnit.Texture0 + j);
-            GlStateManager.BindTexture(0);
-        }
-
-        GlStateManager.ActiveTexture(i);
+        
+        // var i = GlStateManager.GetActiveTexture();
+        // for (var j = 0; j < _samplerNames.Count; j++)
+        // {
+        //     if (!_samplerMap.ContainsKey(_samplerNames[j]) || _samplerMap[_samplerNames[j]] == null) continue;
+        //     GlStateManager.ActiveTexture((int) TextureUnit.Texture0 + j);
+        //     GlStateManager.BindTexture(0);
+        // }
+        //
+        // GlStateManager.ActiveTexture(i);
     }
     
     public void Apply()
@@ -339,41 +336,41 @@ public class ShaderInstance : IShader, IDisposable
 
         if (Id != _lastProgramId)
         {
-            ProgramManager.UseProgram(Id);
+            ProgramManager.UseProgram(_shaderSetDesc);
             _lastProgramId = Id;
         }
 
-        var i = GlStateManager.GetActiveTexture();
-        for (var j = 0; j < _samplerLocations.Count; j++)
-        {
-            var name = _samplerNames[j];
-            if (_samplerMap.TryGetValue(name, out var sampler) && sampler != null)
-            {
-                var k = Uniform.GetUniformLocation(Id, name);
-                Uniform.UploadInteger(k, j);
-                
-                RenderSystem.ActiveTexture((int) TextureUnit.Texture0 + j);
-                var l = -1;
-
-                if (sampler is RenderTarget target)
-                {
-                    l = target.ColorTextureId;
-                } else if (sampler is AbstractTexture texture)
-                {
-                    l = texture.Id;
-                } else if (sampler is int id)
-                {
-                    l = id;
-                }
-
-                if (l != -1)
-                {
-                    RenderSystem.BindTexture(l);
-                }
-            }
-        }
-        
-        GlStateManager.ActiveTexture(i);
+        // var i = GlStateManager.GetActiveTexture();
+        // for (var j = 0; j < _samplerLocations.Count; j++)
+        // {
+        //     var name = _samplerNames[j];
+        //     if (_samplerMap.TryGetValue(name, out var sampler) && sampler != null)
+        //     {
+        //         var k = Uniform.GetUniformLocation(Id, name);
+        //         Uniform.UploadInteger(k, j);
+        //         
+        //         RenderSystem.ActiveTexture((int) TextureUnit.Texture0 + j);
+        //         var l = -1;
+        //
+        //         if (sampler is RenderTarget target)
+        //         {
+        //             l = target.ColorTextureId;
+        //         } else if (sampler is AbstractTexture texture)
+        //         {
+        //             l = texture.Id;
+        //         } else if (sampler is int id)
+        //         {
+        //             l = id;
+        //         }
+        //
+        //         if (l != -1)
+        //         {
+        //             RenderSystem.BindTexture(l);
+        //         }
+        //     }
+        // }
+        //
+        // GlStateManager.ActiveTexture(i);
         
         foreach (var uniform in _uniforms)
         {
@@ -390,43 +387,43 @@ public class ShaderInstance : IShader, IDisposable
     public static BlendMode ParseBlendNode(JsonObject? obj)
     {
         if (obj == null) return new BlendMode();
-        var blendFunc = BlendEquationMode.FuncAdd;
-        var srcRgb = BlendingFactorSrc.One;
-        var dstRgb = BlendingFactorDest.Zero;
-        var srcAlpha = BlendingFactorSrc.One;
-        var dstAlpha = BlendingFactorDest.Zero;
+        var blendFunc = BlendFunction.Add;
+        var srcRgb = BlendFactor.One;
+        var dstRgb = BlendFactor.Zero;
+        var srcAlpha = BlendFactor.One;
+        var dstAlpha = BlendFactor.Zero;
         var isDefault = true;
         var isSeparate = false;
 
         if (obj.TryGetPropertyValue("func", out var funcNode))
         {
             blendFunc = BlendMode.StringToBlendFunc(funcNode!.GetValue<string>());
-            if (blendFunc != BlendEquationMode.FuncAdd) isDefault = false;
+            if (blendFunc != BlendFunction.Add) isDefault = false;
         }
 
         if (obj.TryGetPropertyValue("srcrgb", out var srcRgbNode))
         {
             srcRgb = BlendMode.StringToBlendFactorSrc(srcRgbNode!.GetValue<string>());
-            if (srcRgb != BlendingFactorSrc.One) isDefault = false;
+            if (srcRgb != BlendFactor.One) isDefault = false;
         }
         
         if (obj.TryGetPropertyValue("dstrgb", out var dstRgbNode))
         {
             dstRgb = BlendMode.StringToBlendFactorDest(dstRgbNode!.GetValue<string>());
-            if (dstRgb != BlendingFactorDest.Zero) isDefault = false;
+            if (dstRgb != BlendFactor.Zero) isDefault = false;
         }
         
         if (obj.TryGetPropertyValue("srcalpha", out var srcAlphaNode))
         {
             srcAlpha = BlendMode.StringToBlendFactorSrc(srcAlphaNode!.GetValue<string>());
-            if (srcAlpha != BlendingFactorSrc.One) isDefault = false;
+            if (srcAlpha != BlendFactor.One) isDefault = false;
             isSeparate = true;
         }
         
         if (obj.TryGetPropertyValue("dstalpha", out var dstAlphaNode))
         {
             dstAlpha = BlendMode.StringToBlendFactorDest(dstAlphaNode!.GetValue<string>());
-            if (dstAlpha != BlendingFactorDest.Zero) isDefault = false;
+            if (dstAlpha != BlendFactor.Zero) isDefault = false;
             isSeparate = true;
         }
 
@@ -508,8 +505,7 @@ public class ShaderInstance : IShader, IDisposable
 
     public void AttachToProgram()
     {
-        FragmentProgram.AttachToShader(this);
-        VertexProgram.AttachToShader(this);
+        
     }
 
     public void Dispose()

@@ -1,13 +1,11 @@
-﻿using System.Resources;
+﻿using MiaCrate.Client.Platform;
 using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.UI;
-using MiaCrate.Data;
-using MiaCrate.Extensions;
 using MiaCrate.Resources;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -209,14 +207,6 @@ public class GameRenderer : IDisposable
     private void ReloadShaders(IResourceProvider provider)
     {
         RenderSystem.AssertOnRenderThread();
-        var list = new List<Program>();
-        list.AddRange(ProgramType.Fragment.Programs.Values);
-        list.AddRange(ProgramType.Vertex.Programs.Values);
-
-        foreach (var program in list)
-        {
-            program.Dispose();
-        }
 
         var list2 = new List<(ShaderInstance, Action<ShaderInstance>)>();
 
@@ -461,11 +451,12 @@ public class GameRenderer : IDisposable
         var bl2 = _game.IsGameLoadFinished;
         var i = (int) (_game.MouseHandler.XPos * _game.Window.GuiScaledWidth / _game.Window.ScreenWidth);
         var j = (int) (_game.MouseHandler.YPos * _game.Window.GuiScaledHeight / _game.Window.ScreenHeight);
-        RenderSystem.Viewport(0, 0, _game.Window.Width, _game.Window.Height);
+
+        var cl = GlStateManager.CommandList;
+        cl.SetViewport(0, new Viewport(0, 0, _game.Window.Width, _game.Window.Height, 0, 1));
+        cl.ClearDepthStencil(1f);
 
         var window = _game.Window;
-        RenderSystem.Clear(ClearBufferMask.DepthBufferBit, Game.OnMacOs);
-
         var matrix = Matrix4.CreateOrthographicOffCenter(0, (float) (window.Width / window.GuiScale),
             (float) (window.Height / window.GuiScale), 0, 1000, 21000);
         RenderSystem.SetProjectionMatrix(matrix, IVertexSorting.OrthoZ);

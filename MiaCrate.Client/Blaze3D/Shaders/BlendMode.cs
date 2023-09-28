@@ -1,5 +1,5 @@
 ﻿using MiaCrate.Client.Systems;
-using OpenTK.Graphics.OpenGL4;
+using Veldrid;
 
 namespace MiaCrate.Client.Shaders;
 
@@ -8,17 +8,17 @@ public class BlendMode
     private static BlendMode? _lastApplied;
     
     private readonly bool _separateBlend;
-    private readonly BlendingFactorSrc _srcRgb;
-    private readonly BlendingFactorDest _dstRgb;
-    private readonly BlendingFactorSrc _srcAlpha;
-    private readonly BlendingFactorDest _dstAlpha;
-    private readonly BlendEquationMode _blendFunc;
+    private readonly BlendFactor _srcRgb;
+    private readonly BlendFactor _dstRgb;
+    private readonly BlendFactor _srcAlpha;
+    private readonly BlendFactor _dstAlpha;
+    private readonly BlendFunction _blendFunc;
 
     public bool IsOpaque { get; }
     
     private BlendMode(bool separateBlend, bool opaque, 
-        BlendingFactorSrc srcRgb, BlendingFactorDest dstRgb,
-        BlendingFactorSrc srcAlpha, BlendingFactorDest dstAlpha, BlendEquationMode blendFunc)
+        BlendFactor srcRgb, BlendFactor dstRgb,
+        BlendFactor srcAlpha, BlendFactor dstAlpha, BlendFunction blendFunc)
     {
         _separateBlend = separateBlend;
         IsOpaque = opaque;
@@ -30,19 +30,19 @@ public class BlendMode
     }
     
     public BlendMode() : this(false, true, 
-        BlendingFactorSrc.One, BlendingFactorDest.Zero, BlendingFactorSrc.One,
-        BlendingFactorDest.Zero, BlendEquationMode.FuncAdd)
+        BlendFactor.One, BlendFactor.Zero, BlendFactor.One,
+        BlendFactor.Zero, BlendFunction.Add)
     {
     }
 
-    public BlendMode(BlendingFactorSrc sourceFactor, BlendingFactorDest destFactor, BlendEquationMode blendFunc)
+    public BlendMode(BlendFactor sourceFactor, BlendFactor destFactor, BlendFunction blendFunc)
         : this(false, false, sourceFactor, destFactor, sourceFactor, destFactor, blendFunc)
     {
         
     }
 
-    public BlendMode(BlendingFactorSrc srcRgb, BlendingFactorDest dstRgb,
-        BlendingFactorSrc srcAlpha, BlendingFactorDest dstAlpha, BlendEquationMode blendFunc)
+    public BlendMode(BlendFactor srcRgb, BlendFactor dstRgb,
+        BlendFactor srcAlpha, BlendFactor dstAlpha, BlendFunction blendFunc)
         : this(true, false, srcRgb, dstRgb, srcAlpha, dstAlpha, blendFunc)
     {
         
@@ -94,22 +94,22 @@ public class BlendMode
     public static bool operator ==(BlendMode? a, BlendMode? b) => a?.Equals(b) ?? ReferenceEquals(b, null);
     public static bool operator !=(BlendMode? a, BlendMode? b) => !(a?.Equals(b) ?? !ReferenceEquals(b, null));
 
-    public static BlendEquationMode StringToBlendFunc(string str)
+    public static BlendFunction StringToBlendFunc(string str)
     {
         str = str.Trim().ToLowerInvariant();
         
         return str switch
         {
-            "add" => BlendEquationMode.FuncAdd,
-            "subtract" => BlendEquationMode.FuncSubtract,
-            "reversesubtract" or "reverse_subtract" => BlendEquationMode.FuncReverseSubtract,
-            "min" => BlendEquationMode.Min,
-            "max" => BlendEquationMode.Max,
-            _ => BlendEquationMode.FuncAdd
+            "add" => BlendFunction.Add,
+            "subtract" => BlendFunction.Subtract,
+            "reversesubtract" or "reverse_subtract" => BlendFunction.ReverseSubtract,
+            "min" => BlendFunction.Minimum,
+            "max" => BlendFunction.Maximum,
+            _ => BlendFunction.Add
         };
     }
 
-    public static BlendingFactor StringToBlendFactor(string str)
+    public static BlendFactor StringToBlendFactor(string str)
     {
         str = str.Trim().ToLowerInvariant()
             .Replace("_", "")
@@ -119,20 +119,20 @@ public class BlendMode
 
         return str switch
         {
-            "0" => BlendingFactor.Zero,
-            "1" => BlendingFactor.One,
-            "srccolor" => BlendingFactor.SrcColor,
-            "1-srccolor" => BlendingFactor.OneMinusSrcColor,
-            "dstcolor" => BlendingFactor.DstColor,
-            "1-dstcolor" => BlendingFactor.OneMinusDstColor,
-            "srcalpha" => BlendingFactor.SrcAlpha,
-            "1-srcalpha" => BlendingFactor.OneMinusSrcAlpha,
-            "dstalpha" => BlendingFactor.DstAlpha,
-            "1-dstalpha" => BlendingFactor.OneMinusDstAlpha,
-            _ => (BlendingFactor) (-1)
+            "0" => BlendFactor.Zero,
+            "1" => BlendFactor.One,
+            "srccolor" => BlendFactor.SourceColor,
+            "1-srccolor" => BlendFactor.InverseSourceColor,
+            "dstcolor" => BlendFactor.DestinationColor,
+            "1-dstcolor" => BlendFactor.InverseDestinationColor,
+            "srcalpha" => BlendFactor.SourceAlpha,
+            "1-srcalpha" => BlendFactor.InverseSourceAlpha,
+            "dstalpha" => BlendFactor.DestinationAlpha,
+            "1-dstalpha" => BlendFactor.InverseSourceAlpha,
+            _ => throw new ArgumentOutOfRangeException(nameof(str), str, null)
         };
     }
 
-    public static BlendingFactorSrc StringToBlendFactorSrc(string str) => (BlendingFactorSrc) StringToBlendFactor(str);
-    public static BlendingFactorDest StringToBlendFactorDest(string str) => (BlendingFactorDest) StringToBlendFactor(str);
+    public static BlendFactor StringToBlendFactorSrc(string str) => StringToBlendFactor(str);
+    public static BlendFactor StringToBlendFactorDest(string str) => StringToBlendFactor(str);
 }

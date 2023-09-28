@@ -1,10 +1,10 @@
-﻿using MiaCrate.Client.Systems;
+﻿using MiaCrate.Client.Platform;
+using MiaCrate.Client.Systems;
 using MiaCrate.Client.UI;
 using MiaCrate.Client.UI.Screens;
 using MiaCrate.Resources;
 using MiaCrate.Texts;
 using Mochi.Texts;
-using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Realms;
 
@@ -47,6 +47,8 @@ public class RealmsPopupScreen : RealmsScreen
     {
         _backgroundScreen.Render(graphics, -1, -1, f);
         graphics.Flush();
-        RenderSystem.Clear(ClearBufferMask.DepthBufferBit, Game.OnMacOs);
+
+        var cl = GlStateManager.CommandList;
+        cl.ClearDepthStencil(1f);
     }
 }

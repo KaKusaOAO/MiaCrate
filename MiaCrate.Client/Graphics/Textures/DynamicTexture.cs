@@ -2,7 +2,6 @@ using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
 using MiaCrate.Resources;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -26,8 +25,17 @@ public class DynamicTexture : AbstractTexture, IDumpable
 
         void ExecuteRenderCall()
         {
-            GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, Id, $"DynamicTexture #{Id}");
-            TextureUtil.PrepareImage(Id, _pixels!.Width, _pixels.Height);
+            var preparation = TextureUtil.PrepareImage(_pixels!.Width, _pixels.Height);
+            _textureDescription = preparation.TextureDescription;
+            _samplerDescription = preparation.SamplerDescription;
+            
+            var factory = GlStateManager.ResourceFactory;
+            Texture?.Dispose();
+            Texture = factory.CreateTexture(_textureDescription);
+        
+            Sampler?.Dispose();
+            Sampler = factory.CreateSampler(_samplerDescription);
+            
             Upload();
         }
         
@@ -46,20 +54,27 @@ public class DynamicTexture : AbstractTexture, IDumpable
         RenderSystem.AssertOnGameThreadOrInit();
         _pixels = new NativeImage(width, height, clearBuffer);
         
-        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, Id, $"DynamicTexture #{Id}");
-        TextureUtil.PrepareImage(Id, _pixels.Width, _pixels.Height);
+        var preparation = TextureUtil.PrepareImage(_pixels.Width, _pixels.Height);
+        _textureDescription = preparation.TextureDescription;
+        _samplerDescription = preparation.SamplerDescription;
+        
+        var factory = GlStateManager.ResourceFactory;
+        Texture?.Dispose();
+        Texture = factory.CreateTexture(_textureDescription);
+        
+        Sampler?.Dispose();
+        Sampler = factory.CreateSampler(_samplerDescription);
     }
 
     public void Upload()
     {
         if (_pixels == null)
         {
-            Logger.Warn($"Trying to upload disposed texture {Id}");
+            Logger.Warn($"Trying to upload disposed texture {Texture}");
             return;
         }
 
-        Bind();
-        _pixels.Upload(0, 0, 0, false);
+        _pixels.Upload(this, 0, 0, 0, false);
     }
 
     public override void Load(IResourceManager manager)

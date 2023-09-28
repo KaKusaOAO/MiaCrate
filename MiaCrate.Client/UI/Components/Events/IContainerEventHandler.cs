@@ -1,7 +1,6 @@
+using MiaCrate.Client.Utils;
 using MiaCrate.Extensions;
 using Mochi.Utils;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-
 namespace MiaCrate.Client.UI;
 
 public interface IContainerEventHandler : IGuiEventListener

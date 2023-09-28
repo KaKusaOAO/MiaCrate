@@ -1,5 +1,4 @@
 ﻿using MiaCrate.Client.Utils;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace MiaCrate.Client.UI;
 

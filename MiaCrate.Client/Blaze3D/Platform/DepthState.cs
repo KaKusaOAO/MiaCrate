@@ -1,10 +1,10 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using Veldrid;
 
 namespace MiaCrate.Client.Platform;
 
 public class DepthState
 {
-    public BoolState State { get; } = new(EnableCap.DepthTest);
+    public BoolState State { get; } = new();
     public bool EnableMask { get; set; } = true;
-    public DepthFunction DepthFunction { get; set; } = DepthFunction.Less;
+    public ComparisonKind DepthFunction { get; set; } = ComparisonKind.Less;
 }

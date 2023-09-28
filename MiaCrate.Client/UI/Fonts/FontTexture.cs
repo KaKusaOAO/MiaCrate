@@ -2,7 +2,7 @@ using MiaCrate.Client.Fonts;
 using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
 using MiaCrate.Resources;
-using OpenTK.Graphics.OpenGL4;
+using Veldrid;
 
 namespace MiaCrate.Client.UI;
 
@@ -19,10 +19,19 @@ public class FontTexture : AbstractTexture, IDumpable
         _colored = colored;
         _root = new Node(0, 0, Size, Size);
 
-        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, Id, $"FontTexture #{Id}");
-        TextureUtil.PrepareImage(colored
-            ? PixelInternalFormat.Rgba
-            : (PixelInternalFormat) 6403 /* Red */, Id, Size, Size);
+        var preparation = TextureUtil.PrepareImage(colored
+            ? PixelFormat.R8_G8_B8_A8_UNorm
+            : PixelFormat.R8_UNorm, Size, Size);
+        
+        _textureDescription = preparation.TextureDescription;
+        _samplerDescription = preparation.SamplerDescription;
+
+        var factory = GlStateManager.ResourceFactory;
+        Texture?.Dispose();
+        Texture = factory.CreateTexture(_textureDescription);
+        
+        Sampler?.Dispose();
+        Sampler = factory.CreateSampler(_samplerDescription);
         
         _renderTypes = renderTypes;
     }
@@ -44,8 +53,7 @@ public class FontTexture : AbstractTexture, IDumpable
         var node = _root.Insert(info);
         if (node == null) return null;
 
-        Bind();
-        info.Upload(node.X, node.Y);
+        info.Upload(this, node.X, node.Y);
 
         const float width = Size;
         const float height = Size;
@@ -60,7 +68,7 @@ public class FontTexture : AbstractTexture, IDumpable
     public void DumpContents(ResourceLocation location, string path)
     {
         var str = location.ToDebugFileName();
-        TextureUtil.WriteAsPng(path, str, Id, 0, Size, Size, 
+        TextureUtil.WriteAsPng(Texture!, path, str, 0, Size, Size, 
             i => (i & 0xFF000000) == 0 ? 0xFF000000 : i);
     }
 

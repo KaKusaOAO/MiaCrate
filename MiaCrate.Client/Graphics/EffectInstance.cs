@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿using System.Text;
 using System.Text.Json.Nodes;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Shaders;
@@ -6,7 +6,9 @@ using MiaCrate.Client.Systems;
 using MiaCrate.Json;
 using MiaCrate.Resources;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
+using Veldrid;
+using Veldrid.OpenGLBinding;
+using Veldrid.SPIRV;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -29,7 +31,8 @@ public class EffectInstance : IEffect, IDisposable
     private readonly List<string>? _attributeNames;
     private bool _dirty;
     private readonly BlendMode _blend;
-    
+    private ShaderSetDescription _shaderSetDesc;
+
     public int Id { get; }
     public string Name { get; }
     public EffectProgram VertexProgram { get; }
@@ -130,10 +133,23 @@ public class EffectInstance : IEffect, IDisposable
             }
 
             _blend = ParseBlendNode(json["blend"]?.AsObject());
-            VertexProgram = GetOrCreate(manager, ProgramType.Vertex, vertex);
-            FragmentProgram = GetOrCreate(manager, ProgramType.Fragment, fragment);
-            Id = ProgramManager.CreateProgram();
-            ProgramManager.LinkShader(this);
+            var factory = GlStateManager.ResourceFactory;
+            var vConvertResult = GetOrCreate(manager, ProgramType.Vertex, vertex);
+            var fConvertResult = GetOrCreate(manager, ProgramType.Fragment, fragment);
+
+            var vShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.ASCII.GetBytes(vConvertResult.Source),
+                "main");
+            var fShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.ASCII.GetBytes(fConvertResult.Source),
+                "main");
+
+            var shaders = factory.CreateFromSpirv(vShaderDesc, fShaderDesc);
+            
+            // var layout = format.CreateVertexLayoutDescription();
+
+            VertexProgram = new EffectProgram(ProgramType.Vertex, shaders[0], name);
+            FragmentProgram = new EffectProgram(ProgramType.Fragment, shaders[1], name);
+            _shaderSetDesc = new ShaderSetDescription(Array.Empty<VertexLayoutDescription>(), shaders);
+            
             UpdateLocations();
         }
         catch (Exception ex)
@@ -202,14 +218,10 @@ public class EffectInstance : IEffect, IDisposable
         _dirty = true;
     }
 
-    public static EffectProgram GetOrCreate(IResourceManager manager, ProgramType type, string str)
+    public static Program.ConvertResult GetOrCreate(IResourceManager manager, ProgramType type, string str)
     {
         var hasValue = type.Programs.TryGetValue(str, out var program);
-        var effectProgram = (program as EffectProgram)!;
-        if (hasValue && program is not EffectProgram)
-            throw new Exception("Program is not of type EffectProgram");
-        
-        if (hasValue) return effectProgram;
+        if (hasValue) return program!;
 
         var location = new ResourceLocation(EffectShaderPath + str + type.Extension);
         var resource = manager.GetResourceOrThrow(location);
@@ -220,43 +232,43 @@ public class EffectInstance : IEffect, IDisposable
     public static BlendMode ParseBlendNode(JsonObject? obj)
     {
         if (obj == null) return new BlendMode();
-        var blendFunc = BlendEquationMode.FuncAdd;
-        var srcRgb = BlendingFactorSrc.One;
-        var dstRgb = BlendingFactorDest.Zero;
-        var srcAlpha = BlendingFactorSrc.One;
-        var dstAlpha = BlendingFactorDest.Zero;
+        var blendFunc = BlendFunction.Add;
+        var srcRgb = BlendFactor.One;
+        var dstRgb = BlendFactor.Zero;
+        var srcAlpha = BlendFactor.One;
+        var dstAlpha = BlendFactor.Zero;
         var isDefault = true;
         var isSeparate = false;
 
         if (obj.TryGetPropertyValue("func", out var funcNode))
         {
             blendFunc = BlendMode.StringToBlendFunc(funcNode!.GetValue<string>());
-            if (blendFunc != BlendEquationMode.FuncAdd) isDefault = false;
+            if (blendFunc != BlendFunction.Add) isDefault = false;
         }
 
         if (obj.TryGetPropertyValue("srcrgb", out var srcRgbNode))
         {
             srcRgb = BlendMode.StringToBlendFactorSrc(srcRgbNode!.GetValue<string>());
-            if (srcRgb != BlendingFactorSrc.One) isDefault = false;
+            if (srcRgb != BlendFactor.One) isDefault = false;
         }
         
         if (obj.TryGetPropertyValue("dstrgb", out var dstRgbNode))
         {
             dstRgb = BlendMode.StringToBlendFactorDest(dstRgbNode!.GetValue<string>());
-            if (dstRgb != BlendingFactorDest.Zero) isDefault = false;
+            if (dstRgb != BlendFactor.Zero) isDefault = false;
         }
         
         if (obj.TryGetPropertyValue("srcalpha", out var srcAlphaNode))
         {
             srcAlpha = BlendMode.StringToBlendFactorSrc(srcAlphaNode!.GetValue<string>());
-            if (srcAlpha != BlendingFactorSrc.One) isDefault = false;
+            if (srcAlpha != BlendFactor.One) isDefault = false;
             isSeparate = true;
         }
         
         if (obj.TryGetPropertyValue("dstalpha", out var dstAlphaNode))
         {
             dstAlpha = BlendMode.StringToBlendFactorDest(dstAlphaNode!.GetValue<string>());
-            if (dstAlpha != BlendingFactorDest.Zero) isDefault = false;
+            if (dstAlpha != BlendFactor.Zero) isDefault = false;
             isSeparate = true;
         }
 
@@ -339,16 +351,16 @@ public class EffectInstance : IEffect, IDisposable
     public void Clear()
     {
         RenderSystem.AssertOnRenderThread();
-        ProgramManager.UseProgram(0);
+        ProgramManager.UseProgram(new ShaderSetDescription());
         _lastProgramId = -1;
         _lastAppliedEffect = null;
         
-        for (var i = 0; i < _samplerNames.Count; i++)
-        {
-            if (!_samplerMap.ContainsKey(_samplerNames[i]) || _samplerMap[_samplerNames[i]] == null) continue;
-            GlStateManager.ActiveTexture((int) TextureUnit.Texture0 + i);
-            GlStateManager.BindTexture(0);
-        }
+        // for (var i = 0; i < _samplerNames.Count; i++)
+        // {
+        //     if (!_samplerMap.ContainsKey(_samplerNames[i]) || _samplerMap[_samplerNames[i]] == null) continue;
+        //     GlStateManager.ActiveTexture((int) TextureUnit.Texture0 + i);
+        //     GlStateManager.BindTexture(0);
+        // }
     }
 
     public void Apply()
@@ -360,24 +372,24 @@ public class EffectInstance : IEffect, IDisposable
 
         if (Id != _lastProgramId)
         {
-            ProgramManager.UseProgram(Id);
+            ProgramManager.UseProgram(_shaderSetDesc);
             _lastProgramId = Id;
         }
         
-        for (var i = 0; i < _samplerLocations.Count; i++)
-        {
-            var name = _samplerNames[i];
-            if (_samplerMap.TryGetValue(name, out var func) && func != null)
-            {
-                RenderSystem.ActiveTexture((int) TextureUnit.Texture0 + i);
-                var j = func!();
-                if (j != -1)
-                {
-                    RenderSystem.BindTexture(j);
-                    Uniform.UploadInteger(_samplerLocations[i], i);
-                }
-            }
-        }
+        // for (var i = 0; i < _samplerLocations.Count; i++)
+        // {
+        //     var name = _samplerNames[i];
+        //     if (_samplerMap.TryGetValue(name, out var func) && func != null)
+        //     {
+        //         RenderSystem.ActiveTexture((int) TextureUnit.Texture0 + i);
+        //         var j = func!();
+        //         if (j != -1)
+        //         {
+        //             RenderSystem.BindTexture(j);
+        //             Uniform.UploadInteger(_samplerLocations[i], i);
+        //         }
+        //     }
+        // }
         
         foreach (var uniform in _uniforms)
         {

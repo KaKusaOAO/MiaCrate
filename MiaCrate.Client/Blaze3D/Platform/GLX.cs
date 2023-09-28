@@ -1,13 +1,8 @@
 ﻿using System.Text.RegularExpressions;
 using MiaCrate.Client.Oshi;
 using MiaCrate.Client.Systems;
-using MiaCrate.Client.UI;
 using MiaCrate.Client.Utils;
-using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using SDL2;
-using Veldrid.OpenGLBinding;
 
 namespace MiaCrate.Client.Platform;
 

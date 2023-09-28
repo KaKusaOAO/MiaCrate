@@ -1,6 +1,4 @@
-﻿using OpenTK.Windowing.GraphicsLibraryFramework;
-
-namespace MiaCrate.Client.UI;
+﻿namespace MiaCrate.Client.UI;
 
 public abstract class AbstractContainerEventHandler : IContainerEventHandler
 {

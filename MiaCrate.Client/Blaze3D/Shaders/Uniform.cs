@@ -1,9 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using MiaCrate.Client.Graphics;
-using MiaCrate.Client.Platform;
-using MiaCrate.Client.Systems;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace MiaCrate.Client.Shaders;
@@ -190,16 +187,16 @@ public class Uniform : AbstractUniform, IDisposable
         switch (_type)
         {
             case UniformType.Int:
-                RenderSystem.Uniform1(Location, _intValues!);
+                // RenderSystem.Uniform1(Location, _intValues!);
                 break;
             case UniformType.Int2:
-                RenderSystem.Uniform2(Location, _intValues!);
+                // RenderSystem.Uniform2(Location, _intValues!);
                 break;
             case UniformType.Int3:
-                RenderSystem.Uniform3(Location, _intValues!);
+                // RenderSystem.Uniform3(Location, _intValues!);
                 break;
             case UniformType.Int4:
-                RenderSystem.Uniform4(Location, _intValues!);
+                // RenderSystem.Uniform4(Location, _intValues!);
                 break;
             default:
                 Logger.Warn($"Uniform.upload called, but count value ({_count}) is not in thee range of 1 to 4. Ignoring.");
@@ -212,16 +209,16 @@ public class Uniform : AbstractUniform, IDisposable
         switch (_type)
         {
             case UniformType.Float:
-                RenderSystem.Uniform1(Location, _floatValues!);
+                // RenderSystem.Uniform1(Location, _floatValues!);
                 break;
             case UniformType.Float2:
-                RenderSystem.Uniform2(Location, _floatValues!);
+                // RenderSystem.Uniform2(Location, _floatValues!);
                 break;
             case UniformType.Float3:
-                RenderSystem.Uniform3(Location, _floatValues!);
+                // RenderSystem.Uniform3(Location, _floatValues!);
                 break;
             case UniformType.Float4:
-                RenderSystem.Uniform4(Location, _floatValues!);
+                // RenderSystem.Uniform4(Location, _floatValues!);
                 break;
             default:
                 Logger.Warn($"Uniform.upload called, but count value ({_count}) is not in thee range of 1 to 4. Ignoring.");
@@ -234,22 +231,27 @@ public class Uniform : AbstractUniform, IDisposable
         switch (_type)
         {
             case UniformType.Matrix2:
-                RenderSystem.UniformMatrix2(Location, false, _floatValues!);
+                // RenderSystem.UniformMatrix2(Location, false, _floatValues!);
                 break;
             case UniformType.Matrix3:
-                RenderSystem.UniformMatrix3(Location, false, _floatValues!);
+                // RenderSystem.UniformMatrix3(Location, false, _floatValues!);
                 break;
             case UniformType.Matrix4:
-                RenderSystem.UniformMatrix4(Location, false, _floatValues!);
+                // RenderSystem.UniformMatrix4(Location, false, _floatValues!);
                 break;
         }
     }
 
-    public static void BindAttribLocation(int program, int index, string name) =>
-        GlStateManager.BindAttribLocation(program, index, name);
-    
-    public static int GetUniformLocation(int program, string name) => 
-        GlStateManager.GetUniformLocation(program, name);
+    public static void BindAttribLocation(int program, int index, string name)
+    {
+        // GlStateManager.BindAttribLocation(program, index, name);
+    }
+
+    public static int GetUniformLocation(int program, string name)
+    {
+        // return GlStateManager.GetUniformLocation(program, name);
+        return 0;
+    }
 
     public static UniformType GetTypeFromString(string str)
     {
@@ -291,6 +293,8 @@ public class Uniform : AbstractUniform, IDisposable
         _floatValues = null;
     }
 
-    public static void UploadInteger(int location, int value) => 
-        RenderSystem.Uniform1(location, value);
+    public static void UploadInteger(int location, int value)
+    {
+        // RenderSystem.Uniform1(location, value);
+    }
 }

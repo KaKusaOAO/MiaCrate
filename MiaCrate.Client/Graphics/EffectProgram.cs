@@ -1,6 +1,7 @@
 ﻿using MiaCrate.Client.Preprocessor;
 using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Systems;
+using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -10,7 +11,7 @@ public class EffectProgram : Program
     
     private int _references;
     
-    private EffectProgram(ProgramType type, int id, string name) : base(type, id, name)
+    public EffectProgram(ProgramType type, Shader id, string name) : base(type, id, name)
     {
     }
 
@@ -18,16 +19,14 @@ public class EffectProgram : Program
     {
         RenderSystem.AssertOnRenderThread();
         ++_references;
-        AttachToShader(effect);
     }
 
-    public static EffectProgram CompileShader(ProgramType type, string name, Stream stream, string str2)
+    public static ConvertResult CompileShader(ProgramType type, string name, Stream stream, string str2)
     {
         RenderSystem.AssertOnRenderThread();
-        var shader = InternalCompileShader(type, name, stream, str2, Preprocessor);
-        var program = new EffectProgram(type, shader, name);
-        type.Programs[name] = program;
-        return program;
+        var result = InternalCompileShader(type, name, stream, str2, Preprocessor);
+        type.Programs[name] = result;
+        return result;
     }
 
     private class PreprocessorInstance : GlslPreprocessor

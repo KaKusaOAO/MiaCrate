@@ -1,8 +1,6 @@
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Resources;
-using MiaCrate.Data;
 using MiaCrate.Resources;
-using OpenTK.Graphics.OpenGL4;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -31,7 +29,6 @@ public static class MissingTextureAtlasSprite
             
             var image = GenerateMissingImage(MissingImageWidth, MissingImageHeight);
             _missingTexture = new DynamicTexture(image);
-            GlStateManager.ObjectLabel(ObjectLabelIdentifier.Texture, _missingTexture.Id, "MissingTexture");
             Game.Instance.TextureManager.Register(_missingTextureLocation, _missingTexture);
             return _missingTexture;
         }

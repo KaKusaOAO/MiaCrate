@@ -1,6 +1,6 @@
 using MiaCrate.Client.Systems;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
+using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -13,7 +13,7 @@ public abstract partial class RenderStateShard
         new("additive_transparency", () =>
         {
             RenderSystem.EnableBlend();
-            RenderSystem.BlendFunc(BlendingFactorSrc.One, BlendingFactorDest.One);
+            RenderSystem.BlendFunc(BlendFactor.One, BlendFactor.One);
         }, () =>
         {
             RenderSystem.DisableBlend();
@@ -24,7 +24,7 @@ public abstract partial class RenderStateShard
         new("lightning_trasnparency", () =>
         {
             RenderSystem.EnableBlend();
-            RenderSystem.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+            RenderSystem.BlendFunc(BlendFactor.SourceAlpha, BlendFactor.One);
         }, () =>
         {
             RenderSystem.DisableBlend();
@@ -36,8 +36,8 @@ public abstract partial class RenderStateShard
         {
             RenderSystem.EnableBlend();
             RenderSystem.BlendFuncSeparate(
-                BlendingFactorSrc.SrcColor, BlendingFactorDest.One,
-                BlendingFactorSrc.Zero, BlendingFactorDest.One);
+                BlendFactor.SourceColor, BlendFactor.One,
+                BlendFactor.Zero, BlendFactor.One);
         }, () =>
         {
             RenderSystem.DisableBlend();
@@ -49,8 +49,8 @@ public abstract partial class RenderStateShard
         {
             RenderSystem.EnableBlend();
             RenderSystem.BlendFuncSeparate(
-                BlendingFactorSrc.DstColor, BlendingFactorDest.SrcColor,
-                BlendingFactorSrc.One, BlendingFactorDest.Zero);
+                BlendFactor.DestinationColor, BlendFactor.SourceColor,
+                BlendFactor.One, BlendFactor.Zero);
         }, () =>
         {
             RenderSystem.DisableBlend();
@@ -62,8 +62,8 @@ public abstract partial class RenderStateShard
         {
             RenderSystem.EnableBlend();
             RenderSystem.BlendFuncSeparate(
-                BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha,
-                BlendingFactorSrc.One, BlendingFactorDest.OneMinusSrcAlpha);
+                BlendFactor.SourceAlpha, BlendFactor.InverseSourceAlpha,
+                BlendFactor.One, BlendFactor.InverseSourceAlpha);
         }, () =>
         {
             RenderSystem.DisableBlend();
@@ -79,10 +79,10 @@ public abstract partial class RenderStateShard
     public static OverlayStateShard NoOverlay { get; } = new(false);
     public static CullStateShard Cull { get; } = new(true);
     public static CullStateShard NoCull { get; } = new(false);
-    public static DepthTestStateShard NoDepthTest { get; } = new("always", DepthFunction.Always);
-    public static DepthTestStateShard EqualDepthTest { get; } = new("==", DepthFunction.Equal);
-    public static DepthTestStateShard LequalDepthTest { get; } = new("<=", DepthFunction.Lequal);
-    public static DepthTestStateShard GreaterDepthTest { get; } = new(">", DepthFunction.Greater);
+    public static DepthTestStateShard NoDepthTest { get; } = new("always", ComparisonKind.Always);
+    public static DepthTestStateShard EqualDepthTest { get; } = new("==", ComparisonKind.Equal);
+    public static DepthTestStateShard LequalDepthTest { get; } = new("<=", ComparisonKind.LessEqual);
+    public static DepthTestStateShard GreaterDepthTest { get; } = new(">", ComparisonKind.Greater);
     public static WriteMaskStateShard ColorDepthWrite { get; } = new(true, true);
     public static WriteMaskStateShard ColorWrite { get; } = new(true, false);
     public static WriteMaskStateShard DepthWrite { get; } = new(false, true);
@@ -333,17 +333,17 @@ public abstract partial class RenderStateShard
     {
         private readonly string _funcName;
 
-        public DepthTestStateShard(string name, DepthFunction func)
+        public DepthTestStateShard(string name, ComparisonKind func)
             : base("depth_test", () =>
             {
-                if (func != DepthFunction.Always)
+                if (func != ComparisonKind.Always)
                 {
                     RenderSystem.EnableDepthTest();
                     RenderSystem.DepthFunc(func);
                 }
             }, () =>
             {
-                if (func != DepthFunction.Always)
+                if (func != ComparisonKind.Always)
                 {
                     RenderSystem.DisableDepthTest();
                     RenderSystem.DepthFunc(func);

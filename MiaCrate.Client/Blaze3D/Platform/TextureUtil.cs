@@ -2,68 +2,65 @@
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.Utils;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
+using Veldrid;
 
 namespace MiaCrate.Client.Platform;
 
 public static class TextureUtil
 {
-    public static int GenerateTextureId()
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        if (!SharedConstants.IsRunningInIde) return GlStateManager.GenTexture();
-        
-        var iArr = GlStateManager.GenTextures(Random.Shared.Next(15) + 1);
-        var i = GlStateManager.GenTexture();
-        GlStateManager.DeleteTextures(iArr);
-        return i;
-    }
-
-    public static void ReleaseTextureId(int texture)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GlStateManager.DeleteTexture(texture);
-    }
-
-    public static void PrepareImage(int texture, int width, int height) =>
-        PrepareImage(PixelInternalFormat.Rgba, texture, 0, width, height);
+    public static TexturePreparation PrepareImage(int width, int height) =>
+        PrepareImage(PixelFormat.R8_G8_B8_A8_UNorm, 0, width, height);
     
-    public static void PrepareImage(PixelInternalFormat format, int texture, int width, int height) =>
-        PrepareImage(format, texture, 0, width, height);
+    public static TexturePreparation PrepareImage(PixelFormat format, int width, int height) =>
+        PrepareImage(format, 0, width, height);
 
-    public static void PrepareImage(int texture, int maxLevel, int width, int height) =>
-        PrepareImage(PixelInternalFormat.Rgba, texture, maxLevel, width, height);
+    public static TexturePreparation PrepareImage(int maxLevel, int width, int height) =>
+        PrepareImage(PixelFormat.R8_G8_B8_A8_UNorm, maxLevel, width, height);
 
-    public static void PrepareImage(PixelInternalFormat format, int texture, int maxLevel, int width, int height)
+    public static TexturePreparation PrepareImage(PixelFormat format, int maxLevel, int width, int height)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        Bind(texture);
+        
+        var texDesc = new TextureDescription
+        {
+            Width = (uint) width,
+            Height = (uint) height,
+            Format = format,
+            MipLevels = (uint) maxLevel,
+            Usage = TextureUsage.Sampled
+        };
+
+        var sampleDesc = new SamplerDescription();
 
         if (maxLevel >= 0)
         {
-            GlStateManager.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, maxLevel);
-            GlStateManager.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinLod, 0);
-            GlStateManager.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLod, maxLevel);
-            GlStateManager.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureLodBias, 0f);
+            sampleDesc.MinimumLod = 0;
+            sampleDesc.MaximumLod = (uint) maxLevel;
+            sampleDesc.LodBias = 0;
         }
 
-        for (var m = 0; m <= maxLevel; m++)
-        {
-            GlStateManager.TexImage2D(TextureTarget.Texture2D, m, format, width >> m, height >> m, 0, 
-                PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
-        }
+        // if (maxLevel >= 0)
+        // {
+        //     GlStateManager.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, maxLevel);
+        //     GlStateManager.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinLod, 0);
+        //     GlStateManager.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLod, maxLevel);
+        //     GlStateManager.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureLodBias, 0f);
+        // }
+        //
+        // for (var m = 0; m <= maxLevel; m++)
+        // {
+        //     GlStateManager.TexImage2D(TextureTarget.Texture2D, m, format, width >> m, height >> m, 0, 
+        //         PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
+        // }
+        
+        return new TexturePreparation(texDesc, sampleDesc);
     }
 
-    private static void Bind(int texture)
-    {
-        RenderSystem.AssertOnRenderThreadOrInit();
-        GlStateManager.BindTexture(texture);
-    }
+    public record TexturePreparation(TextureDescription TextureDescription, SamplerDescription SamplerDescription);
 
-    public static void WriteAsPng(string path, string str, int id, int j, int k, int l, Func<Argb32, Argb32>? transform)
+    public static void WriteAsPng(Texture texture, string path, string str, int j, int k, int l, Func<Argb32, Argb32>? transform)
     {
         RenderSystem.AssertOnRenderThread();
-        Bind(id);
 
         for (var m = 0; m <= j; m++)
         {
@@ -74,7 +71,7 @@ public static class TextureUtil
             {
                 using var image = new NativeImage(n, o, false);
 
-                image.DownloadTexture(m, false);
+                image.DownloadTexture(texture, m, false);
                 if (transform != null) image.ApplyToAllPixels(transform);
 
                 var p = Path.Combine(path, $"{str}_{m}.png");

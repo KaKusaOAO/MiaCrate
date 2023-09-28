@@ -326,7 +326,7 @@ public static class RenderSystem
         if (i < 0 || i >= _shaderTextures.Length) return;
         var manager = Game.Instance.TextureManager;
         var texture = manager.GetTexture(location);
-        _shaderTextures[i] = texture.Id;
+        // _shaderTextures[i] = texture.Texture;
     }
     
     public static void SetShaderTexture(int i, int textureId)
@@ -360,7 +360,7 @@ public static class RenderSystem
         GlStateManager.EnableDepthTest();
     }
 
-    public static void DepthFunc(DepthFunction func)
+    public static void DepthFunc(ComparisonKind func)
     {
         AssertOnRenderThread();
         GlStateManager.DepthFunc(func);
@@ -384,127 +384,41 @@ public static class RenderSystem
         GlStateManager.EnableBlend();
     }
 
-    public static void BlendFunc(BlendingFactorSrc sourceFactor, BlendingFactorDest destFactor)
+    public static void BlendFunc(BlendFactor sourceFactor, BlendFactor destFactor)
     {
         AssertOnRenderThread();
         GlStateManager.BlendFunc(sourceFactor, destFactor);
     }
 
     public static void BlendFuncSeparate(
-        BlendingFactorSrc sourceRgb, BlendingFactorDest destRgb,
-        BlendingFactorSrc sourceAlpha, BlendingFactorDest destAlpha)
+        BlendFactor sourceRgb, BlendFactor destRgb,
+        BlendFactor sourceAlpha, BlendFactor destAlpha)
     {
         AssertOnRenderThread();
         GlStateManager.BlendFuncSeparate(sourceRgb, destRgb, sourceAlpha, destAlpha);
     }
 
     public static void DefaultBlendFunc() => BlendFuncSeparate(
-        BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha, 
-        BlendingFactorSrc.One, BlendingFactorDest.Zero);
+        BlendFactor.SourceAlpha, BlendFactor.InverseSourceAlpha, 
+        BlendFactor.One, BlendFactor.Zero);
 
-    public static void Uniform1(int location, int[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.Uniform1(location, buffer);
-    }
-    
-    public static void Uniform1(int location, float[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.Uniform1(location, buffer);
-    }
-
-    public static void Uniform1(int location, int value)
-    {
-        AssertOnRenderThread();
-        GlStateManager.Uniform1(location, value);
-    }
-    
-    public static void Uniform2(int location, int[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.Uniform2(location, buffer);
-    }
-    
-    public static void Uniform2(int location, float[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.Uniform2(location, buffer);
-    }
-    
-    public static void Uniform3(int location, int[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.Uniform3(location, buffer);
-    }
-    
-    public static void Uniform3(int location, float[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.Uniform3(location, buffer);
-    }
-    
-    public static void Uniform4(int location, int[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.Uniform4(location, buffer);
-    }
-    
-    public static void Uniform4(int location, float[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.Uniform4(location, buffer);
-    }
-    
-    public static void UniformMatrix2(int location, bool transpose, float[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.UniformMatrix2(location, transpose, buffer);
-    }
-    
-    public static void UniformMatrix3(int location, bool transpose, float[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.UniformMatrix3(location, transpose, buffer);
-    }
-    
-    public static void UniformMatrix4(int location, bool transpose, float[] buffer)
-    {
-        AssertOnRenderThread();
-        GlStateManager.UniformMatrix4(location, transpose, buffer);
-    }
-
-    public static void BlendEquation(BlendEquationMode func)
+    public static void BlendEquation(BlendFunction func)
     {
         AssertOnRenderThread();
         GlStateManager.BlendEquation(func);
     }
+    
 
-    public static void ActiveTexture(int textureUnit)
-    {
-        AssertOnGameThreadOrInit();
-        GlStateManager.ActiveTexture(textureUnit);
-    }
-
-    public static void BindTexture(int texture) => 
-        GlStateManager.BindTexture(texture);
-
-    public static void BufferData(BufferTarget target, ReadOnlySpan<byte> span, BufferUsageHint usage)
+    public static void BufferData(DeviceBuffer buffer, ReadOnlySpan<byte> span)
     {
         AssertOnRenderThreadOrInit();
-        GlStateManager.BufferData(target, span, usage);
+        GlStateManager.BufferData(buffer, span);
     }
     
-    public static void DrawElements(PrimitiveType mode, int count, DrawElementsType type)
+    public static void DrawElements(PrimitiveTopology mode, int count)
     {
         AssertOnRenderThread();
-        GlStateManager.DrawElements(mode, count, type, IntPtr.Zero);
-    }
-
-    public static void Clear(ClearBufferMask mask, bool clearError)
-    {
-        AssertOnGameThreadOrInit();
-        GlStateManager.Clear(mask, clearError);
+        GlStateManager.DrawElements(mode, count);
     }
 
     public static void EnableCull()
@@ -603,24 +517,6 @@ public static class RenderSystem
         });
     }
 
-    public static void TexParameter(TextureTarget target, TextureParameterName pName, int value) => 
-        GlStateManager.TexParameter(target, pName, value);
-
-    public static void TexParameter(TextureTarget target, TextureParameterName pName, float value) => 
-        GlStateManager.TexParameter(target, pName, value);
-    
-    /// <summary>
-    /// For quick check, this applies to 10241 (<see cref="TextureParameterName.TextureMinFilter"/>).
-    /// </summary>
-    public static void TexMinFilter(TextureTarget target, TextureMinFilter filter) =>
-        TexParameter(target, TextureParameterName.TextureMinFilter, (int) filter);
-
-    /// <summary>
-    /// For quick check, this applies to 10240 (<see cref="TextureParameterName.TextureMagFilter"/>).
-    /// </summary>
-    public static void TexMagFilter(TextureTarget target, TextureMagFilter filter) =>
-        TexParameter(target, TextureParameterName.TextureMagFilter, (int) filter);
-     
     public static void PolygonOffset(float factor, float units)
     {
         AssertOnRenderThread();
@@ -672,7 +568,7 @@ public static class RenderSystem
         private readonly int _indexStride;
         private readonly IndexGenerator _generator;
         
-        private int _name;
+        private DeviceBuffer? _name;
         private int _indexCount;
         
         public VertexFormat.IndexType Type { get; private set; }
@@ -689,14 +585,28 @@ public static class RenderSystem
 
         public void Bind(int count)
         {
-            if (_name == 0)
+            if (_name == null) RecreateBuffer(count);
+            EnsureStorage(count);
+        }
+
+        private void RecreateBuffer(int count)
+        {
+            var buffer = GlStateManager.ResourceFactory.CreateBuffer(new BufferDescription((uint) count, BufferUsage.IndexBuffer));
+            buffer.Name = $"{nameof(AutoStorageIndexBuffer)} #{buffer.GetHashCode()}";
+            
+            if (_name != null)
             {
-                _name = GlStateManager.GenBuffers();
-                GlStateManager.ObjectLabel(ObjectLabelIdentifier.Buffer, _name, $"{nameof(AutoStorageIndexBuffer)} #{_name}");
+                var cl = GlStateManager.ResourceFactory.CreateCommandList();
+                cl.Begin();
+                cl.CopyBuffer(_name, 0, buffer, 0, _name.SizeInBytes);
+                cl.End();
+                GlStateManager.Device.SubmitCommands(cl);
+                GlStateManager.Device.WaitForIdle();
+                
+                _name.Dispose();
             }
 
-            GlStateManager.BindBuffer(BufferTarget.ElementArrayBuffer, _name);
-            EnsureStorage(count);
+            _name = buffer;
         }
 
         private void EnsureStorage(int count)
@@ -708,13 +618,11 @@ public static class RenderSystem
             var indexType = VertexFormat.IndexType.Least(count);
 
             var j = Util.RoundToward(count * indexType.Bytes, 4);
-            GlStateManager.BufferData(BufferTarget.ElementArrayBuffer, j, BufferUsageHint.DynamicDraw);
-
-            var buffer = GlStateManager.MapBuffer(BufferTarget.ElementArrayBuffer, BufferAccess.WriteOnly);
+            RecreateBuffer(j);
+            
+            var buffer = Marshal.AllocHGlobal((int) _name!.SizeInBytes);
             if (buffer == 0)
-            {
-                throw new Exception("Failed to map GL buffer");
-            }
+                throw new Exception("Failed to allocate memory");
 
             Type = indexType;
             var tracker = new PointerTrackingIntConsumer(buffer);
@@ -725,7 +633,14 @@ public static class RenderSystem
                 _generator(consumer, k * _vertexStride / _indexStride);
             }
 
-            GlStateManager.UnmapBuffer(BufferTarget.ElementArrayBuffer);
+
+            var cl = GlStateManager.ResourceFactory.CreateCommandList();
+            cl.Begin();
+            cl.UpdateBuffer(_name, 0, buffer, _name.SizeInBytes);
+            cl.End();
+            GlStateManager.Device.SubmitCommands(cl);
+            GlStateManager.Device.WaitForIdle();
+            
             _indexCount = count;
         }
 

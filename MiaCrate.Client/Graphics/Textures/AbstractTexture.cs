@@ -1,7 +1,7 @@
 ﻿using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
 using MiaCrate.Resources;
-using OpenTK.Graphics.OpenGL4;
+using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -13,49 +13,39 @@ public abstract class AbstractTexture : IDisposable
     protected bool IsBlur { get; set; }
     protected bool IsMipmap { get; set; }
 
-    public int Id
-    {
-        get
-        {
-            RenderSystem.AssertOnRenderThreadOrInit();
-            if (_id == NotAssigned)
-            {
-                _id = TextureUtil.GenerateTextureId();
-            }
+    public Texture? Texture { get; internal set; }
+    public Sampler? Sampler { get; internal set; }
 
-            return _id;
-        }
-    }
+    internal TextureDescription _textureDescription;
+    internal SamplerDescription _samplerDescription;
 
     public void SetFilter(bool blur, bool mipmap)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         IsBlur = blur;
         IsMipmap = mipmap;
-
+        
         if (blur)
         {
-            GlStateManager.TexMinFilter(TextureTarget.Texture2D, 
-                mipmap ? TextureMinFilter.LinearMipmapLinear : TextureMinFilter.Linear);
-            GlStateManager.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Linear);
+            _samplerDescription.Filter = SamplerFilter.MinLinear_MagLinear_MipLinear;
         }
         else
         {
-            GlStateManager.TexMinFilter(TextureTarget.Texture2D, 
-                mipmap ? TextureMinFilter.NearestMipmapLinear : TextureMinFilter.Nearest);
-            GlStateManager.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Nearest);
+            _samplerDescription.Filter = SamplerFilter.MinPoint_MagPoint_MipPoint;
         }
+        
+        Sampler?.Dispose();
+        Sampler = GlStateManager.ResourceFactory.CreateSampler(_samplerDescription);
     }
 
     public void ReleaseId()
     {
         void ExecuteRenderCall()
         {
-            if (_id != NotAssigned)
-            {
-                TextureUtil.ReleaseTextureId(_id);
-                _id = NotAssigned;
-            }
+            Texture?.Dispose();
+            Sampler?.Dispose();
+            Texture = null;
+            Sampler = null;
         }
         
         if (!RenderSystem.IsOnRenderThread)
@@ -73,17 +63,7 @@ public abstract class AbstractTexture : IDisposable
 
     public void Bind()
     {
-        if (!RenderSystem.IsOnRenderThreadOrInit)
-        {
-            RenderSystem.RecordRenderCall(() =>
-            {
-                GlStateManager.BindTexture(Id);
-            });
-        }
-        else
-        {
-            GlStateManager.BindTexture(Id);
-        }
+        
     }
 
     public virtual void Reset(TextureManager textureManager, IResourceManager resourceManager,

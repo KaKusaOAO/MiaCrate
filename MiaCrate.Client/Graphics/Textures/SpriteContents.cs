@@ -39,24 +39,24 @@ public class SpriteContents : IStitcherEntry, IDisposable
         
     }
 
-    public void UploadFirstFrame(int x, int y)
+    public void UploadFirstFrame(AbstractTexture texture, int x, int y)
     {
         if (_animatedTexture != null)
         {
-            _animatedTexture.UploadFirstFrame(x, y);
+            _animatedTexture.UploadFirstFrame(texture, x, y);
         }
         else
         {
-            Upload(x, y, 0, 0, _byMipLevel);
+            Upload(texture, x, y, 0, 0, _byMipLevel);
         }
     }
 
-    private void Upload(int x, int y, int k, int l, NativeImage[] byMipLevel)
+    private void Upload(AbstractTexture texture, int x, int y, int k, int l, NativeImage[] byMipLevel)
     {
         // This for loop is weird
         for (var m = 0; m < _byMipLevel.Length; m++)
         {
-            byMipLevel[m].Upload(m, x >> m, y >> m, k >> m, l >> m, 
+            byMipLevel[m].Upload(texture, m, x >> m, y >> m, k >> m, l >> m, 
                 Width >> m, Height >> m, _byMipLevel.Length > 1, false);
         }
     }
@@ -79,19 +79,19 @@ public class SpriteContents : IStitcherEntry, IDisposable
         public ISpriteTicker CreateTicker() => 
             new Ticker(_instance, this, _interpolateFrames ? new InterpolationData() : null);
 
-        public void UploadFirstFrame(int x, int y)
+        public void UploadFirstFrame(AbstractTexture texture, int x, int y)
         {
-            UploadFrame(x, y, _frames[0].Index);
+            UploadFrame(texture, x, y, _frames[0].Index);
         }
 
         public int GetFrameX(int i) => i % _frameRowSize;
         public int GetFrameY(int i) => i / _frameRowSize;
 
-        public void UploadFrame(int x, int y, int index)
+        public void UploadFrame(AbstractTexture texture, int x, int y, int index)
         {
             var l = GetFrameX(index) * _instance.Width;
             var m = GetFrameY(index) * _instance.Height;
-            _instance.Upload(x, y, l, m, _instance._byMipLevel);
+            _instance.Upload(texture, x, y, l, m, _instance._byMipLevel);
         }
     }
 

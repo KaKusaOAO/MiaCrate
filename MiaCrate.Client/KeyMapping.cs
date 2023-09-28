@@ -1,6 +1,6 @@
 ﻿using MiaCrate.Client.Platform;
 using MiaCrate.Client.Resources;
-using OpenTK.Windowing.GraphicsLibraryFramework;
+using MiaCrate.Client.Utils;
 
 namespace MiaCrate.Client;
 

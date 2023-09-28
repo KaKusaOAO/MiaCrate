@@ -1,6 +1,5 @@
 ﻿using System.Text.RegularExpressions;
 using Mochi.Utils;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using SDL2;
 
 namespace MiaCrate.Client.Platform;

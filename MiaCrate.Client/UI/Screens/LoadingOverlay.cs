@@ -5,7 +5,7 @@ using MiaCrate.Client.Systems;
 using MiaCrate.Client.Utils;
 using MiaCrate.Resources;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
+using Veldrid;
 
 namespace MiaCrate.Client.UI.Screens;
 
@@ -44,6 +44,7 @@ public class LoadingOverlay : Overlay
 
     public override void Render(GuiGraphics graphics, int mouseX, int mouseY, float f)
     {
+        var cl = GlStateManager.CommandList;
         var width = graphics.GuiWidth;
         var height = graphics.GuiHeight;
         var millis = Util.GetMillis();
@@ -76,8 +77,8 @@ public class LoadingOverlay : Overlay
         else
         {
             var color = BrandBackground();
-            GlStateManager.ClearColor(color.Red / 255f, color.Green / 255f, color.Blue / 255f, 1);
-            GlStateManager.Clear(ClearBufferMask.ColorBufferBit, Game.OnMacOs);
+            cl.ClearColorTarget(0, new RgbaFloat(
+                color.Red / 255f, color.Green / 255f, color.Blue / 255f, 1));
             logoAlpha = 1;
         }
 
@@ -94,7 +95,7 @@ public class LoadingOverlay : Overlay
             {
                 RenderSystem.EnableBlend();
                 {
-                    RenderSystem.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+                    RenderSystem.BlendFunc(BlendFactor.SourceAlpha, BlendFactor.One);
                     {
                         graphics.SetColor(1, 1, 1, logoAlpha);
                         graphics.Blit(MojangStudiosLogoLocation, centerX - u, centerY - t, u, (int) d, -0.0625f, 0f, 120, 60, 120, 120);
