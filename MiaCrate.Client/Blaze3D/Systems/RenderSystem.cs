@@ -3,11 +3,12 @@ using System.Runtime.InteropServices;
 using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Shaders;
+using MiaCrate.Client.Utils;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using Window = OpenTK.Windowing.GraphicsLibraryFramework.Window;
+using SDL2;
+using Veldrid;
+using Veldrid.OpenGLBinding;
 
 namespace MiaCrate.Client.Systems;
 
@@ -22,10 +23,9 @@ public static class RenderSystem
     private static int _maxSupportedTextureSize = -1;
     private static bool _isInInit;
     private static double _lastDrawTime = double.MinValue;
-    private static AutoStorageIndexBuffer _sharedSequential =
-        new AutoStorageIndexBuffer(1, 1, (consumer, i) => consumer(i));
+    private static AutoStorageIndexBuffer _sharedSequential = new(1, 1, (consumer, i) => consumer(i));
     private static AutoStorageIndexBuffer _sharedSequentialQuad =
-        new AutoStorageIndexBuffer(4, 6, (consumer, i) =>
+        new(4, 6, (consumer, i) =>
         {
             consumer(i + 0);
             consumer(i + 1);
@@ -35,7 +35,7 @@ public static class RenderSystem
             consumer(i + 0);
         });
     private static AutoStorageIndexBuffer _sharedSequentialLines =
-        new AutoStorageIndexBuffer(4, 6, (consumer, i) =>
+        new(4, 6, (consumer, i) =>
         {
             consumer(i + 0);
             consumer(i + 1);
@@ -63,6 +63,8 @@ public static class RenderSystem
     private static ShaderInstance? _shader;
     private static long _pollEventsWaitStart;
     private static bool _pollingEvents;
+    
+    
 
     public static Tesselator RenderThreadTesselator
     {
@@ -141,20 +143,22 @@ public static class RenderSystem
             if (_maxSupportedTextureSize != -1) return _maxSupportedTextureSize;
             
             AssertOnRenderThreadOrInit();
-            var i = GlStateManager.GetInteger(GetPName.MaxTextureSize);
+            // var i = GlStateManager.GetInteger(GetPName.MaxTextureSize);
+            //
+            // for (var j = Math.Max(32768, i); j >= MinimumAtlasTextureSize; j >>= 1)
+            // {
+            //     GlStateManager.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, j, j, 0, PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
+            //     var k = GlStateManager.GetTexLevelParameter(TextureTarget.Texture2D, 0,
+            //         GetTextureParameter.TextureWidth);
+            //     if (k != 0)
+            //     {
+            //         _maxSupportedTextureSize = j;
+            //         return j;
+            //     }
+            // }
 
-            for (var j = Math.Max(32768, i); j >= MinimumAtlasTextureSize; j >>= 1)
-            {
-                GlStateManager.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, j, j, 0, PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
-                var k = GlStateManager.GetTexLevelParameter(TextureTarget.Texture2D, 0,
-                    GetTextureParameter.TextureWidth);
-                if (k != 0)
-                {
-                    _maxSupportedTextureSize = j;
-                    return j;
-                }
-            }
-
+            var i = 0;
+            
             _maxSupportedTextureSize = Math.Max(i, MinimumAtlasTextureSize);
             Logger.Info($"Failed to determine maximum texture size by probing, trying GL_MAX_TEXTURE_SIZE = {_maxSupportedTextureSize}");
             return _maxSupportedTextureSize;
@@ -233,7 +237,7 @@ public static class RenderSystem
 
     private static void PollEvents()
     {
-        GLFW.PollEvents();
+        Game.Instance.Window.Tick();
     }
 
     public static bool IsFrozenAtPollEvents => throw new NotImplementedException();
@@ -251,11 +255,11 @@ public static class RenderSystem
         _isReplayingQueue = false;
     }
     
-    public static unsafe void FlipFrame(Window* handle)
+    public static void FlipFrame(IntPtr handle)
     {
         PollEvents();
         ReplayQueue();
-        GLFW.SwapBuffers(handle);
+        GlStateManager.Device.SwapBuffers();
         PollEvents();
     }
 
@@ -287,7 +291,7 @@ public static class RenderSystem
     public static string GetBackendDescription()
     {
         AssertInInitPhase();
-        return $"{typeof(GL).Assembly}";
+        return $"{typeof(GraphicsDevice).Assembly}";
     }
 
     public static void SetShader(Func<ShaderInstance?> shader)
@@ -560,9 +564,10 @@ public static class RenderSystem
         var d = _lastDrawTime + 1.0 / fps;
         
         double e;
-        for (e = GLFW.GetTime(); e < d; e = GLFW.GetTime())
+        for (e = ExtraSDL.SDL_GetTicks64() / 1000.0; e < d; e = ExtraSDL.SDL_GetTicks64() / 1000.0)
         {
-            GLFW.WaitEventsTimeout(d - e);
+            var timeout = (int) ((d - e) * 1000);
+            SDL.SDL_WaitEventTimeout(out _, timeout);
         }
 
         _lastDrawTime = e;

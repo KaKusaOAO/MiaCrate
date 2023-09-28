@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using Mochi.Utils;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using SDL2;
 
 namespace MiaCrate.Client.Platform;
 
@@ -8,7 +9,7 @@ public static partial class VideoModeHelper
 {
     private static readonly Regex _pattern = GenerateVideoModeTextRegex();
 
-    public static VideoMode? Read(string? str)
+    public static SDL.SDL_DisplayMode? Read(string? str)
     {
         if (str == null) return null;
 
@@ -26,16 +27,17 @@ public static partial class VideoModeHelper
 
                 var str3 = match.Groups[4].Value;
                 var l = string.IsNullOrEmpty(str3) ? 24 : int.Parse(str3);
-
-                var bits = l / 3;
-                return new VideoMode
+                if (l != 24)
                 {
-                    Width = width,
-                    Height = height,
-                    RedBits = bits,
-                    GreenBits = bits,
-                    BlueBits = bits,
-                    RefreshRate = rate
+                    Logger.Warn($"{l}-bit not implemented, will always use 24-bit");
+                }
+                
+                return new SDL.SDL_DisplayMode
+                {
+                    w = width,
+                    h = height,
+                    format = SDL.SDL_PIXELFORMAT_RGB24,
+                    refresh_rate = rate
                 };
             }
         }
@@ -47,31 +49,29 @@ public static partial class VideoModeHelper
         return null;
     }
 
-    public static VideoMode Create(int width, int height, int redBits, int greenBits, int blueBits, int refreshRate) => 
-        new()
-        {
-            Width = width,
-            Height = height,
-            RedBits = redBits,
-            GreenBits = greenBits,
-            BlueBits = blueBits,
-            RefreshRate = refreshRate
-        };
-
-    public static bool Equals(VideoMode a, VideoMode b)
+    public static SDL.SDL_DisplayMode Create(int width, int height, int redBits, int greenBits, int blueBits, int refreshRate)
     {
-        return a.Width == b.Width &&
-               a.Height == b.Height &&
-               a.RedBits == b.RedBits &&
-               a.GreenBits == b.GreenBits &&
-               a.BlueBits == b.BlueBits &&
-               a.RefreshRate == b.RefreshRate;
+        var l = redBits + greenBits + blueBits;
+        if (l != 24)
+            Logger.Warn($"{l}-bit not implemented, will always use 24-bit");
+        
+        return new SDL.SDL_DisplayMode
+        {
+            w = width,
+            h = height,
+            format = SDL.SDL_PIXELFORMAT_RGB24,
+            refresh_rate = refreshRate
+        };
     }
-    
-    public static IOptional<VideoMode> ReadOptional(string? str) => Optional.OfNullable(Read(str));
 
-    public static string Write(this VideoMode mode) => 
-        $"{mode.Width}x{mode.Height}@{mode.RefreshRate}:{mode.RedBits + mode.GreenBits + mode.BlueBits}";
+    public static IOptional<SDL.SDL_DisplayMode> ReadOptional(string? str) => Optional.OfNullable(Read(str));
+
+    public static string Write(this SDL.SDL_DisplayMode mode)
+    {
+        var bytes = SDL.SDL_BYTESPERPIXEL(mode.format);
+        var bits = bytes <= 2 ? SDL.SDL_BITSPERPIXEL(mode.format) : bytes * 8;
+        return $"{mode.w}x{mode.h}@{mode.refresh_rate}:{bits}";
+    }
 
     [GeneratedRegex("^(\\d+)x(\\d+)(?:@(\\d+)(?::(\\d+))?)?$")]
     private static partial Regex GenerateVideoModeTextRegex();

@@ -1,9 +1,13 @@
 ﻿using System.Text.RegularExpressions;
 using MiaCrate.Client.Oshi;
 using MiaCrate.Client.Systems;
+using MiaCrate.Client.UI;
+using MiaCrate.Client.Utils;
 using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using SDL2;
+using Veldrid.OpenGLBinding;
 
 namespace MiaCrate.Client.Platform;
 
@@ -31,12 +35,12 @@ public static unsafe class GLX
     public static Func<long> InitGlfw()
     {
         RenderSystem.AssertInInitPhase();
-        if (!GLFW.Init())
+        if (SDL.SDL_Init(SDL.SDL_INIT_EVERYTHING) < 0)
         {
-            throw new Exception("Failed to initialize GLFW");
+            throw new Exception("Failed to initialize SDL2");
         }
 
-        return () => (long) (GLFW.GetTime() * 1.0e9);
+        return () => (long) (ExtraSDL.SDL_GetTicks64() / 1000.0 * 1.0e9);
     }
 
     public static string OpenGlVersion
@@ -44,12 +48,19 @@ public static unsafe class GLX
         get
         {
             RenderSystem.AssertOnRenderThread();
-            if (GLFW.GetCurrentContext() == null) return "NO CONTEXT";
+            // if (GLFW.GetCurrentContext() == null) return "NO CONTEXT";
+            //
+            // var renderer = GlStateManager.GetString(StringName.Renderer);
+            // var version = GlStateManager.GetString(StringName.Version);
+            // var vendor = GlStateManager.GetString(StringName.Vendor);
+            // return $"{renderer} GL version {version}, {vendor}";
 
-            var renderer = GlStateManager.GetString(StringName.Renderer);
-            var version = GlStateManager.GetString(StringName.Version);
-            var vendor = GlStateManager.GetString(StringName.Vendor);
-            return $"{renderer} GL version {version}, {vendor}";
+            var device = GlStateManager.Device;
+            var renderer = device.DeviceName;
+            var version = device.ApiVersion.ToString();
+            var vendor = device.VendorName;
+            var backend = device.BackendType;
+            return $"{renderer} {backend} version {version}, {vendor}";
         }
     }
 
@@ -58,13 +69,9 @@ public static unsafe class GLX
     public static int GetRefreshRate(Window window)
     {
         RenderSystem.AssertOnRenderThread();
-        var monitor = GLFW.GetWindowMonitor(window.Handle);
-        if (monitor == null)
-        {
-            monitor = GLFW.GetPrimaryMonitor();
-        }
+        var monitor = Math.Max(0, SDL.SDL_GetWindowDisplayIndex(window.Handle));
 
-        var videoMode = monitor == null ? null : GLFW.GetVideoMode(monitor);
-        return videoMode == null ? 0 : videoMode->RefreshRate;
+        if (SDL.SDL_GetCurrentDisplayMode(monitor, out var mode) < 0) return 0;
+        return mode.refresh_rate;
     }
 }

@@ -2,6 +2,8 @@
 
 public static class SharedConstants
 {
+	public const bool UseHighDpi = true;
+	
     public const bool IsSnapshot = false;
     public const int WorldVersion = 3465;
     public const string Series = "main";

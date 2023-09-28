@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MiaCrate.Client.Pipeline;
@@ -9,6 +10,8 @@ using MiaCrate.Json;
 using MiaCrate.Resources;
 using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
+using Veldrid;
+using Veldrid.SPIRV;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -33,12 +36,13 @@ public class ShaderInstance : IShader, IDisposable
     private readonly List<string>? _attributeNames;
     private bool _dirty;
     private readonly BlendMode _blend;
-    
+    private ShaderSetDescription _shaderSetDesc;
+
     public int Id { get; }
     public string Name { get; }
-    public Program VertexProgram { get; }
+    public Shader VertexProgram { get; }
 
-    public Program FragmentProgram { get; }
+    public Shader FragmentProgram { get; }
     public VertexFormat VertexFormat { get; }
     
     public Uniform? ModelViewMatrix { get; }
@@ -142,23 +146,40 @@ public class ShaderInstance : IShader, IDisposable
             }
 
             _blend = ParseBlendNode(json["blend"]?.AsObject());
-            VertexProgram = GetOrCreate(provider, ProgramType.Vertex, vertex);
-            FragmentProgram = GetOrCreate(provider, ProgramType.Fragment, fragment);
-            Id = ProgramManager.CreateProgram();
-            GlStateManager.ObjectLabel(ObjectLabelIdentifier.Program, Id, Name);
+
+            var factory = GlStateManager.ResourceFactory;
+            var vConvertResult = GetOrCreate(provider, ProgramType.Vertex, vertex);
+            var fConvertResult = GetOrCreate(provider, ProgramType.Fragment, fragment);
+
+            var vShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.ASCII.GetBytes(vConvertResult.Source),
+                "main");
+            var fShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.ASCII.GetBytes(fConvertResult.Source),
+                "main");
+
+            var shaders = factory.CreateFromSpirv(vShaderDesc, fShaderDesc);
             
-            if (_attributeNames != null)
-            {
-                var i = 0;
-                foreach (var attribName in format.ElementAttributeNames)
-                {
-                    Uniform.BindAttribLocation(Id, i, attribName);
-                    _attributes!.Add(i++);
-                }
-            }
+            var layout = format.CreateVertexLayoutDescription();
+
+            VertexProgram = shaders[0];
+            FragmentProgram = shaders[1];
+            _shaderSetDesc = new ShaderSetDescription(new []{layout}, shaders);
             
-            ProgramManager.LinkShader(this);
-            UpdateLocations();
+            // GlStateManager.ResourceFactory.CreateShader()
+            // Id = ProgramManager.CreateProgram();
+            // GlStateManager.ObjectLabel(ObjectLabelIdentifier.Program, Id, Name);
+            //
+            // if (_attributeNames != null)
+            // {
+            //     var i = 0;
+            //     foreach (var attribName in format.ElementAttributeNames)
+            //     {
+            //         Uniform.BindAttribLocation(Id, i, attribName);
+            //         _attributes!.Add(i++);
+            //     }
+            // }
+            //
+            // ProgramManager.LinkShader(this);
+            // UpdateLocations();
         }
         catch (Exception ex)
         {
@@ -236,8 +257,8 @@ public class ShaderInstance : IShader, IDisposable
         RenderSystem.AssertOnGameThread(); // ??
         return GetUniform(name) ?? DummyUniform;
     }
-    
-    public static Program GetOrCreate(IResourceProvider provider, ProgramType type, string name)
+
+    public static Program.ConvertResult GetOrCreate(IResourceProvider provider, ProgramType type, string name)
     {
         if (type.Programs.TryGetValue(name, out var program)) return program;
         

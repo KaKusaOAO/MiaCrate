@@ -1,8 +1,10 @@
-﻿using MiaCrate.Client.Systems;
+﻿using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using MiaCrate.Client.Systems;
 using Mochi.Utils;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using ErrorCode = OpenTK.Windowing.GraphicsLibraryFramework.ErrorCode;
-using NativeWindow = OpenTK.Windowing.GraphicsLibraryFramework.Window;
+using SDL2;
+using Veldrid;
+using Veldrid.OpenGL;
 
 namespace MiaCrate.Client.Platform;
 
@@ -14,18 +16,11 @@ public delegate void CursorEnterEventHandler();
 
 public unsafe class Window : IDisposable
 {
-    private static GLFWCallbacks.ErrorCallback? _delegateErrorCallback;
-    // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-    private static GLFWCallbacks.FramebufferSizeCallback? _delegateFramebufferSizeCallback;
-    private static GLFWCallbacks.WindowPosCallback? _delegateWindowPosCallback;
-    private static GLFWCallbacks.WindowSizeCallback? _delegateWindowSizeCallback;
-    private static GLFWCallbacks.WindowFocusCallback? _delegateWindowFocusCallback;
-    private static GLFWCallbacks.CursorEnterCallback? _delegateCursorEnterCallback;
     // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
     
     private readonly ScreenManager _screenManager;
     private string _errorSection = "";
-    private VideoMode? _preferredFullscreenVideoMode;
+    private SDL.SDL_DisplayMode? _preferredFullscreenVideoMode;
 
     private bool _fullscreen;
     private bool _actuallyFullscreen;
@@ -47,7 +42,7 @@ public unsafe class Window : IDisposable
     public event DisplayResizeEventHandler? DisplayResized;
     public event CursorEnterEventHandler? CursorEntered;
 
-    public NativeWindow* Handle { get; }
+    public IntPtr Handle { get; }
     public int X => _x;
     public int Y => _y;
 
@@ -92,54 +87,208 @@ public unsafe class Window : IDisposable
         }
 
         _actuallyFullscreen = _fullscreen = displayData.IsFullscreen;
-        var monitor = screenManager.GetMonitor(GLFW.GetPrimaryMonitor());
+        
+        var monitor = screenManager.GetMonitor(0);
         _windowedWidth = _width = Math.Max(displayData.Width, 1);
         _windowedHeight = _height = Math.Max(displayData.Height, 1);
+
+        var flags = SDL.SDL_WindowFlags.SDL_WINDOW_SHOWN |
+                    SDL.SDL_WindowFlags.SDL_WINDOW_RESIZABLE;
         
-        GLFW.DefaultWindowHints();
-        GLFW.WindowHint(WindowHintClientApi.ClientApi, ClientApi.OpenGlApi);
-        GLFW.WindowHint(WindowHintContextApi.ContextCreationApi, ContextApi.NativeContextApi);
-        GLFW.WindowHint(WindowHintInt.ContextVersionMajor, 3);
-        GLFW.WindowHint(WindowHintInt.ContextVersionMinor, 2);
-        GLFW.WindowHint(WindowHintOpenGlProfile.OpenGlProfile, OpenGlProfile.Core);
-        GLFW.WindowHint(WindowHintBool.OpenGLForwardCompat, true);
-        
-        Handle = GLFW.CreateWindow(_width, _height, str2, _fullscreen && monitor != null ? monitor.Handle : null, null);
-        if (monitor != null)
+        if (SharedConstants.UseHighDpi) 
+            flags |= SDL.SDL_WindowFlags.SDL_WINDOW_ALLOW_HIGHDPI;
+
+        GraphicsBackend backend;
+        if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Metal))
         {
-            var videoMode = monitor.GetPreferredVideoMode(_fullscreen ? _preferredFullscreenVideoMode : null);
-            _windowedX = _x = monitor.X + (videoMode.Width - _width) / 2;
-            _windowedY = _y = monitor.Y + (videoMode.Height - _height) / 2;
+            flags |= SDL.SDL_WindowFlags.SDL_WINDOW_METAL;
+            backend = GraphicsBackend.Metal;
+        } 
+        else if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Vulkan))
+        {
+            flags |= SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN;
+            backend = GraphicsBackend.Vulkan;
+        }
+        else if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Direct3D11))
+        {
+            // Missing flag for Direct3D
+            backend = GraphicsBackend.Direct3D11;
         }
         else
         {
-            GLFW.GetWindowPos(Handle, out _x, out _y);
+            flags |= SDL.SDL_WindowFlags.SDL_WINDOW_OPENGL;
+            backend = GraphicsBackend.OpenGL;
+        }
+
+        if (SDL.SDL_GetDisplayBounds(0, out var rect) != 0)
+        {
+            var err = SDL.SDL_GetError();
+            throw new InvalidOperationException($"SDL error: {err}");
+        }
+
+        var x = rect.w / 2 - _width / 2;
+        var y = rect.h / 2 - _height / 2;
+        var handle = SDL.SDL_CreateWindow(str2, x, y, _width, _height, flags);
+        if (handle == 0)
+        {
+            var err = SDL.SDL_GetError();
+            throw new InvalidOperationException($"SDL error: {err}");
+        }
+
+        Handle = handle;
+        if (monitor != null)
+        {
+            var videoMode = monitor.GetPreferredVideoMode(_fullscreen ? _preferredFullscreenVideoMode : null);
+            _windowedX = _x = monitor.X + (videoMode.w - _width) / 2;
+            _windowedY = _y = monitor.Y + (videoMode.h - _height) / 2;
+        }
+        else
+        {
+            SDL.SDL_GetWindowPosition(Handle, out _x, out _y);
             _windowedX = _x;
             _windowedY = _y;
         }
-        GLFW.MakeContextCurrent(Handle);
+
+        GraphicsDevice device;
+        var options = new GraphicsDeviceOptions
+        {
+            PreferStandardClipSpaceYDirection = true
+        };
+
+        var swapchainSource = GetSwapchainSource();
+        var swapchainDescription = new SwapchainDescription(
+            swapchainSource, (uint) _width, (uint) _height, options.SwapchainDepthFormat, options.SyncToVerticalBlank);
         
-        var context = new GLFWBindingsContext();
-        OpenTK.Graphics.ES11.GL.LoadBindings(context);
-        OpenTK.Graphics.ES20.GL.LoadBindings(context);
-        OpenTK.Graphics.ES30.GL.LoadBindings(context);
-        OpenTK.Graphics.OpenGL.GL.LoadBindings(context);
-        OpenTK.Graphics.OpenGL4.GL.LoadBindings(context);
+        switch (backend)
+        {
+            case GraphicsBackend.Metal:
+                device = GraphicsDevice.CreateMetal(options, swapchainDescription);
+                break;
+            case GraphicsBackend.Vulkan:
+                device = GraphicsDevice.CreateVulkan(options, swapchainDescription);
+                break;
+            case GraphicsBackend.Direct3D11:
+                device = GraphicsDevice.CreateD3D11(options, swapchainDescription);
+                break;
+            case GraphicsBackend.OpenGL:
+            {
+                var context = SDL.SDL_GL_CreateContext(Handle);
+                device = GraphicsDevice.CreateOpenGL(options, new OpenGLPlatformInfo(
+                    context, 
+                    SDL.SDL_GL_GetProcAddress,
+                    c => SDL.SDL_GL_MakeCurrent(Handle, c),
+                    SDL.SDL_GL_GetCurrentContext,
+                    () => SDL.SDL_GL_MakeCurrent(0, 0),
+                    SDL.SDL_GL_DeleteContext,
+                    () => SDL.SDL_GL_SwapWindow(Handle),
+                    s => SDL.SDL_GL_SetSwapInterval(s ? 1 : 0)),
+                    (uint) _width, (uint) _height);
+                break;
+            }
+            default:
+                throw new NotSupportedException("Cannot create graphic device");
+        }
         
+        GlStateManager.Init(device);
         SetMode();
         RefreshFramebufferSize();
-        
-        _delegateFramebufferSizeCallback = WindowOnFramebufferResize;
-        _delegateWindowPosCallback = OnMove;
-        _delegateWindowSizeCallback = OnResize;
-        _delegateWindowFocusCallback = OnFocus;
-        _delegateCursorEnterCallback = OnEnter;
-        
-        GLFW.SetFramebufferSizeCallback(Handle, _delegateFramebufferSizeCallback);
-        GLFW.SetWindowPosCallback(Handle, _delegateWindowPosCallback);
-        GLFW.SetWindowSizeCallback(Handle, _delegateWindowSizeCallback);
-        GLFW.SetWindowFocusCallback(Handle, _delegateWindowFocusCallback);
-        GLFW.SetCursorEnterCallback(Handle, _delegateCursorEnterCallback);
+    }
+
+    public void Tick()
+    {
+        PollSDLEvents();
+    }
+
+    private const int EventsPerPeep = 64;
+    private readonly SDL.SDL_Event[] _events = new SDL.SDL_Event[EventsPerPeep];
+
+    // ReSharper disable once InconsistentNaming
+    public static Action<SDL.SDL_Event>? ReceiveSDLEvent;
+
+    private void PollSDLEvents()
+    {
+        SDL.SDL_PumpEvents();
+
+        int eventsRead;
+
+        do
+        {
+            eventsRead = SDL.SDL_PeepEvents(_events, EventsPerPeep, SDL.SDL_eventaction.SDL_GETEVENT,
+                SDL.SDL_EventType.SDL_FIRSTEVENT, SDL.SDL_EventType.SDL_LASTEVENT);
+
+            for (var i = 0; i < eventsRead; i++)
+            {
+                var ev = _events[i];
+                HandleEvent(ev);
+                ReceiveSDLEvent?.Invoke(ev);
+            }
+        } while (eventsRead == EventsPerPeep);
+    }
+
+    private void HandleEvent(SDL.SDL_Event ev)
+    {
+        switch (ev.type)
+        {
+            case SDL.SDL_EventType.SDL_WINDOWEVENT:
+                HandleWindowEvent(ev.window);
+                break;
+        }
+    }
+
+    private void HandleWindowEvent(SDL.SDL_WindowEvent ev)
+    {
+        switch (ev.windowEvent)
+        {
+            case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_RESIZED:
+                OnResize(Handle, ev.data1, ev.data2);
+                break;
+            case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_MOVED:
+                OnMove(Handle, ev.data1, ev.data2);
+                break;
+            // case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_TAKE_FOCUS:
+            case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_GAINED:
+                OnFocus(Handle, true);
+                break;
+            case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_LOST:
+                OnFocus(Handle, false);
+                break;
+            case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_ENTER:
+                OnEnter(Handle, true);
+                break;
+            case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_LEAVE:
+                OnEnter(Handle, false);
+                break;
+            case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_CLOSE:
+                ShouldClose = true;
+                break;
+        }
+    }
+
+    private SwapchainSource GetSwapchainSource()
+    {
+        var sysWmInfo = new SDL.SDL_SysWMinfo();
+        SDL.SDL_GetVersion(out sysWmInfo.version);
+        SDL.SDL_GetWindowWMInfo(Handle, ref sysWmInfo);
+        switch (sysWmInfo.subsystem)
+        {
+            case SDL.SDL_SYSWM_TYPE.SDL_SYSWM_WINDOWS:
+                var w32Info = sysWmInfo.info.win;
+                return SwapchainSource.CreateWin32(w32Info.window, w32Info.hinstance);
+            case SDL.SDL_SYSWM_TYPE.SDL_SYSWM_X11:
+                var x11Info = sysWmInfo.info.x11;
+                return SwapchainSource.CreateXlib(
+                    x11Info.display,
+                    x11Info.window);
+            case SDL.SDL_SYSWM_TYPE.SDL_SYSWM_WAYLAND:
+                var wlInfo = sysWmInfo.info.wl;
+                return SwapchainSource.CreateWayland(wlInfo.display, wlInfo.surface);
+            case SDL.SDL_SYSWM_TYPE.SDL_SYSWM_COCOA:
+                var cocoaInfo = sysWmInfo.info.cocoa;
+                IntPtr nsWindow = cocoaInfo.window;
+                return SwapchainSource.CreateNSWindow(nsWindow);
+            default:
+                throw new PlatformNotSupportedException("Cannot create a SwapchainSource for " + sysWmInfo.subsystem + ".");
+        }
     }
     
     public void UpdateDisplay()
@@ -176,7 +325,7 @@ public unsafe class Window : IDisposable
     private void SetMode()
     {
         RenderSystem.AssertInInitPhase();
-        var bl = GLFW.GetWindowMonitor(Handle) != null;
+        var bl = SDL.SDL_GetWindowDisplayIndex(Handle) >= 0;
         if (_fullscreen)
         {
             var monitor = _screenManager.FindBestMonitor(this);
@@ -187,7 +336,7 @@ public unsafe class Window : IDisposable
             }
             else
             {
-                
+                Util.LogFoobar();
             }
         }
     }
@@ -203,33 +352,33 @@ public unsafe class Window : IDisposable
 
     public int FrameRateLimit { get; set; } = 144;
 
-    public bool ShouldClose => GLFW.WindowShouldClose(Handle);
+    public bool ShouldClose { get; private set; }
 
-    private void OnEnter(NativeWindow* window, bool entered)
+    private void OnEnter(IntPtr window, bool entered)
     {
         if (!entered) return;
         CursorEntered?.Invoke();
     }
 
-    private void OnFocus(NativeWindow* window, bool focused)
+    private void OnFocus(IntPtr window, bool focused)
     {
         if (window != Handle) return;
         WindowActiveChanged?.Invoke(focused);
     }
 
-    private void OnResize(NativeWindow* window, int width, int height)
+    private void OnResize(IntPtr window, int width, int height)
     {
         _width = width;
         _height = height;
     }
 
-    private void OnMove(NativeWindow* window, int x, int y)
+    private void OnMove(IntPtr window, int x, int y)
     {
         _x = x;
         _y = y;
     }
 
-    private void WindowOnFramebufferResize(NativeWindow* window, int width, int height)
+    private void WindowOnFramebufferResize(IntPtr window, int width, int height)
     {
         if (window != Handle) return;
         if (width == 0 || height == 0) return;
@@ -247,7 +396,27 @@ public unsafe class Window : IDisposable
 
     private void RefreshFramebufferSize()
     {
-        GLFW.GetFramebufferSize(Handle, out var width, out var height);
+        int width, height;
+        var backend = GlStateManager.Device.BackendType;
+        switch (backend)
+        {
+            case GraphicsBackend.Metal:
+                SDL.SDL_Metal_GetDrawableSize(Handle, out width, out height);
+                break;
+            case GraphicsBackend.Vulkan:
+                SDL.SDL_Vulkan_GetDrawableSize(Handle, out width, out height);
+                break;
+            case GraphicsBackend.Direct3D11:
+                SDL.SDL_GetWindowSize(Handle, out width, out height);
+                break;
+            case GraphicsBackend.OpenGL:
+                SDL.SDL_GL_GetDrawableSize(Handle, out width, out height);
+                break;
+            default:
+                throw new NotSupportedException();
+        }
+        
+        // GLFW.GetFramebufferSize(Handle, out var width, out var height);
         _framebufferWidth = Math.Max(width, 1);
         _framebufferHeight = Math.Max(height, 1);
     }
@@ -260,29 +429,30 @@ public unsafe class Window : IDisposable
     private void SetBootErrorCallback()
     {
         RenderSystem.AssertInInitPhase();
-        _delegateErrorCallback = BootCrash;
-        GLFW.SetErrorCallback(_delegateErrorCallback);
+        // _delegateErrorCallback = BootCrash;
+        // GLFW.SetErrorCallback(_delegateErrorCallback);
     }
 
     public void SetTitle(string title)
     {
-        GLFW.SetWindowTitle(Handle, title);
+        SDL.SDL_SetWindowTitle(Handle, title);
     }
 
-    private static void BootCrash(ErrorCode error, string description)
+    private static void BootCrash(/*ErrorCode error, string description*/)
     {
         RenderSystem.AssertInInitPhase();
-        var str = $"GLFW error {error}: {description}";
-        
-        // TODO: Show the message box
-        Logger.Error(str);
-        throw new WindowInitFailedException(str);
+        // var str = $"GLFW error {error}: {description}";
+        //
+        // // TODO: Show the message box
+        // Logger.Error(str);
+        // throw new WindowInitFailedException(str);
     }
 
     public void Dispose()
     {
         RenderSystem.AssertOnRenderThread();
-        GLFW.DestroyWindow(Handle);
-        GLFW.Terminate();
+        SDL.SDL_DestroyWindow(Handle);
+        // GLFW.DestroyWindow(Handle);
+        // GLFW.Terminate();
     }
 }

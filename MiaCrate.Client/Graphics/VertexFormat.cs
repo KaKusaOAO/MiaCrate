@@ -1,5 +1,6 @@
 using MiaCrate.Client.Systems;
 using OpenTK.Graphics.OpenGL4;
+using Veldrid;
 using DrawElementsType = OpenTK.Graphics.OpenGL4.DrawElementsType;
 
 namespace MiaCrate.Client.Graphics;
@@ -8,15 +9,17 @@ public class VertexFormat
 {
     public List<VertexFormatElement> Elements { get; }
     private readonly Dictionary<string, VertexFormatElement> _elementMapping;
+    private readonly Func<VertexLayoutDescription> _func;
     private readonly List<IntPtr> _offsets = new();
     private VertexBuffer? _immediateDrawVertexBuffer;
     
     public int VertexSize { get; }
     public int IntegerSize => VertexSize / 4;
 
-    public VertexFormat(Dictionary<string, VertexFormatElement> mapping)
+    public VertexFormat(Dictionary<string, VertexFormatElement> mapping, Func<VertexLayoutDescription> func)
     {
         _elementMapping = mapping;
+        _func = func;
         Elements = mapping.Values.ToList();
 
         var offset = 0;
@@ -31,6 +34,8 @@ public class VertexFormat
 
     public VertexBuffer ImmediateDrawVertexBuffer =>
         _immediateDrawVertexBuffer ??= new VertexBuffer(BufferUsageHint.DynamicDraw);
+
+    public VertexLayoutDescription CreateVertexLayoutDescription() => _func();
 
     public void SetupBufferState()
     {

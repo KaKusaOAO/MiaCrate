@@ -25,8 +25,6 @@ using MiaCrate.Texts;
 using MiaCrate.World.Entities;
 using Mochi.Texts;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.Desktop;
 using ClientPackSource = MiaCrate.Client.Resources.ClientPackSource;
 
 namespace MiaCrate.Client;
@@ -605,7 +603,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         var m = Util.GetNanos();
         bool bl2;
 
-        RenderSystem.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit, OnMacOs);
+        // RenderSystem.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit, OnMacOs);
         MainRenderTarget.BindWrite(true);
         RenderSystem.EnableCull();
         

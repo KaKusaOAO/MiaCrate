@@ -1,9 +1,9 @@
-﻿using MiaCrate.Extensions;
+﻿using MiaCrate.Client.Utils;
+using MiaCrate.Extensions;
 using MiaCrate.Localizations;
 using MiaCrate.Texts;
 using Mochi.Texts;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using NativeWindow = OpenTK.Windowing.GraphicsLibraryFramework.Window;
+using SDL2;
 
 namespace MiaCrate.Client.Platform;
 
@@ -15,51 +15,168 @@ public static class InputConstants
 	public const int ModControl = 2;
 	public static readonly Key Unknown = KeyType.KeySym.GetOrCreate(-1);
 
-	public static bool IsRawMouseInputSupported => GLFW.RawMouseMotionSupported();
+	public static bool IsRawMouseInputSupported => true;
 
-	private static GLFWCallbacks.KeyCallback? _delegateKeyCallback;
-	private static GLFWCallbacks.CharModsCallback? _delegateCharModsCallback;
-	private static GLFWCallbacks.CursorPosCallback? _delegateCursorPosCallback;
-	private static GLFWCallbacks.MouseButtonCallback? _delegateMouseButtonCallback;
-	private static GLFWCallbacks.ScrollCallback? _delegateScrollCallback;
-	private static GLFWCallbacks.DropCallback? _delegateDropCallback;
+	private static GLFWCallbacks.KeyCallback? _keyCallback;
+	private static GLFWCallbacks.CharModsCallback? _charModsCallback;
+	private static GLFWCallbacks.CursorPosCallback? _cursorPosCallback;
+	private static GLFWCallbacks.MouseButtonCallback? _mouseButtonCallback;
+	private static GLFWCallbacks.ScrollCallback? _scrollCallback;
+	private static GLFWCallbacks.DropCallback? _dropCallback;
 
-	public static unsafe void GrabOrReleaseMouse(NativeWindow* handle, CursorModeValue value, double xPos, double yPos)
+	static InputConstants()
 	{
-		GLFW.SetCursorPos(handle, xPos, yPos);
-		GLFW.SetInputMode(handle, CursorStateAttribute.Cursor, value);
+		Window.ReceiveSDLEvent += HandleEvent;
 	}
 
-	public static unsafe void SetupKeyboardCallbacks(NativeWindow* handle,
+	private static void HandleEvent(SDL.SDL_Event ev)
+	{
+		switch (ev.type)
+		{
+			case SDL.SDL_EventType.SDL_MOUSEMOTION:
+				HandleMouseMotionEvent(ev.motion);
+				break;
+			case SDL.SDL_EventType.SDL_MOUSEBUTTONUP:
+			case SDL.SDL_EventType.SDL_MOUSEBUTTONDOWN:
+				HandleMouseButtonEvent(ev.button);
+				break;
+			case SDL.SDL_EventType.SDL_DROPFILE:
+				HandleDropEvent(ev.drop);
+				break;
+			case SDL.SDL_EventType.SDL_KEYUP:
+			case SDL.SDL_EventType.SDL_KEYDOWN:
+				HandleKeyboardButtonEvent(ev.key);
+				break;
+		}
+	}
+
+	private static void HandleMouseMotionEvent(SDL.SDL_MouseMotionEvent ev)
+	{
+		var handle = (IntPtr) ev.windowID;
+		// TODO: Process with SDL.SDL_GetRelativeMouseMode()
+		_cursorPosCallback?.Invoke(handle, ev.x, ev.y);
+	}
+
+	private static void HandleDropEvent(SDL.SDL_DropEvent ev)
+	{
+		unsafe
+		{
+			var handle = (IntPtr) ev.windowID;
+			_dropCallback?.Invoke(handle, 1, (char*) ev.file);
+		}
+	}
+
+	private static void HandleKeyboardButtonEvent(SDL.SDL_KeyboardEvent ev)
+	{
+		var key = ev.keysym;
+		var scancode = key.scancode;
+		var keymod = key.mod;
+		var handle = (IntPtr) ev.windowID;
+		var mods = (KeyModifiers) 0;
+
+		if ((keymod & SDL.SDL_Keymod.KMOD_SHIFT) == SDL.SDL_Keymod.KMOD_SHIFT)
+			mods |= KeyModifiers.Shift;
+		
+		if ((keymod & SDL.SDL_Keymod.KMOD_CTRL) == SDL.SDL_Keymod.KMOD_CTRL)
+			mods |= KeyModifiers.Control;
+		
+		if ((keymod & SDL.SDL_Keymod.KMOD_ALT) == SDL.SDL_Keymod.KMOD_ALT)
+			mods |= KeyModifiers.Alt;
+
+		if ((keymod & SDL.SDL_Keymod.KMOD_GUI) == SDL.SDL_Keymod.KMOD_GUI)
+			mods |= KeyModifiers.Super;
+
+		if (IsKeyDown(handle, Keys.CapsLock))
+			mods |= KeyModifiers.CapsLock;
+		
+		if (IsKeyDown(handle, Keys.NumLock))
+			mods |= KeyModifiers.NumLock;
+
+		var pressed = ev.state == SDL.SDL_PRESSED;
+		var action = ev.repeat == 0 ? (pressed ? InputAction.Press : InputAction.Release) : InputAction.Repeat;
+		
+		_keyCallback?.Invoke(handle, (Keys) scancode, (int) scancode, action, mods);
+		_charModsCallback?.Invoke(handle, key.unicode, mods);
+	}
+
+	private static byte _lastState;
+
+	private static void HandleMouseButtonEvent(SDL.SDL_MouseButtonEvent ev)
+	{
+		var state = ev.state;
+		var handle = (int) ev.windowID;
+
+		void DispatchMouseEvents(uint mask, MouseButton button)
+		{
+			if ((state & mask) == (_lastState & mask))
+			{
+				if ((state & mask) == mask)
+				{
+					_mouseButtonCallback?.Invoke(handle, button, InputAction.Press, 0);
+				}
+				else
+				{
+					_mouseButtonCallback?.Invoke(handle, button, InputAction.Release, 0);
+				}
+			}
+		}
+		
+		DispatchMouseEvents(SDL.SDL_BUTTON_LMASK, MouseButton.Left);
+		DispatchMouseEvents(SDL.SDL_BUTTON_MMASK, MouseButton.Middle);
+		DispatchMouseEvents(SDL.SDL_BUTTON_RMASK, MouseButton.Right);
+		DispatchMouseEvents(SDL.SDL_BUTTON_X1MASK, MouseButton.Button4);
+		DispatchMouseEvents(SDL.SDL_BUTTON_X2MASK, MouseButton.Button5);
+
+		_lastState = state;
+	}
+
+	public static void GrabOrReleaseMouse(IntPtr handle, CursorModeValue value, double xPos, double yPos)
+	{
+		var showCursor = value == CursorModeValue.CursorNormal
+			? SDL.SDL_ENABLE
+			: SDL.SDL_DISABLE;
+
+		var relative = value == CursorModeValue.CursorDisabled
+			? SDL.SDL_bool.SDL_TRUE
+			: SDL.SDL_bool.SDL_FALSE;
+		
+		SDL.SDL_SetRelativeMouseMode(relative);
+		SDL.SDL_ShowCursor(showCursor);
+	}
+
+	public static void SetupKeyboardCallbacks(IntPtr handle,
 		GLFWCallbacks.KeyCallback keyCallback,
 		GLFWCallbacks.CharModsCallback charModsCallback)
 	{
-		_delegateKeyCallback = keyCallback;
-		_delegateCharModsCallback = charModsCallback;
-
-		GLFW.SetKeyCallback(handle, _delegateKeyCallback);
-		GLFW.SetCharModsCallback(handle, _delegateCharModsCallback);
+		_keyCallback = keyCallback;
+		_charModsCallback = charModsCallback;
 	}
 	
-	public static unsafe void SetupMouseCallbacks(NativeWindow* handle,
+	public static void SetupMouseCallbacks(IntPtr handle,
 		GLFWCallbacks.CursorPosCallback cursorPosCallback,
 		GLFWCallbacks.MouseButtonCallback mouseButtonCallback,
 		GLFWCallbacks.ScrollCallback scrollCallback,
 		GLFWCallbacks.DropCallback dropCallback)
 	{
-		_delegateCursorPosCallback = cursorPosCallback;
-		_delegateMouseButtonCallback = mouseButtonCallback;
-		_delegateScrollCallback = scrollCallback;
-		_delegateDropCallback = dropCallback;
-		
-		GLFW.SetCursorPosCallback(handle, _delegateCursorPosCallback);
-		GLFW.SetMouseButtonCallback(handle, _delegateMouseButtonCallback);
-		GLFW.SetScrollCallback(handle, _delegateScrollCallback);
-		GLFW.SetDropCallback(handle, _delegateDropCallback);
+		_cursorPosCallback = cursorPosCallback;
+		_mouseButtonCallback = mouseButtonCallback;
+		_scrollCallback = scrollCallback;
+		_dropCallback = dropCallback;
 	}
 
-	public static unsafe bool IsKeyDown(NativeWindow* handle, Keys key) => 
-		GLFW.GetKey(handle, key) == InputAction.Press;
+	public static bool IsKeyDown(IntPtr handle, Keys key)
+	{
+		unsafe
+		{
+			var ptr = (byte*) SDL.SDL_GetKeyboardState(out var keys);
+			if ((int) key >= keys)
+			{
+				throw new ArgumentException("Key index overflow!");
+			}
+
+			return ptr[(int) key] == 1;
+		}
+	}
 
 	public class KeyType
     {
@@ -69,16 +186,16 @@ public static class InputConstants
         {
             if (s == KeyKeyboardUnknown) return TranslateText.Of(s);
 
-            var name = GLFW.GetKeyName((Keys) i, -1);
-            return name != null
+            var name = SDL.SDL_GetScancodeName((SDL.SDL_Scancode) i);
+            return !string.IsNullOrEmpty(name)
                 ? Component.Literal(name.ToUpperInvariant())
                 : TranslateText.Of(s);
         });
 
         public static KeyType ScanCode { get; } = new("scancode", (i, s) =>
         {
-            var name = GLFW.GetKeyName(Keys.Unknown, i);
-            return name != null
+            var name = SDL.SDL_GetScancodeName((SDL.SDL_Scancode) i);
+            return !string.IsNullOrEmpty(name)
                 ? Component.Literal(name)
                 : TranslateText.Of(s);
         });

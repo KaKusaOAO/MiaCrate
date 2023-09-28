@@ -1,5 +1,6 @@
 using MiaCrate.Client.Platform;
 using OpenTK.Graphics.OpenGL4;
+using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -9,9 +10,11 @@ public class VertexFormatElement
     public UsageInfo Usage { get; }
     public int Index { get; }
     public int Count { get; }
+    public VertexElementFormat ElementFormat { get; }
+    public VertexElementSemantic Semantic { get; }
     public int ByteSize { get; }
 
-    public VertexFormatElement(int index, TypeInfo type, UsageInfo usage, int count)
+    public VertexFormatElement(int index, TypeInfo type, UsageInfo usage, int count, VertexElementFormat elementFormat, VertexElementSemantic semantic)
     {
         if (!SupportsUsage(index, usage)) 
             throw new Exception("Multiple vertex elements of the same type other than UVs are not supported");
@@ -20,6 +23,8 @@ public class VertexFormatElement
         Type = type;
         Index = index;
         Count = count;
+        ElementFormat = elementFormat;
+        Semantic = semantic;
         ByteSize = type.Size * Count;
     }
 

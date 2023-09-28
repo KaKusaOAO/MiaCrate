@@ -7,6 +7,8 @@ using Mochi.Texts;
 using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Veldrid;
+using Veldrid.OpenGLBinding;
 using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
 
 namespace MiaCrate.Client.Platform;
@@ -26,6 +28,37 @@ public static class GlStateManager
 
     private static readonly TextureState[] _textures =
         Enumerable.Range(0, 12).Select(i => new TextureState()).ToArray();
+
+    private static GraphicsDevice? _device;
+    private static ResourceFactory? _resourceFactory;
+    private static CommandList? _commandList;
+    private static GraphicsPipelineDescription _pipelineDescription;
+    private static Veldrid.Pipeline? _pipeline;
+    private static bool _pipelineDirty = true;
+
+    public static GraphicsDevice Device => 
+        _device ?? throw new InvalidOperationException("Device not ready");
+    
+    public static ResourceFactory ResourceFactory =>
+        _resourceFactory ?? throw new InvalidOperationException("Device not ready");
+
+    public static CommandList CommandList =>
+        _commandList ?? throw new InvalidOperationException("Device not ready");
+
+    public static void Init(GraphicsDevice device)
+    {
+        _device = device;
+        _resourceFactory = device.ResourceFactory;
+        _commandList = _resourceFactory.CreateCommandList();
+    }
+
+    private static void BuildPipelineIfDirty()
+    {
+        if (_pipeline != null && !_pipelineDirty) return;
+        
+        _pipeline = _resourceFactory!.CreateGraphicsPipeline(_pipelineDescription);
+        _pipelineDirty = false;
+    }
 
     public static void AttachShader(int program, int shader)
     {

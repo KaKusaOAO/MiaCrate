@@ -1,8 +1,13 @@
 ﻿using System.Diagnostics;
+using System.Text;
+using System.Text.RegularExpressions;
+using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Preprocessor;
 using MiaCrate.Client.Systems;
 using OpenTK.Graphics.OpenGL4;
+using Veldrid;
+using Veldrid.SPIRV;
 
 namespace MiaCrate.Client.Shaders;
 
@@ -37,19 +42,14 @@ public class Program : IDisposable
         _type.Programs.Remove(Name);
     }
 
-    public static Program CompileShader(ProgramType type, string name, Stream stream, string str2,
+    public static ConvertResult CompileShader(ProgramType type, string name, Stream stream, string str2,
         GlslPreprocessor preprocessor)
     {
         RenderSystem.AssertOnRenderThread();
-        var shader = InternalCompileShader(type, name, stream, str2, preprocessor);
-        GlStateManager.ObjectLabel(ObjectLabelIdentifier.Shader, shader, name + type.Extension);
-        
-        var program = new Program(type, shader, name);
-        type.Programs[name] = program;
-        return program;
+        return InternalCompileShader(type, name, stream, str2, preprocessor);
     }
 
-    protected static int InternalCompileShader(ProgramType type, string name, Stream stream, string str2,
+    protected static ConvertResult InternalCompileShader(ProgramType type, string name, Stream stream, string str2,
         GlslPreprocessor preprocessor)
     {
         string source;
@@ -64,16 +64,104 @@ public class Program : IDisposable
             throw new IOException($"Could not load program {type.Name}");
         }
 
-        var handle = GlStateManager.CreateShader(type.Type);
-        GlStateManager.ShaderSource(handle, preprocessor.Process(source));
-        GlStateManager.CompileShader(handle);
+        var processed = string.Join('\n', preprocessor.Process(source));
+        return ConvertToVeldridUsable(processed, 
+            type == ProgramType.Vertex ? ShaderStages.Vertex : ShaderStages.Fragment);
+    }
 
-        if (GlStateManager.GetShaderI(handle, ShaderParameter.CompileStatus) == 0)
+    public record ConvertResult(string Source,
+        List<ResourceLayoutElementDescription> ResourceLayoutsLayoutElementDescriptions);
+
+    private static VertexElementFormat FromType(string type)
+    {
+        return type switch
         {
-            var infoLog = GlStateManager.GetShaderInfoLog(handle);
-            throw new IOException($"Couldn't compile {type.Name} program ({str2}, {name}) : {infoLog}");
+            "vec2" => VertexElementFormat.Float2,
+            "vec3" => VertexElementFormat.Float3,
+            "vec4" => VertexElementFormat.Float4,
+            "ivec2" => VertexElementFormat.Int2
+        };
+    }
+    
+    private static ConvertResult ConvertToVeldridUsable(string glsl, ShaderStages stage)
+    {
+        var inRegex = new Regex("in\\s(.*?)\\s(.*?);");
+        var outRegex = new Regex("out\\s(.*?)\\s(.*?);");
+        var uniformRegex = new Regex("uniform\\s(.*?)\\s(.*?);");
+
+        var attribs = new List<VertexElementDescription>();
+        var list = new List<ResourceLayoutElementDescription>();
+        
+        var temp = glsl;
+        var matches = inRegex.Matches(temp);
+        var sb = new StringBuilder();
+
+        // In attributes
+        var counter = 0;
+        var index = 0;
+        foreach (Match match in matches)
+        {
+            sb.Append(temp[index..match.Index]);
+            sb.Append($"layout(location = {counter++}) ");
+            sb.Append(match.Value);
+            index = match.Index + match.Length;
         }
 
-        return handle;
+        temp = sb.ToString();
+        matches = outRegex.Matches(temp);
+        sb.Clear();
+
+        // Out attributes
+        counter = 0;
+        index = 0;
+        foreach (Match match in matches)
+        {
+            sb.Append(temp[index..match.Index]);
+            sb.Append($"layout(location = {counter++}) ");
+            sb.Append(match.Value);
+            index = match.Index + match.Length;
+        }
+        
+        temp = sb.ToString();
+        matches = outRegex.Matches(temp);
+        sb.Clear();
+        
+        // Uniform blocks
+        counter = 0;
+        index = 0;
+        var set = stage == ShaderStages.Vertex ? 0 : 1;
+        foreach (Match match in matches)
+        {
+            var type = match.Groups[1].Value;
+            var name = match.Groups[2].Value;
+
+            sb.Append(temp[index..match.Index]);
+            ResourceKind resourceKind;
+            if (type == "sampler2D")
+            {
+                resourceKind = ResourceKind.TextureReadOnly;
+                sb.Append($"layout(set = {set}, binding = {counter++}) uniform sampler2D ");
+                sb.Append(name);
+                sb.Append(";");
+            }
+            else
+            {
+                resourceKind = ResourceKind.UniformBuffer;
+                sb.Append($"layout(set = {set}, binding = {counter++}) uniform ");
+                sb.Append(name);
+                sb.AppendLine(" {");
+            
+                sb.Append("    ");
+                sb.Append(type);
+                sb.Append(" _").Append(name).AppendLine(";");
+                sb.AppendLine("};");
+            }
+            
+            index = match.Index + match.Length;
+            list.Add(new ResourceLayoutElementDescription(name, resourceKind, stage));
+        }
+        
+        temp = sb.ToString();
+        return new ConvertResult(temp, list);
     }
 }

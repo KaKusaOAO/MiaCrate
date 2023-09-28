@@ -1,24 +1,22 @@
 ﻿using MiaCrate.Client.Systems;
-using OpenTK.Windowing.GraphicsLibraryFramework;
+using SDL2;
 
 namespace MiaCrate.Client.Platform;
 
-using NativeMonitor = OpenTK.Windowing.GraphicsLibraryFramework.Monitor;
-
-public unsafe class Monitor
+public class Monitor
 {
-    public NativeMonitor* Handle { get; }
-    private readonly List<VideoMode> _videoModes = new();
+    public int Index { get; }
+    private readonly List<SDL.SDL_DisplayMode> _videoModes = new();
     private int _x;
     private int _y;
-    public VideoMode CurrentMode { get; private set; }
+    public SDL.SDL_DisplayMode CurrentMode { get; private set; }
 
     public int X => _x;
     public int Y => _y;
 
-    public Monitor(NativeMonitor* handle)
+    public Monitor(int index)
     {
-        Handle = handle;
+        Index = index;
         RefreshVideoModes();
     }
 
@@ -28,21 +26,52 @@ public unsafe class Monitor
     {
         RenderSystem.AssertInInitPhase();
         _videoModes.Clear();
-        
-        var modes = GLFW.GetVideoModes(Handle);
-        foreach (var mode in modes)
+
+        var count = SDL.SDL_GetNumDisplayModes(Index);
+        if (count < 1)
         {
-            if (mode is {RedBits: >= 8, GreenBits: >= 8, BlueBits: >= 8})
+            var err = SDL.SDL_GetError();
+            throw new InvalidOperationException($"SDL error: {err}");
+        }
+
+        for (var i = 0; i < count; i++)
+        {
+            if (SDL.SDL_GetDisplayMode(Index, i, out var mode) != 0)
+            {
+                var err = SDL.SDL_GetError();
+                throw new InvalidOperationException($"SDL error: {err}");
+            }
+
+            var format = mode.format;
+            if (format == SDL.SDL_PIXELFORMAT_RGB24 || format == SDL.SDL_PIXELFORMAT_BGR24)
+            {
+                _videoModes.Add(mode);
+            } 
+            else if ((SDL.SDL_PackedLayout) SDL.SDL_PIXELLAYOUT(format) == SDL.SDL_PackedLayout.SDL_PACKEDLAYOUT_8888)
             {
                 _videoModes.Add(mode);
             }
         }
 
-        GLFW.GetMonitorPos(Handle, out _x, out _y);
-        CurrentMode = *GLFW.GetVideoMode(Handle);
+        if (SDL.SDL_GetDisplayBounds(Index, out var rect) != 0)
+        {
+            var err = SDL.SDL_GetError();
+            throw new InvalidOperationException($"SDL error: {err}");
+        }
+
+        _x = rect.x;
+        _y = rect.y;
+
+        if (SDL.SDL_GetCurrentDisplayMode(0, out var currMode) != 0)
+        {
+            var err = SDL.SDL_GetError();
+            throw new InvalidOperationException($"SDL error: {err}");
+        }
+
+        CurrentMode = currMode;
     }
 
-    public VideoMode GetPreferredVideoMode(VideoMode? videoMode)
+    public SDL.SDL_DisplayMode GetPreferredVideoMode(SDL.SDL_DisplayMode? videoMode)
     {
         RenderSystem.AssertInInitPhase();
         if (videoMode.HasValue)
@@ -50,20 +79,20 @@ public unsafe class Monitor
             var mode = videoMode.Value;
             foreach (var m in _videoModes)
             {
-                if (VideoModeHelper.Equals(m, mode)) return m;
+                if (m.Equals(mode)) return m;
             }
         }
 
         return CurrentMode;
     }
 
-    public int GetVideoModeIndex(VideoMode videoMode)
+    public int GetVideoModeIndex(SDL.SDL_DisplayMode videoMode)
     {
         RenderSystem.AssertInInitPhase();
         return _videoModes.IndexOf(videoMode);
     }
 
-    public VideoMode GetMode(int index) => _videoModes[index];
+    public SDL.SDL_DisplayMode GetMode(int index) => _videoModes[index];
 
     public int GetModeCount() => _videoModes.Count;
 }

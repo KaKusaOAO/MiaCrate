@@ -1,74 +1,106 @@
 ﻿using System.Runtime.CompilerServices;
 using MiaCrate.Client.Systems;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using NativeMonitor = OpenTK.Windowing.GraphicsLibraryFramework.Monitor;
+using SDL2;
 
 namespace MiaCrate.Client.Platform;
 
-public unsafe delegate Monitor MonitorCreator(NativeMonitor* monitor);
+public delegate Monitor MonitorCreator(int monitor);
 
-public unsafe class ScreenManager : IDisposable
+public class ScreenManager : IDisposable
 {
-    private static event GLFWCallbacks.MonitorCallback? MonitorChanged;
-    private readonly Dictionary<IntPtr, Monitor> _monitors = new();
+    private readonly Dictionary<int, Monitor> _monitors = new();
     private readonly MonitorCreator _monitorCreator;
 
     public ScreenManager(MonitorCreator creator)
     {
         RenderSystem.AssertInInitPhase();
         _monitorCreator = creator;
-        MonitorChanged += OnMonitorChanged;
+        RefreshMonitors();
 
-        var monitors = GLFW.GetMonitors();
-        foreach (var monitor in monitors)
+        Window.ReceiveSDLEvent += HandleEvent;
+    }
+
+    private void HandleEvent(SDL.SDL_Event ev)
+    {
+        if (ev.type != SDL.SDL_EventType.SDL_DISPLAYEVENT) return;
+        
+        var dev = ev.display;
+        var monitor = (int) dev.display;
+        switch (dev.displayEvent)
         {
-            _monitors.Add((IntPtr) monitor, _monitorCreator(monitor));
+            case SDL.SDL_DisplayEventID.SDL_DISPLAYEVENT_CONNECTED:
+                OnMonitorChanged(monitor, ConnectedState.Connected);
+                break;
+            case SDL.SDL_DisplayEventID.SDL_DISPLAYEVENT_DISCONNECTED:
+                OnMonitorChanged(monitor, ConnectedState.Disconnected);
+                break;
         }
     }
 
-    private void OnMonitorChanged(NativeMonitor* monitor, ConnectedState state)
+    private void OnMonitorChanged(int monitor, ConnectedState state)
     {
         RenderSystem.AssertOnRenderThread();
         
-        var key = (IntPtr) monitor;
         if (state == ConnectedState.Connected)
         {
-            _monitors[key] = _monitorCreator(monitor);
-        } else if (state == ConnectedState.Disconnected)
+            _monitors[monitor] = _monitorCreator(monitor);
+        } 
+        else if (state == ConnectedState.Disconnected)
         {
-            _monitors.Remove(key);
+            if (monitor + 1 == _monitors.Count)
+            {
+                _monitors.Remove(monitor);
+                return;
+            }
+            
+            RefreshMonitors();
         }
     }
 
-    public Monitor? GetMonitor(NativeMonitor* monitor)
+    private void RefreshMonitors()
+    {
+        _monitors.Clear();
+            
+        var count = SDL.SDL_GetNumVideoDisplays();
+        if (count < 1)
+        {
+            var err = SDL.SDL_GetError();
+            throw new InvalidOperationException($"SDL error: {err}");
+        }
+        
+        for (var i = 0; i < count; i++)
+        {
+            _monitors.Add(i, _monitorCreator(i));
+        }
+    }
+
+    public Monitor? GetMonitor(int monitor)
     {
         RenderSystem.AssertInInitPhase();
-        var key = (IntPtr) monitor;
-        return _monitors.TryGetValue(key, out var result) ? result : null;
+        return _monitors.TryGetValue(monitor, out var result) ? result : null;
     }
 
     static ScreenManager()
     {
-        GLFW.SetMonitorCallback(DelegateOnMonitorChange);
+        
     }
-
-    private static void DelegateOnMonitorChange(
-        OpenTK.Windowing.GraphicsLibraryFramework.Monitor* monitor,
-        ConnectedState state) => MonitorChanged?.Invoke(monitor, state);
 
     public Monitor? FindBestMonitor(Window window)
     {
-        var monitor = GLFW.GetWindowMonitor(window.Handle);
-        if (monitor != null) return GetMonitor(monitor);
-
-        var i = window.X;
-        throw new NotImplementedException();
+        var index = SDL.SDL_GetWindowDisplayIndex(window.Handle);
+        if (index < 0)
+        {
+            var err = SDL.SDL_GetError();
+            throw new InvalidOperationException($"SDL error: {err}");
+        }
+        
+        return GetMonitor(index);
     }
 
     private void Shutdown()
     {
         RenderSystem.AssertOnRenderThread();
-        GLFW.SetMonitorCallback(null);
+        Window.ReceiveSDLEvent -= HandleEvent;
     }
 
     public void Dispose()
@@ -76,4 +108,9 @@ public unsafe class ScreenManager : IDisposable
         GC.SuppressFinalize(this);
         Shutdown();
     }
+}
+
+public enum ConnectedState
+{
+    Disconnected, Connected
 }
