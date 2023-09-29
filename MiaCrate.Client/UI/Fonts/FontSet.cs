@@ -165,6 +165,7 @@ public class FontSet : IDisposable
             : GlyphRenderTypes.CreateForIntensityTexture(location);
         
         var tex = new FontTexture(renderTypes, bl);
+        tex.Texture!.Name = $"FontTexture - {location}";
         _textures.Add(tex);
         _textureManager.Register(location, tex);
 

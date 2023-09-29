@@ -78,16 +78,7 @@ public class TextureAtlas : AbstractTexture, IDumpable, ITickable
     public void Upload(SpriteLoader.Preparations preparations)
     {
         Logger.Info($"Created: {preparations.Width}x{preparations.Height}x{preparations.MipLevel} {Location}-atlas");
-        var preparation = TextureUtil.PrepareImage(preparations.MipLevel, preparations.Width, preparations.Height);
-        _textureDescription = preparation.TextureDescription;
-        _samplerDescription = preparation.SamplerDescription;
-
-        var factory = GlStateManager.ResourceFactory;
-        Texture?.Dispose();
-        Texture = factory.CreateTexture(_textureDescription);
-        
-        Sampler?.Dispose();
-        Sampler = factory.CreateSampler(_samplerDescription);
+        Texture = TextureUtil.PrepareImage(preparations.MipLevel, preparations.Width, preparations.Height);
 
         Width = preparations.Width;
         Height = preparations.Height;

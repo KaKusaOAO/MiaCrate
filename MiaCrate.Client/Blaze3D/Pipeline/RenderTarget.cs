@@ -1,6 +1,7 @@
 ﻿using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
+using Mochi.Extensions;
 using OpenTK.Mathematics;
 using Veldrid;
 
@@ -21,15 +22,12 @@ public abstract class RenderTarget
     public int ViewHeight { get; set; }
     public bool UseDepth { get; }
     public Framebuffer? FramebufferId { get; set; }
-    public Texture? ColorTextureId { get; protected set; }
-    public Texture? DepthBufferId { get; protected set; }
-    public Sampler? ColorTextureSampler { get; protected set; }
-    public Sampler? DepthBufferSampler { get; protected set; }
+    public TextureInstance? ColorTexture { get; } = new();
+    
+    public TextureInstance? DepthBuffer { get; } = new();
+    
     public SamplerFilter FilterMode { get; set; }
-
-    protected SamplerDescription colorSamplerDescription;
-    protected SamplerDescription depthBufferDescription;
-
+    
     protected RenderTarget(bool useDepth)
     {
         UseDepth = useDepth;
@@ -39,9 +37,8 @@ public abstract class RenderTarget
     {
         RenderSystem.EnsureOnRenderThread(() =>
         {
-            var cl = GlStateManager.CommandList;
             var device = GlStateManager.Device;
-            cl.SetFramebuffer(device.SwapchainFramebuffer);
+            GlStateManager.BindOutput(device.SwapchainFramebuffer);
         });
     }
 
@@ -62,11 +59,8 @@ public abstract class RenderTarget
     {
         RenderSystem.AssertOnRenderThreadOrInit();
 
-        var cl = GlStateManager.ResourceFactory.CreateCommandList();
-        cl.Begin();
-        cl.CopyTexture(target.DepthBufferId, DepthBufferId);
-        cl.End();
-        GlStateManager.Device.SubmitCommands(cl);
+        var cl = GlStateManager.EnsureBufferCommandBegan();
+        cl.CopyTexture(target.DepthBuffer!.Texture, DepthBuffer!.Texture);
 
         // GlStateManager.BindFramebuffer(FramebufferTarget.ReadFramebuffer, target.FramebufferId);
         // GlStateManager.BindFramebuffer(FramebufferTarget.DrawFramebuffer, FramebufferId);
@@ -81,10 +75,8 @@ public abstract class RenderTarget
         UnbindRead();
         UnbindWrite();
 
-        DepthBufferId?.Dispose();
-        DepthBufferSampler?.Dispose();
-        ColorTextureId?.Dispose();
-        ColorTextureSampler?.Dispose();
+        DepthBuffer?.Dispose();
+        ColorTexture?.Dispose();
         FramebufferId?.Dispose();
     }
 
@@ -100,32 +92,37 @@ public abstract class RenderTarget
         Width = width;
         Height = height;
 
-        var colorTextureDesc = new TextureDescription((uint) Width, (uint) Height, 0, 0, 0,
-            PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.RenderTarget, TextureType.Texture2D);
-        ColorTextureId = GlStateManager.ResourceFactory.CreateTexture(colorTextureDesc);
-        ColorTextureId.Name = "Render Target - Color";
-
         if (UseDepth)
         {
-            var depthTextureDesc = new TextureDescription((uint) Width, (uint) Height, 0, 0, 0,
-                PixelFormat.R16_Float, TextureUsage.DepthStencil, TextureType.Texture2D);
-            DepthBufferId = GlStateManager.ResourceFactory.CreateTexture(depthTextureDesc);
-            DepthBufferId.Name = "Render Target - Depth";
+            var depthTextureDesc = TextureDescription.Texture2D((uint) Width, (uint) Height, 1, 1,
+                PixelFormat.D24_UNorm_S8_UInt, TextureUsage.DepthStencil);
 
-            depthBufferDescription.Filter = SamplerFilter.MinPoint_MagPoint_MipPoint;
-            depthBufferDescription.AddressModeU = SamplerAddressMode.Clamp;
-            depthBufferDescription.AddressModeV = SamplerAddressMode.Clamp;
-            DepthBufferSampler?.Dispose();
-            DepthBufferSampler = GlStateManager.ResourceFactory.CreateSampler(depthBufferDescription);
+            var depthBufferDescription = new SamplerDescription
+            {
+                Filter = SamplerFilter.MinPoint_MagPoint_MipPoint,
+                AddressModeU = SamplerAddressMode.Clamp,
+                AddressModeV = SamplerAddressMode.Clamp
+            };
+
+            DepthBuffer!.UpdateTextureDescription(depthTextureDesc);
+            DepthBuffer!.UpdateSamplerDescription(depthBufferDescription);
         }
-
-        SetFilterMode(SamplerFilter.MinPoint_MagPoint_MipPoint);
-        colorSamplerDescription.AddressModeU = SamplerAddressMode.Clamp;
-        colorSamplerDescription.AddressModeV = SamplerAddressMode.Clamp;
-        ColorTextureSampler?.Dispose();
-        ColorTextureSampler = GlStateManager.ResourceFactory.CreateSampler(colorSamplerDescription);
         
-        var fbDesc = new FramebufferDescription(UseDepth ? DepthBufferId : null, ColorTextureId);
+        var colorTextureDesc = TextureDescription.Texture2D((uint) Width, (uint) Height, 1, 1,
+            PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.RenderTarget | TextureUsage.Sampled);
+        ColorTexture!.UpdateTextureDescription(colorTextureDesc);
+        
+        SetFilterMode(SamplerFilter.MinPoint_MagPoint_MipPoint);
+        ColorTexture.ModifySampler((ref SamplerDescription s) =>
+        {
+            s.AddressModeU = SamplerAddressMode.Clamp;
+            s.AddressModeV = SamplerAddressMode.Clamp;
+        });
+
+        ColorTexture.EnsureUpToDate();
+        DepthBuffer?.EnsureUpToDate();
+
+        var fbDesc = new FramebufferDescription(UseDepth ? DepthBuffer!.Texture : null, ColorTexture!.Texture);
         FramebufferId?.Dispose();
         FramebufferId = GlStateManager.ResourceFactory.CreateFramebuffer(fbDesc);
         FramebufferId.Name = "Render Target";
@@ -140,7 +137,9 @@ public abstract class RenderTarget
         RenderSystem.AssertOnRenderThreadOrInit();
         BindWrite(true);
 
-        var cl = GlStateManager.CommandList;
+        var cl = GlStateManager.EnsureFramebufferSet(FramebufferId!);
+        // cl.Begin();
+        // cl.SetFramebuffer(FramebufferId!);
         cl.ClearColorTarget(0, new RgbaFloat(
             _clearChannels[RedChannel],
             _clearChannels[GreenChannel],
@@ -152,6 +151,8 @@ public abstract class RenderTarget
             cl.ClearDepthStencil(1f);
         }
         
+        // cl.End();
+        // GlStateManager.Device.SubmitCommands(cl);
         UnbindWrite();
     }
 
@@ -162,13 +163,14 @@ public abstract class RenderTarget
     private void InternalBindWrite(bool resetViewport)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-
-        var cl = GlStateManager.CommandList;
-        cl.SetFramebuffer(FramebufferId);
+        GlStateManager.BindOutput(FramebufferId!);
         
         if (resetViewport)
         {
+            var cl = GlStateManager.EnsureCommandBegan();
+            cl.SetFramebuffer(FramebufferId!);
             cl.SetViewport(0, new Viewport(0, 0, ViewWidth, ViewHeight, 0, 1));
+            GlStateManager.SubmitCommands();
         }
     }
 
@@ -185,9 +187,10 @@ public abstract class RenderTarget
         RenderSystem.AssertOnRenderThreadOrInit();
         FilterMode = filter;
         
-        colorSamplerDescription.Filter = filter;
-        ColorTextureSampler?.Dispose();
-        ColorTextureSampler = GlStateManager.ResourceFactory.CreateSampler(colorSamplerDescription);
+        ColorTexture!.ModifySampler((ref SamplerDescription desc) =>
+        {
+            desc.Filter = filter;
+        });
     }
 
     public void UnbindRead()
@@ -224,7 +227,7 @@ public abstract class RenderTarget
 
         var game = Game.Instance;
         var shader = game.GameRenderer.BlitShader;
-        shader.SetSampler("DiffuseSampler", ColorTextureId);
+        shader.SetSampler("DiffuseSampler", ColorTexture);
 
         var matrix = Matrix4.CreateOrthographicOffCenter(0, width, height, 0, 1000, 3000);
         RenderSystem.SetProjectionMatrix(matrix, IVertexSorting.OrthoZ);

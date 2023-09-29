@@ -182,6 +182,10 @@ public class BitmapProvider : IGlyphProvider
 
             public void Upload(AbstractTexture texture, int x, int y)
             {
+                // instance image is the font texture in the resource pack
+                // the texture argument is the font atlas
+                // x and y stands for the position in the font atlas (dynamic one)
+                // offsetX and offsetY stand for the position in the source texture
                 _instance.Image.Upload(texture, 0, x, y, _instance.OffsetX, _instance.OffsetY, 
                     _instance.Width, _instance.Height, false, false);
             }

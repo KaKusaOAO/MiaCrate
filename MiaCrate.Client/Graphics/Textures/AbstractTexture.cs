@@ -1,6 +1,7 @@
 ﻿using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
 using MiaCrate.Resources;
+using Mochi.Extensions;
 using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
@@ -13,11 +14,7 @@ public abstract class AbstractTexture : IDisposable
     protected bool IsBlur { get; set; }
     protected bool IsMipmap { get; set; }
 
-    public Texture? Texture { get; internal set; }
-    public Sampler? Sampler { get; internal set; }
-
-    internal TextureDescription _textureDescription;
-    internal SamplerDescription _samplerDescription;
+    public TextureInstance? Texture { get; protected set; }
 
     public void SetFilter(bool blur, bool mipmap)
     {
@@ -25,17 +22,27 @@ public abstract class AbstractTexture : IDisposable
         IsBlur = blur;
         IsMipmap = mipmap;
         
-        if (blur)
+        Texture?.ModifySampler((ref SamplerDescription s) =>
         {
-            _samplerDescription.Filter = SamplerFilter.MinLinear_MagLinear_MipLinear;
-        }
-        else
+            if (blur)
+            {
+                s.Filter = SamplerFilter.MinLinear_MagLinear_MipLinear;
+            }
+            else
+            {
+                s.Filter = SamplerFilter.MinPoint_MagPoint_MipPoint;
+            }
+        });
+        Texture?.EnsureSamplerUpToDate();
+    }
+    
+    public void SetAddressMode(SamplerAddressMode u, SamplerAddressMode v)
+    {
+        Texture?.ModifySampler((ref SamplerDescription s) =>
         {
-            _samplerDescription.Filter = SamplerFilter.MinPoint_MagPoint_MipPoint;
-        }
-        
-        Sampler?.Dispose();
-        Sampler = GlStateManager.ResourceFactory.CreateSampler(_samplerDescription);
+            s.AddressModeU = u;
+            s.AddressModeV = v;
+        });
     }
 
     public void ReleaseId()
@@ -43,9 +50,6 @@ public abstract class AbstractTexture : IDisposable
         void ExecuteRenderCall()
         {
             Texture?.Dispose();
-            Sampler?.Dispose();
-            Texture = null;
-            Sampler = null;
         }
         
         if (!RenderSystem.IsOnRenderThread)

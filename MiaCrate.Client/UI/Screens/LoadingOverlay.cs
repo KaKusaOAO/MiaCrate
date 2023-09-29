@@ -44,7 +44,7 @@ public class LoadingOverlay : Overlay
 
     public override void Render(GuiGraphics graphics, int mouseX, int mouseY, float f)
     {
-        var cl = GlStateManager.CommandList;
+        var cl = GlStateManager.EnsureFramebufferSet();
         var width = graphics.GuiWidth;
         var height = graphics.GuiHeight;
         var millis = Util.GetMillis();

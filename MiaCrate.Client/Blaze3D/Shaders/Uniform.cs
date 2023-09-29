@@ -1,7 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 using MiaCrate.Client.Graphics;
+using MiaCrate.Client.Platform;
 using Mochi.Utils;
 using OpenTK.Mathematics;
+using Veldrid;
 
 namespace MiaCrate.Client.Shaders;
 
@@ -9,12 +11,14 @@ public class Uniform : AbstractUniform, IDisposable
 {
     public string Name { get; }
     private readonly IShader _parent;
-    public int Location { get; set; }
+    public DeviceBuffer? Location { get; set; }
     private readonly int _count;
     private readonly UniformType _type;
     private int[]? _intValues;
     private float[]? _floatValues;
     private bool _dirty;
+    
+    public uint SizeInBytes { get; }
 
     public Uniform(string name, UniformType type, int count, IShader shader)
     {
@@ -22,6 +26,15 @@ public class Uniform : AbstractUniform, IDisposable
         _type = type;
         _count = count;
         _parent = shader;
+        
+        var size = count * 4;
+        if (size % 16 != 0)
+        {
+            // Size must be multiple of 16 bytes
+            size += 16 - size % 16;
+        }
+
+        SizeInBytes = (uint) size;
 
         if ((int) type <= 3)
         {
@@ -34,7 +47,6 @@ public class Uniform : AbstractUniform, IDisposable
             _floatValues = new float[count];
         }
 
-        Location = -1;
         MarkDirty();
     }
 
@@ -184,62 +196,71 @@ public class Uniform : AbstractUniform, IDisposable
 
     private void UploadAsInteger()
     {
-        switch (_type)
-        {
-            case UniformType.Int:
-                // RenderSystem.Uniform1(Location, _intValues!);
-                break;
-            case UniformType.Int2:
-                // RenderSystem.Uniform2(Location, _intValues!);
-                break;
-            case UniformType.Int3:
-                // RenderSystem.Uniform3(Location, _intValues!);
-                break;
-            case UniformType.Int4:
-                // RenderSystem.Uniform4(Location, _intValues!);
-                break;
-            default:
-                Logger.Warn($"Uniform.upload called, but count value ({_count}) is not in thee range of 1 to 4. Ignoring.");
-                break;
-        }
+        var cl = GlStateManager.CommandList;
+        cl.UpdateBuffer(Location, 0, _intValues);
+
+        // switch (_type)
+        // {
+        //     case UniformType.Int:
+        //         // RenderSystem.Uniform1(Location, _intValues!);
+        //         break;
+        //     case UniformType.Int2:
+        //         // RenderSystem.Uniform2(Location, _intValues!);
+        //         break;
+        //     case UniformType.Int3:
+        //         // RenderSystem.Uniform3(Location, _intValues!);
+        //         break;
+        //     case UniformType.Int4:
+        //         // RenderSystem.Uniform4(Location, _intValues!);
+        //         break;
+        //     default:
+        //         Logger.Warn($"Uniform.upload called, but count value ({_count}) is not in thee range of 1 to 4. Ignoring.");
+        //         break;
+        // }
     }
     
     private void UploadAsFloat()
     {
-        switch (_type)
-        {
-            case UniformType.Float:
-                // RenderSystem.Uniform1(Location, _floatValues!);
-                break;
-            case UniformType.Float2:
-                // RenderSystem.Uniform2(Location, _floatValues!);
-                break;
-            case UniformType.Float3:
-                // RenderSystem.Uniform3(Location, _floatValues!);
-                break;
-            case UniformType.Float4:
-                // RenderSystem.Uniform4(Location, _floatValues!);
-                break;
-            default:
-                Logger.Warn($"Uniform.upload called, but count value ({_count}) is not in thee range of 1 to 4. Ignoring.");
-                break;
-        }
+        var cl = GlStateManager.CommandList;
+        cl.UpdateBuffer(Location, 0, _floatValues);
+        
+        // switch (_type)
+        // {
+        //     case UniformType.Float:
+        //         // RenderSystem.Uniform1(Location, _floatValues!);
+        //         break;
+        //     case UniformType.Float2:
+        //         // RenderSystem.Uniform2(Location, _floatValues!);
+        //         break;
+        //     case UniformType.Float3:
+        //         // RenderSystem.Uniform3(Location, _floatValues!);
+        //         break;
+        //     case UniformType.Float4:
+        //         // RenderSystem.Uniform4(Location, _floatValues!);
+        //         break;
+        //     default:
+        //         Logger.Warn($"Uniform.upload called, but count value ({_count}) is not in thee range of 1 to 4. Ignoring.");
+        //         break;
+        // }
     }
     
     private void UploadAsMatrix()
     {
-        switch (_type)
-        {
-            case UniformType.Matrix2:
-                // RenderSystem.UniformMatrix2(Location, false, _floatValues!);
-                break;
-            case UniformType.Matrix3:
-                // RenderSystem.UniformMatrix3(Location, false, _floatValues!);
-                break;
-            case UniformType.Matrix4:
-                // RenderSystem.UniformMatrix4(Location, false, _floatValues!);
-                break;
-        }
+        var cl = GlStateManager.CommandList;
+        cl.UpdateBuffer(Location, 0, _floatValues);
+        
+        // switch (_type)
+        // {
+        //     case UniformType.Matrix2:
+        //         // RenderSystem.UniformMatrix2(Location, false, _floatValues!);
+        //         break;
+        //     case UniformType.Matrix3:
+        //         // RenderSystem.UniformMatrix3(Location, false, _floatValues!);
+        //         break;
+        //     case UniformType.Matrix4:
+        //         // RenderSystem.UniformMatrix4(Location, false, _floatValues!);
+        //         break;
+        // }
     }
 
     public static void BindAttribLocation(int program, int index, string name)

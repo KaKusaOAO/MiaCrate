@@ -104,16 +104,16 @@ public unsafe class Window : IDisposable
             flags |= SDL.SDL_WindowFlags.SDL_WINDOW_METAL;
             backend = GraphicsBackend.Metal;
         } 
-        else if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Vulkan))
-        {
-            flags |= SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN;
-            backend = GraphicsBackend.Vulkan;
-        }
-        else if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Direct3D11))
-        {
-            // Missing flag for Direct3D
-            backend = GraphicsBackend.Direct3D11;
-        }
+        // else if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Vulkan))
+        // {
+        //     flags |= SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN;
+        //     backend = GraphicsBackend.Vulkan;
+        // }
+        // else if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Direct3D11))
+        // {
+        //     // Missing flag for Direct3D
+        //     backend = GraphicsBackend.Direct3D11;
+        // }
         else
         {
             flags |= SDL.SDL_WindowFlags.SDL_WINDOW_OPENGL;
@@ -152,7 +152,7 @@ public unsafe class Window : IDisposable
         GraphicsDevice device;
         var options = new GraphicsDeviceOptions
         {
-            PreferStandardClipSpaceYDirection = true
+            PreferStandardClipSpaceYDirection = true,
         };
 
         var swapchainSource = GetSwapchainSource();
@@ -172,7 +172,14 @@ public unsafe class Window : IDisposable
                 break;
             case GraphicsBackend.OpenGL:
             {
+                SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_FLAGS,
+                    (int) (SDL.SDL_GLcontext.SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG | SDL.SDL_GLcontext.SDL_GL_CONTEXT_DEBUG_FLAG));
+                SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_PROFILE_MASK, SDL.SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_CORE);
+                SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+                SDL.SDL_GL_SetAttribute(SDL.SDL_GLattr.SDL_GL_CONTEXT_MINOR_VERSION, 2);
+                
                 var context = SDL.SDL_GL_CreateContext(Handle);
+                
                 device = GraphicsDevice.CreateOpenGL(options, new OpenGLPlatformInfo(
                     context, 
                     SDL.SDL_GL_GetProcAddress,
@@ -241,6 +248,9 @@ public unsafe class Window : IDisposable
         {
             case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_RESIZED:
                 OnResize(Handle, ev.data1, ev.data2);
+                GlStateManager.SubmitCommands();
+                GlStateManager.Device.ResizeMainWindow((uint) ev.data1, (uint) ev.data2);
+                WindowOnFramebufferResize(Handle, ev.data1, ev.data2);
                 break;
             case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_MOVED:
                 OnMove(Handle, ev.data1, ev.data2);

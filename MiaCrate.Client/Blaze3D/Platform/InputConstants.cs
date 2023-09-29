@@ -52,7 +52,7 @@ public static class InputConstants
 
 	private static void HandleMouseMotionEvent(SDL.SDL_MouseMotionEvent ev)
 	{
-		var handle = (IntPtr) ev.windowID;
+		var handle = Game.Instance.Window.Handle;
 		// TODO: Process with SDL.SDL_GetRelativeMouseMode()
 		_cursorPosCallback?.Invoke(handle, ev.x, ev.y);
 	}
@@ -61,7 +61,7 @@ public static class InputConstants
 	{
 		unsafe
 		{
-			var handle = (IntPtr) ev.windowID;
+			var handle = Game.Instance.Window.Handle;
 			_dropCallback?.Invoke(handle, 1, (char*) ev.file);
 		}
 	}
@@ -71,7 +71,7 @@ public static class InputConstants
 		var key = ev.keysym;
 		var scancode = key.scancode;
 		var keymod = key.mod;
-		var handle = (IntPtr) ev.windowID;
+		var handle = Game.Instance.Window.Handle;
 		var mods = (KeyModifiers) 0;
 
 		if ((keymod & SDL.SDL_Keymod.KMOD_SHIFT) == SDL.SDL_Keymod.KMOD_SHIFT)
@@ -104,11 +104,11 @@ public static class InputConstants
 	private static void HandleMouseButtonEvent(SDL.SDL_MouseButtonEvent ev)
 	{
 		var state = ev.state;
-		var handle = (int) ev.windowID;
+		var handle = Game.Instance.Window.Handle;
 
 		void DispatchMouseEvents(uint mask, MouseButton button)
 		{
-			if ((state & mask) == (_lastState & mask))
+			if ((state & mask) != (_lastState & mask))
 			{
 				if ((state & mask) == mask)
 				{

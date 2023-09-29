@@ -1,4 +1,5 @@
-﻿using MiaCrate.Client.Platform;
+﻿using System.Drawing;
+using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
 using Mochi.Utils;
 using Veldrid;
@@ -26,24 +27,21 @@ public class MainTarget : RenderTarget
         var dimension = AllocateAttachments(width, height);
 
         // Successfully allocated attachments.
-        // Setup color buffer
-        colorSamplerDescription = new SamplerDescription
+        ColorTexture!.ModifySampler((ref SamplerDescription desc) =>
         {
-            AddressModeU = SamplerAddressMode.Clamp,
-            AddressModeW = SamplerAddressMode.Clamp,
-            Filter = SamplerFilter.MinPoint_MagPoint_MipPoint
-        };
-        ColorTextureSampler = GlStateManager.ResourceFactory.CreateSampler(colorSamplerDescription);
+            desc.AddressModeU = SamplerAddressMode.Clamp;
+            desc.AddressModeW = SamplerAddressMode.Clamp;
+            desc.Filter = SamplerFilter.MinPoint_MagPoint_MipPoint;
+        });
         
-        depthBufferDescription = new SamplerDescription
+        DepthBuffer!.ModifySampler((ref SamplerDescription desc) =>
         {
-            AddressModeU = SamplerAddressMode.Clamp,
-            AddressModeW = SamplerAddressMode.Clamp,
-            Filter = SamplerFilter.MinPoint_MagPoint_MipPoint,
-        };
-        DepthBufferSampler = GlStateManager.ResourceFactory.CreateSampler(depthBufferDescription);
+            desc.AddressModeU = SamplerAddressMode.Clamp;
+            desc.AddressModeW = SamplerAddressMode.Clamp;
+            desc.Filter = SamplerFilter.MinPoint_MagPoint_MipPoint;
+        });
 
-        var fbDesc = new FramebufferDescription(DepthBufferId, ColorTextureId);
+        var fbDesc = new FramebufferDescription(DepthBuffer!.Texture, ColorTexture!.Texture);
         FramebufferId = GlStateManager.ResourceFactory.CreateFramebuffer(fbDesc);
 
         ViewWidth = Width = dimension.Width;
@@ -74,10 +72,11 @@ public class MainTarget : RenderTarget
 
         try
         {
-            var desc = new TextureDescription((uint) dimension.Width, (uint) dimension.Height,
-                0, 0, 0, PixelFormat.R8_G8_B8_A8_UNorm,
-                TextureUsage.RenderTarget, TextureType.Texture2D);
-            ColorTextureId = GlStateManager.ResourceFactory.CreateTexture(ref desc);
+            var desc = TextureDescription.Texture2D((uint) dimension.Width, (uint) dimension.Height,
+                1, 1, PixelFormat.R8_G8_B8_A8_UNorm,
+                TextureUsage.RenderTarget | TextureUsage.Sampled);
+            ColorTexture!.UpdateTextureDescription(desc);            
+            ColorTexture.EnsureTextureUpToDate();
             return true;
         }
         catch (Exception ex)
@@ -93,10 +92,11 @@ public class MainTarget : RenderTarget
         
         try
         {
-            var desc = new TextureDescription((uint) dimension.Width, (uint) dimension.Height,
-                0, 0, 0, PixelFormat.R16_Float,
-                TextureUsage.DepthStencil, TextureType.Texture2D);
-            DepthBufferId = GlStateManager.ResourceFactory.CreateTexture(ref desc);
+            var desc = TextureDescription.Texture2D((uint) dimension.Width, (uint) dimension.Height,
+                1, 1, PixelFormat.D24_UNorm_S8_UInt,
+                TextureUsage.DepthStencil);
+            DepthBuffer!.UpdateTextureDescription(desc);
+            DepthBuffer.EnsureTextureUpToDate();
             return true;
         }
         catch (Exception ex)

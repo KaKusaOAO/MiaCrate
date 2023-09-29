@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json.Nodes;
 using MiaCrate.Client.Platform;
@@ -6,6 +7,7 @@ using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Systems;
 using MiaCrate.Json;
 using MiaCrate.Resources;
+using Mochi.Extensions;
 using Mochi.Utils;
 using Veldrid;
 using Veldrid.SPIRV;
@@ -14,6 +16,11 @@ namespace MiaCrate.Client.Graphics;
 
 public class ShaderInstance : IShader, IDisposable
 {
+    public const int TextureResourceSetIndex = 0;
+    public const int SamplerResourceSetIndex = 1;
+    public const int VertexUniformResourceSetIndex = 2;
+    public const int FragmentUniformResourceSetIndex = 3;
+    
     public const string ShaderPath = "shaders";
     private const string ShaderCorePath = $"{ShaderPath}/core/";
     private const string ShaderIncludePath = $"{ShaderPath}/include/";
@@ -23,17 +30,30 @@ public class ShaderInstance : IShader, IDisposable
     private static ShaderInstance? _lastAppliedShader = null;
     private static int _lastProgramId = -1;
     
-    private readonly Dictionary<string, object?> _samplerMap = new();
+    private readonly Dictionary<string, TextureInstance> _samplerMap = new();
     private readonly List<string> _samplerNames = new();
     private readonly List<int> _samplerLocations = new();
     private readonly List<Uniform> _uniforms = new();
-    private readonly List<int> _uniformLocations = new();
+    private readonly List<DeviceBuffer> _uniformLocations = new();
     private readonly Dictionary<string, Uniform> _uniformMap = new();
     private readonly List<int>? _attributes;
     private readonly List<string>? _attributeNames;
     private bool _dirty;
     private readonly BlendMode _blend;
     private ShaderSetDescription _shaderSetDesc;
+    private readonly Dictionary<string, int> _samplerLookup;
+
+    public ResourceLayout[] ResourceLayouts { get; }
+    public BindableResource[] TextureResources { get; private set; } = Array.Empty<BindableResource>();
+    public BindableResource[] SamplerResources { get; private set; } = Array.Empty<BindableResource>();
+    public BindableResource[] VertexUniformResources { get; private set; } = Array.Empty<BindableResource>();
+    public BindableResource[] FragmentUniformResources { get; private set; } = Array.Empty<BindableResource>();
+
+    public ResourceLayoutElementDescription[] VertexUniformDescriptions { get; private set; } = 
+        Array.Empty<ResourceLayoutElementDescription>();
+    
+    public ResourceLayoutElementDescription[] FragmentUniformDescriptions { get; private set; } = 
+        Array.Empty<ResourceLayoutElementDescription>();
 
     public int Id { get; }
     public string Name { get; }
@@ -57,6 +77,12 @@ public class ShaderInstance : IShader, IDisposable
         VertexFormat = format;
         var location = new ResourceLocation(ShaderCorePath + name + ".json");
         
+        // The arrangement is:
+        // Set 0 -> Textures
+        // Set 1 -> Samplers
+        // Set 2 -> Uniforms for Vertex Shader
+        // Set 3 -> Uniforms for Fragment Shader
+
         try
         {
             using var stream = provider.Open(location);
@@ -87,6 +113,68 @@ public class ShaderInstance : IShader, IDisposable
                 }
             }
 
+            _blend = ParseBlendNode(json["blend"]?.AsObject());
+
+            var factory = GlStateManager.ResourceFactory;
+            var vConvertResult = GetOrCreate(provider, ProgramType.Vertex, vertex);
+            var fConvertResult = GetOrCreate(provider, ProgramType.Fragment, fragment);
+            
+            var elements = new SortedDictionary<int, List<ResourceLayoutElementDescription>>(
+                vConvertResult.ResourceLayoutsLayoutElementDescriptions
+                    .ToDictionary(e => e.Key, 
+                        e => e.Value.DistinctBy(b => b.Name).ToList()));
+            
+            foreach (var (key, value) in fConvertResult.ResourceLayoutsLayoutElementDescriptions)
+            {
+                var list = elements.ComputeIfAbsent(key, _ => new List<ResourceLayoutElementDescription>());
+                list.AddRange(value.DistinctBy(b => b.Name));
+            }
+
+            var layoutDescs = new List<ResourceLayoutDescription>();
+            for (var i = 0; i < 4; i++)
+            {
+                // Ensure we have a list instance here
+                elements.ComputeIfAbsent(i, _ => new List<ResourceLayoutElementDescription>());
+
+                var list = elements[i];
+                layoutDescs.Add(new ResourceLayoutDescription(list.ToArray()));
+            }
+
+            ResourceLayouts = layoutDescs
+                .Select(d => factory.CreateResourceLayout(d))
+                .ToArray();
+            
+            VertexUniformDescriptions = layoutDescs[VertexUniformResourceSetIndex].Elements;
+            FragmentUniformDescriptions = layoutDescs[FragmentUniformResourceSetIndex].Elements;
+            
+            TextureResources = new BindableResource[layoutDescs[TextureResourceSetIndex].Elements.Length]; 
+            SamplerResources = new BindableResource[layoutDescs[SamplerResourceSetIndex].Elements.Length];
+            VertexUniformResources = new BindableResource[VertexUniformDescriptions.Length];
+            FragmentUniformResources = new BindableResource[FragmentUniformDescriptions.Length];
+
+            // Sampler to location lookup
+            var dict = new Dictionary<string, int>();
+            for (var i = 0; i < layoutDescs[SamplerResourceSetIndex].Elements.Length; i++)
+            {
+                var elem = layoutDescs[SamplerResourceSetIndex].Elements[i];
+                dict[elem.Name] = i;
+            }
+
+            _samplerLookup = dict;
+
+            var vShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.ASCII.GetBytes(vConvertResult.Source),
+                "main");
+            var fShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.ASCII.GetBytes(fConvertResult.Source),
+                "main");
+
+            var shaders = factory.CreateFromSpirv(vShaderDesc, fShaderDesc);
+            var layout = format.CreateVertexLayoutDescription();
+
+            VertexProgram = new Program(ProgramType.Vertex, shaders[0], name);
+            FragmentProgram = new Program(ProgramType.Fragment, shaders[1], name);
+            _shaderSetDesc = new ShaderSetDescription(new []{layout}, shaders);
+            
+            // Then we read attributes
             var attributes = json["attributes"]?.AsArray();
             if (attributes != null)
             {
@@ -117,7 +205,8 @@ public class ShaderInstance : IShader, IDisposable
                 _attributes = null;
                 _attributeNames = null;
             }
-
+            
+            // Then we read uniforms
             var uniforms = json["uniforms"]?.AsArray();
             if (uniforms != null)
             {
@@ -142,25 +231,6 @@ public class ShaderInstance : IShader, IDisposable
                 }
             }
 
-            _blend = ParseBlendNode(json["blend"]?.AsObject());
-
-            var factory = GlStateManager.ResourceFactory;
-            var vConvertResult = GetOrCreate(provider, ProgramType.Vertex, vertex);
-            var fConvertResult = GetOrCreate(provider, ProgramType.Fragment, fragment);
-
-            var vShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.ASCII.GetBytes(vConvertResult.Source),
-                "main");
-            var fShaderDesc = new ShaderDescription(ShaderStages.Fragment, Encoding.ASCII.GetBytes(fConvertResult.Source),
-                "main");
-
-            var shaders = factory.CreateFromSpirv(vShaderDesc, fShaderDesc);
-            
-            var layout = format.CreateVertexLayoutDescription();
-
-            VertexProgram = new Program(ProgramType.Vertex, shaders[0], name);
-            FragmentProgram = new Program(ProgramType.Fragment, shaders[1], name);
-            _shaderSetDesc = new ShaderSetDescription(new []{layout}, shaders);
-            
             // GlStateManager.ResourceFactory.CreateShader()
             // Id = ProgramManager.CreateProgram();
             // GlStateManager.ObjectLabel(ObjectLabelIdentifier.Program, Id, Name);
@@ -176,7 +246,7 @@ public class ShaderInstance : IShader, IDisposable
             // }
             //
             // ProgramManager.LinkShader(this);
-            // UpdateLocations();
+            UpdateLocations();
         }
         catch (Exception ex)
         {
@@ -203,41 +273,51 @@ public class ShaderInstance : IShader, IDisposable
     private void UpdateLocations()
     {
         RenderSystem.AssertOnRenderThread();
-        var list = new List<int>();
-
-        for (var i = 0; i < _samplerNames.Count; i++)
-        {
-            var name = _samplerNames[i];
-            var location = Uniform.GetUniformLocation(Id, name);
-            if (location == -1)
-            {
-                Logger.Warn($"Shader {Name} could not find sampler named {name} in the specified shader program.");
-                _samplerMap.Remove(name);
-                list.Add(i);
-            }
-            else
-            {
-                _samplerLocations.Add(location);
-            }
-        }
-
-        for (var i = list.Count - 1; i >= 0; i--)
-        {
-            _samplerNames.RemoveAt(list[i]);
-        }
         
+        _uniformLocations.Clear();
         foreach (var uniform in _uniforms)
         {
             var name = uniform.Name;
-            var location = Uniform.GetUniformLocation(Id, name);
-            if (location == -1)
+            var arr = VertexUniformResources;
+            var source = VertexUniformDescriptions.Select(r => r.Name).ToList();
+            var desc = source
+                .Where(r => r == $"_{name}")
+                .Select(r => VertexUniformDescriptions.First(d => d.Name == r))
+                .Select(Optional.Of)
+                .Append(Optional.Empty<ResourceLayoutElementDescription>())
+                .First();
+            
+            if (desc.IsEmpty)
+            {
+                arr = FragmentUniformResources;
+                source = FragmentUniformDescriptions.Select(r => r.Name).ToList();
+                desc = source
+                    .Where(r => r == $"_{name}")
+                    .Select(r => FragmentUniformDescriptions.First(d => d.Name == r))
+                    .Select(Optional.Of)
+                    .Append(Optional.Empty<ResourceLayoutElementDescription>())
+                    .First();
+            }
+
+            if (desc.IsEmpty)
             {
                 Logger.Warn($"Shader {Name} could not find uniform named {name} in the specified shader program.");
+                uniform.Location = null;
             }
             else
             {
-                _uniformLocations.Add(location);
-                uniform.Location = location;
+                var index = source.IndexOf(desc.Value.Name);
+                
+                if (uniform.Location == null)
+                {
+                    var bufferDesc = new BufferDescription(uniform.SizeInBytes, BufferUsage.UniformBuffer);
+                    var buffer = GlStateManager.ResourceFactory.CreateBuffer(bufferDesc);
+                    buffer.Name = $"UniformBuffer - {name} in {Name}";
+                    uniform.Location = buffer;
+                    arr[index] = buffer;
+                }
+
+                _uniformLocations.Add(uniform.Location);
                 _uniformMap[name] = uniform;
             }
         }
@@ -340,48 +420,41 @@ public class ShaderInstance : IShader, IDisposable
             _lastProgramId = Id;
         }
 
-        // var i = GlStateManager.GetActiveTexture();
-        // for (var j = 0; j < _samplerLocations.Count; j++)
-        // {
-        //     var name = _samplerNames[j];
-        //     if (_samplerMap.TryGetValue(name, out var sampler) && sampler != null)
-        //     {
-        //         var k = Uniform.GetUniformLocation(Id, name);
-        //         Uniform.UploadInteger(k, j);
-        //         
-        //         RenderSystem.ActiveTexture((int) TextureUnit.Texture0 + j);
-        //         var l = -1;
-        //
-        //         if (sampler is RenderTarget target)
-        //         {
-        //             l = target.ColorTextureId;
-        //         } else if (sampler is AbstractTexture texture)
-        //         {
-        //             l = texture.Id;
-        //         } else if (sampler is int id)
-        //         {
-        //             l = id;
-        //         }
-        //
-        //         if (l != -1)
-        //         {
-        //             RenderSystem.BindTexture(l);
-        //         }
-        //     }
-        // }
-        //
-        // GlStateManager.ActiveTexture(i);
-        
+        for (var j = 0; j < _samplerNames.Count; j++)
+        {
+            var name = _samplerNames[j];
+            if (_samplerMap.TryGetValue(name, out var sampler))
+            {
+                sampler.EnsureUpToDate();
+                var index = _samplerLookup[name];
+
+                TextureResources[index] = sampler.TextureView;
+                SamplerResources[index] = sampler.Sampler;
+            }
+        }
+
         foreach (var uniform in _uniforms)
         {
             uniform.Upload();
         }
+        
+        GlStateManager.SetResourceLayouts(ResourceLayouts);
     }
 
-    public void SetSampler(string str, object obj)
+    public void SetSampler(string str, TextureInstance? obj)
     {
-        _samplerMap[str] = obj;
-        MarkDirty();
+        if (obj == null)
+        {
+            if (_samplerMap.Remove(str))
+            {
+                MarkDirty();
+            }
+        }
+        else
+        {
+            _samplerMap[str] = obj;
+            MarkDirty();
+        }
     }
     
     public static BlendMode ParseBlendNode(JsonObject? obj)
@@ -516,5 +589,28 @@ public class ShaderInstance : IShader, IDisposable
         }
         
         ProgramManager.ReleaseProgram(this);
+    }
+
+    public void SetupPipeline(PrimitiveTopology mode)
+    {
+        GlStateManager.SetPrimitiveTopology(mode);
+        GlStateManager.SetPipeline();
+
+        var cl = GlStateManager.CommandList;
+        var factory = GlStateManager.ResourceFactory;
+        var shader = this;
+        var texResSet = factory.CreateResourceSet(
+            new ResourceSetDescription(ResourceLayouts[TextureResourceSetIndex], TextureResources));
+        var samplerResSet = factory.CreateResourceSet(
+            new ResourceSetDescription(ResourceLayouts[SamplerResourceSetIndex], SamplerResources));
+        var vUniformResSet = factory.CreateResourceSet(
+            new ResourceSetDescription(ResourceLayouts[VertexUniformResourceSetIndex], VertexUniformResources));
+        var fUniformResSet = factory.CreateResourceSet(
+            new ResourceSetDescription(ResourceLayouts[FragmentUniformResourceSetIndex], FragmentUniformResources));
+        
+        cl.SetGraphicsResourceSet(TextureResourceSetIndex, texResSet);
+        cl.SetGraphicsResourceSet(SamplerResourceSetIndex, samplerResSet);
+        cl.SetGraphicsResourceSet(VertexUniformResourceSetIndex, vUniformResSet);
+        cl.SetGraphicsResourceSet(FragmentUniformResourceSetIndex, fUniformResSet);
     }
 }

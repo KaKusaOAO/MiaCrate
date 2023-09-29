@@ -168,31 +168,49 @@ public sealed class NativeImage : IDisposable
             RenderSystem.AssertOnRenderThreadOrInit();
             SetFilter(texture, isBlur, mipmap);
 
+            SKBitmap target;
+            var isTempBitmap = false;
+
+            if (skipPixels == 0 && skipRows == 0)
+            {
+                target = _bitmap;
+            }
+            else
+            {
+                target = new SKBitmap(width, height);
+                using var canvas = new SKCanvas(target);
+                canvas.DrawBitmap(_bitmap, -skipPixels, -skipRows);
+                isTempBitmap = true;
+            }
+            
             // SKColor is stored in ARGB format, but the buffer data required that int to be ABGR,
             // which is the reverse of RGBA, the order represents in the buffer.
             
             // Rearrange the pixel to the correct order: ARGB => ABGR (reversed form of RGBA)
             
-            var pixels = Enumerable.Range(0, _bitmap.Height)
-                .Select(y => Enumerable.Range(0, _bitmap.Width)
+            var pixels = Enumerable.Range(0, target.Height)
+                .Select(y => Enumerable.Range(0, target.Width)
                     .Select(x => (x, y)))
                 .SelectMany(e => 
-                    e.Select(n => _bitmap.GetPixel(n.x, n.y))
+                    e.Select(n => target.GetPixel(n.x, n.y))
                 )
                 .Select(c => new Rgba32(c.Red, c.Green, c.Blue, c.Alpha).RGBA)
                 .ToArray();
-
+            
             var device = GlStateManager.Device;
-            var factory = GlStateManager.ResourceFactory;
-            device.UpdateTexture(texture.Texture, pixels, (uint) xOffset, (uint) yOffset, 0, 
-                (uint) width, (uint) height, 0, (uint) level, 0);
+            texture.Texture!.EnsureTextureUpToDate();
+            device.UpdateTexture(texture.Texture!.Texture, 
+                pixels, (uint) xOffset, (uint) yOffset, 0,
+                (uint) width, (uint) height, 1, (uint) level, 0);
 
             if (isClamp)
             {
-                texture._samplerDescription.AddressModeU = SamplerAddressMode.Clamp;
-                texture._samplerDescription.AddressModeV = SamplerAddressMode.Clamp;
-                texture.Sampler?.Dispose();
-                texture.Sampler = factory.CreateSampler(texture._samplerDescription);
+                texture.SetAddressMode(SamplerAddressMode.Clamp, SamplerAddressMode.Clamp);
+            }
+
+            if (isTempBitmap)
+            {
+                target.Dispose();
             }
         }
         finally

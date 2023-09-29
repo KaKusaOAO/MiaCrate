@@ -452,9 +452,10 @@ public class GameRenderer : IDisposable
         var i = (int) (_game.MouseHandler.XPos * _game.Window.GuiScaledWidth / _game.Window.ScreenWidth);
         var j = (int) (_game.MouseHandler.YPos * _game.Window.GuiScaledHeight / _game.Window.ScreenHeight);
 
-        var cl = GlStateManager.CommandList;
+        var cl = GlStateManager.EnsureFramebufferSet();
         cl.SetViewport(0, new Viewport(0, 0, _game.Window.Width, _game.Window.Height, 0, 1));
         cl.ClearDepthStencil(1f);
+        GlStateManager.SubmitCommands();
 
         var window = _game.Window;
         var matrix = Matrix4.CreateOrthographicOffCenter(0, (float) (window.Width / window.GuiScale),

@@ -1,5 +1,5 @@
-﻿using System.Runtime.InteropServices;
-using OpenTK.Windowing.GraphicsLibraryFramework;
+﻿using MiaCrate.Client.Utils;
+using SDL2;
 
 namespace MiaCrate.Client;
 
@@ -12,6 +12,6 @@ public static class Blaze3D
             *(byte*) 0 = 1;
         }
     }
-    
-    public static double Time => GLFW.GetTime();
+
+    public static double Time => SDL.SDL_GetTicks() / 1000.0;
 }

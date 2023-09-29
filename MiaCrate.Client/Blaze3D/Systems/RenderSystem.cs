@@ -51,7 +51,7 @@ public static class RenderSystem
     private static IVertexSorting _savedVertexSorting = IVertexSorting.DistanceToOrigin;
     private static Matrix4 _modelViewMatrix = Matrix4.Identity;
     private static Matrix4 _textureMatrix = Matrix4.Identity;
-    private static readonly int[] _shaderTextures = new int[12];
+    private static readonly TextureInstance[] _shaderTextures = new TextureInstance[12];
     private static readonly float[] _shaderColor = {1, 1, 1, 1};
     private static float _shaderGlintAlpha = 1f;
     private static float _shaderFogEnd = 1f;
@@ -157,7 +157,7 @@ public static class RenderSystem
             //     }
             // }
 
-            var i = 0;
+            var i = 32768;
             
             _maxSupportedTextureSize = Math.Max(i, MinimumAtlasTextureSize);
             Logger.Info($"Failed to determine maximum texture size by probing, trying GL_MAX_TEXTURE_SIZE = {_maxSupportedTextureSize}");
@@ -257,9 +257,14 @@ public static class RenderSystem
     
     public static void FlipFrame(IntPtr handle)
     {
-        PollEvents();
+        // PollEvents();
         ReplayQueue();
-        GlStateManager.Device.SwapBuffers();
+        
+        GlStateManager.SubmitCommands();
+        var device = GlStateManager.Device;
+        device.WaitForIdle();
+        device.SwapBuffers();
+        
         PollEvents();
     }
 
@@ -326,31 +331,13 @@ public static class RenderSystem
         if (i < 0 || i >= _shaderTextures.Length) return;
         var manager = Game.Instance.TextureManager;
         var texture = manager.GetTexture(location);
-        // _shaderTextures[i] = texture.Texture;
-    }
-    
-    public static void SetShaderTexture(int i, int textureId)
-    {
-        if (!IsOnRenderThread)
-        {
-            RecordRenderCall(() => CheckedSetShaderTexture(i, textureId));
-        }
-        else
-        {
-            CheckedSetShaderTexture(i, textureId);
-        }
+        _shaderTextures[i] = texture.Texture!;
     }
 
-    public static void CheckedSetShaderTexture(int i, int textureId)
-    {
-        if (i < 0 || i >= _shaderTextures.Length) return;
-        _shaderTextures[i] = textureId;
-    }
-
-    public static int GetShaderTexture(int i)
+    public static TextureInstance? GetShaderTexture(int i)
     {
         AssertOnRenderThread();
-        return i >= 0 && i < _shaderTextures.Length ? _shaderTextures[i] : 0;
+        return i >= 0 && i < _shaderTextures.Length ? _shaderTextures[i] : null;
     }
 
     public static void EnableDepthTest()
@@ -415,10 +402,10 @@ public static class RenderSystem
         GlStateManager.BufferData(buffer, span);
     }
     
-    public static void DrawElements(PrimitiveTopology mode, int count)
+    public static void DrawElements(int count)
     {
         AssertOnRenderThread();
-        GlStateManager.DrawElements(mode, count);
+        GlStateManager.DrawElements(count);
     }
 
     public static void EnableCull()
@@ -478,7 +465,7 @@ public static class RenderSystem
         var d = _lastDrawTime + 1.0 / fps;
         
         double e;
-        for (e = ExtraSDL.SDL_GetTicks64() / 1000.0; e < d; e = ExtraSDL.SDL_GetTicks64() / 1000.0)
+        for (e = SDL.SDL_GetTicks() / 1000.0; e < d; e = SDL.SDL_GetTicks() / 1000.0)
         {
             var timeout = (int) ((d - e) * 1000);
             SDL.SDL_WaitEventTimeout(out _, timeout);
@@ -539,13 +526,13 @@ public static class RenderSystem
     {
         // size is unused??
         AssertOnRenderThread();
-        SetShaderTexture(1, textureId());
+        // SetShaderTexture(1, textureId());
     }
     
     public static void TeardownOverlayColor()
     {
         AssertOnRenderThread();
-        SetShaderTexture(1, 0);
+        // SetShaderTexture(1, 0);
     }
     
     public static void EnableScissor(int x, int y, int width, int height)
@@ -587,22 +574,19 @@ public static class RenderSystem
         {
             if (_name == null) RecreateBuffer(count);
             EnsureStorage(count);
+            GlStateManager.SetIndexBuffer(_name, Type.Format);
         }
 
         private void RecreateBuffer(int count)
         {
             var buffer = GlStateManager.ResourceFactory.CreateBuffer(new BufferDescription((uint) count, BufferUsage.IndexBuffer));
+                
             buffer.Name = $"{nameof(AutoStorageIndexBuffer)} #{buffer.GetHashCode()}";
             
             if (_name != null)
             {
-                var cl = GlStateManager.ResourceFactory.CreateCommandList();
-                cl.Begin();
+                var cl = GlStateManager.EnsureBufferCommandBegan();
                 cl.CopyBuffer(_name, 0, buffer, 0, _name.SizeInBytes);
-                cl.End();
-                GlStateManager.Device.SubmitCommands(cl);
-                GlStateManager.Device.WaitForIdle();
-                
                 _name.Dispose();
             }
 
@@ -634,12 +618,8 @@ public static class RenderSystem
             }
 
 
-            var cl = GlStateManager.ResourceFactory.CreateCommandList();
-            cl.Begin();
+            var cl = GlStateManager.EnsureBufferCommandBegan();
             cl.UpdateBuffer(_name, 0, buffer, _name.SizeInBytes);
-            cl.End();
-            GlStateManager.Device.SubmitCommands(cl);
-            GlStateManager.Device.WaitForIdle();
             
             _indexCount = count;
         }

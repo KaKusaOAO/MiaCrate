@@ -35,7 +35,7 @@ public static unsafe class GLX
             throw new Exception("Failed to initialize SDL2");
         }
 
-        return () => (long) (ExtraSDL.SDL_GetTicks64() / 1000.0 * 1.0e9);
+        return () => (long) (SDL.SDL_GetTicks() / 1000.0 * 1.0e9);
     }
 
     public static string OpenGlVersion

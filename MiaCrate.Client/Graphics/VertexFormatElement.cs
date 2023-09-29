@@ -1,5 +1,3 @@
-using MiaCrate.Client.Platform;
-using OpenTK.Graphics.OpenGL4;
 using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
@@ -31,7 +29,7 @@ public class VertexFormatElement
     public bool IsPosition => Usage == UsageInfo.Position;
 
     public void SetupBufferState(int attribIndex, IntPtr pointer, int stride) => 
-        Usage.SetupBufferState(Count, Type.Type, stride, pointer, Index, attribIndex);
+        Usage.SetupBufferState(Count, stride, pointer, Index, attribIndex);
 
     public void ClearBufferState(int attribIndex) =>
         Usage.ClearBufferState(Index, attribIndex);
@@ -42,21 +40,19 @@ public class VertexFormatElement
     {
         public int Size { get; }
         public string Name { get; }
-        public VertexAttribPointerType Type { get; }
 
-        public static readonly TypeInfo Float = new(4, "Float", VertexAttribPointerType.Float);
-        public static readonly TypeInfo UByte = new(1, "Unsigned Byte", VertexAttribPointerType.UnsignedByte);
-        public static readonly TypeInfo Byte = new(1, "Byte", VertexAttribPointerType.Byte);
-        public static readonly TypeInfo UShort = new(2, "Unsigned Short", VertexAttribPointerType.UnsignedShort);
-        public static readonly TypeInfo Short = new(2, "Short", VertexAttribPointerType.Short);
-        public static readonly TypeInfo UInt = new(4, "Unsigned Int", VertexAttribPointerType.UnsignedInt);
-        public static readonly TypeInfo Int = new(4, "Int", VertexAttribPointerType.Int);
+        public static readonly TypeInfo Float = new(4, "Float");
+        public static readonly TypeInfo UByte = new(1, "Unsigned Byte");
+        public static readonly TypeInfo Byte = new(1, "Byte");
+        public static readonly TypeInfo UShort = new(2, "Unsigned Short");
+        public static readonly TypeInfo Short = new(2, "Short");
+        public static readonly TypeInfo UInt = new(4, "Unsigned Int");
+        public static readonly TypeInfo Int = new(4, "Int");
         
-        private TypeInfo(int size, string name, VertexAttribPointerType type)
+        private TypeInfo(int size, string name)
         {
             Size = size;
             Name = name;
-            Type = type;
         }
     }
 
@@ -66,60 +62,54 @@ public class VertexFormatElement
         private readonly SetupStateDelegate _setupState;
         private readonly ClearStateDelegate _clearState;
 
-        private delegate void SetupStateDelegate(int size, VertexAttribPointerType type, int stride, IntPtr ptr, int elementIndex, int attribIndex);
+        private delegate void SetupStateDelegate(int size, int stride, IntPtr ptr, int elementIndex, int attribIndex);
         private delegate void ClearStateDelegate(int elementIndex, int attribIndex);
 
-        public static readonly UsageInfo Position = new("Position", (size, type, stride, pointer, _, index) =>
+        public static readonly UsageInfo Position = new("Position", (size, stride, pointer, _, index) =>
         {
-            GlStateManager.EnableVertexAttribArray(index);
-            GlStateManager.VertexAttribPointer(index, size, type, false, stride, pointer);
+            
         }, (_, index) =>
         {
-            GlStateManager.DisableVertexAttribArray(index);
+            
         });
         
-        public static readonly UsageInfo Normal = new("Normal", (size, type, stride, pointer, _, index) =>
+        public static readonly UsageInfo Normal = new("Normal", (size, stride, pointer, _, index) =>
         {
-            GlStateManager.EnableVertexAttribArray(index);
-            GlStateManager.VertexAttribPointer(index, size, type, true, stride, pointer);
+            
         }, (_, index) =>
         {
-            GlStateManager.DisableVertexAttribArray(index);
+            
         });
         
-        public static readonly UsageInfo Color = new("Color", (size, type, stride, pointer, _, index) =>
+        public static readonly UsageInfo Color = new("Color", (size, stride, pointer, _, index) =>
         {
-            GlStateManager.EnableVertexAttribArray(index);
-            GlStateManager.VertexAttribPointer(index, size, type, true, stride, pointer);
+            
         }, (_, index) =>
         {
-            GlStateManager.DisableVertexAttribArray(index);
+            
         });
         
-        public static readonly UsageInfo Uv = new("UV", (size, type, stride, pointer, _, index) =>
+        public static readonly UsageInfo Uv = new("UV", (size, stride, pointer, _, index) =>
         {
-            GlStateManager.EnableVertexAttribArray(index);
-            if (type == VertexAttribPointerType.Float)
-                GlStateManager.VertexAttribPointer(index, size, type, false, stride, pointer);
-            else
-                GlStateManager.VertexAttribIPointer(index, size, type, stride, pointer);
+            
         }, (_, index) =>
         {
-            GlStateManager.DisableVertexAttribArray(index);
+            
         });
 
         public static readonly UsageInfo Padding = new("Padding", 
-            (_, _, _, _, _, _) => { },
+            (_, _, _, _, _) => { },
             (_, _) => { });
 
         public static readonly UsageInfo Generic = new("Generic",
-            (size, type, stride, ptr, _, attribIndex) =>
+            (size, stride, ptr, _, attribIndex) =>
             {
-                GlStateManager.EnableVertexAttribArray(attribIndex);
-                GlStateManager.VertexAttribPointer(attribIndex, size, type, false, stride, ptr);
+                
             },
-            (_, attribIndex) => GlStateManager.DisableVertexAttribArray(attribIndex)
-        );
+            (_, attribIndex) =>
+            {
+                
+            });
 
         private UsageInfo(string name, SetupStateDelegate setupState, ClearStateDelegate clearState)
         {
@@ -128,8 +118,8 @@ public class VertexFormatElement
             _clearState = clearState;
         }
         
-        public void SetupBufferState(int size, VertexAttribPointerType type, int stride, IntPtr ptr, int elementIndex, int attribIndex) => 
-            _setupState(size, type, stride, ptr, elementIndex, attribIndex);
+        public void SetupBufferState(int size, int stride, IntPtr ptr, int elementIndex, int attribIndex) => 
+            _setupState(size, stride, ptr, elementIndex, attribIndex);
 
         public void ClearBufferState(int elementIndex, int attribIndex) => 
             _clearState(elementIndex, attribIndex);

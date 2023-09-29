@@ -1,7 +1,5 @@
 using MiaCrate.Client.Systems;
-using OpenTK.Graphics.OpenGL4;
 using Veldrid;
-using DrawElementsType = OpenTK.Graphics.OpenGL4.DrawElementsType;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -33,7 +31,7 @@ public class VertexFormat
     }
 
     public VertexBuffer ImmediateDrawVertexBuffer =>
-        _immediateDrawVertexBuffer ??= new VertexBuffer(BufferUsageHint.DynamicDraw);
+        _immediateDrawVertexBuffer ??= new VertexBuffer();
 
     public VertexLayoutDescription CreateVertexLayoutDescription() => _func();
 
@@ -77,15 +75,15 @@ public class VertexFormat
 
     public sealed class IndexType
     {
-        public static readonly IndexType Short = new(DrawElementsType.UnsignedShort, 2);
-        public static readonly IndexType Int = new(DrawElementsType.UnsignedInt, 4);
+        public static readonly IndexType Short = new(IndexFormat.UInt16, 2);
+        public static readonly IndexType Int = new(IndexFormat.UInt32, 4);
 
-        public DrawElementsType GlType { get; }
+        public IndexFormat Format { get; }
         public int Bytes { get; }
         
-        private IndexType(DrawElementsType glType, int bytes)
+        private IndexType(IndexFormat format, int bytes)
         {
-            GlType = glType;
+            Format = format;
             Bytes = bytes;
         }
 
@@ -94,21 +92,21 @@ public class VertexFormat
     
     public sealed class Mode
     {
-        public static readonly Mode Lines = new(PrimitiveType.Triangles, 2, 2, false); 
-        public static readonly Mode LineStrip = new(PrimitiveType.TriangleStrip, 2, 1, true);
-        public static readonly Mode DebugLines = new(PrimitiveType.Lines, 2, 2, false);
-        public static readonly Mode DebugLineStrip = new(PrimitiveType.LineStrip, 2, 1, true);
-        public static readonly Mode Triangles = new(PrimitiveType.Triangles, 3, 3, false);
-        public static readonly Mode TriangleStrip = new(PrimitiveType.TriangleStrip, 3, 1, true);
-        public static readonly Mode TriangleFan = new(PrimitiveType.TriangleFan, 3, 1, true);
-        public static readonly Mode Quads = new(PrimitiveType.Triangles, 4, 4, false);
+        public static readonly Mode Lines = new(PrimitiveTopology.TriangleList, 2, 2, false); 
+        public static readonly Mode LineStrip = new(PrimitiveTopology.TriangleStrip, 2, 1, true);
+        public static readonly Mode DebugLines = new(PrimitiveTopology.LineList, 2, 2, false);
+        public static readonly Mode DebugLineStrip = new(PrimitiveTopology.LineStrip, 2, 1, true);
+        public static readonly Mode Triangles = new(PrimitiveTopology.TriangleList, 3, 3, false);
+        public static readonly Mode TriangleStrip = new(PrimitiveTopology.TriangleStrip, 3, 1, true);
+        public static readonly Mode TriangleFan = new(PrimitiveTopology.TriangleStrip, 3, 1, true);
+        public static readonly Mode Quads = new(PrimitiveTopology.TriangleList, 4, 4, false);
             
-        public PrimitiveType Type { get; }
+        public PrimitiveTopology Type { get; }
         public int PrimitiveLength { get; }
         public int PrimitiveStride { get; }
         public bool ConnectedPrimitives { get; }
         
-        private Mode(PrimitiveType type, int primitiveLength, int primitiveStride, bool connectedPrimitives)
+        private Mode(PrimitiveTopology type, int primitiveLength, int primitiveStride, bool connectedPrimitives)
         {
             Type = type;
             PrimitiveLength = primitiveLength;

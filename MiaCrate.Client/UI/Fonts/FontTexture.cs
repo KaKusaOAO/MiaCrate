@@ -2,6 +2,7 @@ using MiaCrate.Client.Fonts;
 using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
 using MiaCrate.Resources;
+using Mochi.Utils;
 using Veldrid;
 
 namespace MiaCrate.Client.UI;
@@ -19,20 +20,9 @@ public class FontTexture : AbstractTexture, IDumpable
         _colored = colored;
         _root = new Node(0, 0, Size, Size);
 
-        var preparation = TextureUtil.PrepareImage(colored
+        Texture = TextureUtil.PrepareImage(colored
             ? PixelFormat.R8_G8_B8_A8_UNorm
             : PixelFormat.R8_UNorm, Size, Size);
-        
-        _textureDescription = preparation.TextureDescription;
-        _samplerDescription = preparation.SamplerDescription;
-
-        var factory = GlStateManager.ResourceFactory;
-        Texture?.Dispose();
-        Texture = factory.CreateTexture(_textureDescription);
-        
-        Sampler?.Dispose();
-        Sampler = factory.CreateSampler(_samplerDescription);
-        
         _renderTypes = renderTypes;
     }
 
@@ -68,7 +58,7 @@ public class FontTexture : AbstractTexture, IDumpable
     public void DumpContents(ResourceLocation location, string path)
     {
         var str = location.ToDebugFileName();
-        TextureUtil.WriteAsPng(Texture!, path, str, 0, Size, Size, 
+        TextureUtil.WriteAsPng(Texture!.Texture, path, str, 0, Size, Size, 
             i => (i & 0xFF000000) == 0 ? 0xFF000000 : i);
     }
 

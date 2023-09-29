@@ -25,17 +25,7 @@ public class DynamicTexture : AbstractTexture, IDumpable
 
         void ExecuteRenderCall()
         {
-            var preparation = TextureUtil.PrepareImage(_pixels!.Width, _pixels.Height);
-            _textureDescription = preparation.TextureDescription;
-            _samplerDescription = preparation.SamplerDescription;
-            
-            var factory = GlStateManager.ResourceFactory;
-            Texture?.Dispose();
-            Texture = factory.CreateTexture(_textureDescription);
-        
-            Sampler?.Dispose();
-            Sampler = factory.CreateSampler(_samplerDescription);
-            
+            Texture = TextureUtil.PrepareImage(_pixels!.Width, _pixels.Height);
             Upload();
         }
         
@@ -53,17 +43,7 @@ public class DynamicTexture : AbstractTexture, IDumpable
     {
         RenderSystem.AssertOnGameThreadOrInit();
         _pixels = new NativeImage(width, height, clearBuffer);
-        
-        var preparation = TextureUtil.PrepareImage(_pixels.Width, _pixels.Height);
-        _textureDescription = preparation.TextureDescription;
-        _samplerDescription = preparation.SamplerDescription;
-        
-        var factory = GlStateManager.ResourceFactory;
-        Texture?.Dispose();
-        Texture = factory.CreateTexture(_textureDescription);
-        
-        Sampler?.Dispose();
-        Sampler = factory.CreateSampler(_samplerDescription);
+        Texture = TextureUtil.PrepareImage(_pixels.Width, _pixels.Height);
     }
 
     public void Upload()

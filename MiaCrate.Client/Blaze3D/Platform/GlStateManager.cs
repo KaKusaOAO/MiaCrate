@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using MiaCrate.Client.Systems;
+using Mochi.Extensions;
 using Veldrid;
 
 namespace MiaCrate.Client.Platform;
@@ -14,37 +15,96 @@ public static class GlStateManager
     private static readonly ColorLogicState _colorLogic = new();
     private static readonly ScissorState _scissor = new();
     private static readonly ColorMask _colorMask = new();
-
+    
+    private static readonly Dictionary<GraphicsPipelineDescription, Veldrid.Pipeline> _pipelineCache = new();
     private static readonly TextureState[] _textures =
         Enumerable.Range(0, 12).Select(i => new TextureState()).ToArray();
 
-    private static GraphicsDevice? _device;
-    private static ResourceFactory? _resourceFactory;
-    private static CommandList? _commandList;
     private static GraphicsPipelineDescription _pipelineDescription;
     private static Veldrid.Pipeline? _pipeline;
     private static bool _pipelineDirty = true;
+    private static DeviceBuffer? _indexBuffer;
+    private static IndexFormat _indexFormat;
+    private static Framebuffer? _framebuffer;
 
-    public static GraphicsDevice Device => 
-        _device ?? throw new InvalidOperationException("Device not ready");
+    public static GraphicsDevice Device { get; private set; } = null!;
     
-    public static ResourceFactory ResourceFactory =>
-        _resourceFactory ?? throw new InvalidOperationException("Device not ready");
+    public static ResourceFactory ResourceFactory { get; private set; } = null!;
 
-    public static CommandList CommandList =>
-        _commandList ?? throw new InvalidOperationException("Device not ready");
+    public static CommandList CommandList { get; private set; } = null!;
+    public static CommandList BufferCommandList { get; private set; } = null!;
+
+    private static bool _beganCommand;
+    private static bool _beganBufferCommand;
+
+    public static void SubmitCommands()
+    {
+        FlushBufferCommands();
+
+        if (_beganCommand)
+        {
+            CommandList.End();
+            Device.SubmitCommands(CommandList);
+        }
+
+        _beganCommand = false;
+    }
+
+    public static CommandList EnsureCommandBegan()
+    {
+        if (_beganCommand) return CommandList;
+        
+        CommandList.Begin();
+        _beganCommand = true;
+        return CommandList;
+    }
+
+    public static CommandList EnsureFramebufferSet()
+    {
+        EnsureCommandBegan();
+        BindOutput(_framebuffer ?? Device.SwapchainFramebuffer);
+        CommandList.SetFramebuffer(_framebuffer);
+        return CommandList;
+    }
+    
+    public static CommandList EnsureFramebufferSet(Framebuffer fb)
+    {
+        EnsureCommandBegan();
+        BindOutput(fb);
+        CommandList.SetFramebuffer(_framebuffer);
+        return CommandList;
+    }
+
+    public static CommandList EnsureBufferCommandBegan()
+    {
+        if (_beganBufferCommand) return BufferCommandList;
+        BufferCommandList.Begin();
+        _beganBufferCommand = true;
+        return BufferCommandList;
+    }
+
+    public static void FlushBufferCommands()
+    {
+        if (!_beganBufferCommand) return;
+        
+        BufferCommandList.End();
+        Device.SubmitCommands(BufferCommandList);
+        
+        _beganBufferCommand = false;
+    }
 
     public static void Init(GraphicsDevice device)
     {
-        _device = device;
-        _resourceFactory = device.ResourceFactory;
-        _commandList = _resourceFactory.CreateCommandList();
+        Device = device;
+        ResourceFactory = device.ResourceFactory;
+        CommandList = ResourceFactory.CreateCommandList();
+        BufferCommandList = ResourceFactory.CreateCommandList();
 
         _pipelineDescription = new GraphicsPipelineDescription
         {
             BlendState = new BlendStateDescription
             {
-                BlendFactor = RgbaFloat.White,
+                BlendFactor = new RgbaFloat(),
                 AttachmentStates = new[]
                 {
                     new BlendAttachmentDescription
@@ -63,7 +123,9 @@ public static class GlStateManager
             RasterizerState = new RasterizerStateDescription
             {
                 CullMode = FaceCullMode.Back,
-                ScissorTestEnabled = false
+                ScissorTestEnabled = false,
+                DepthClipEnabled = true,
+                FrontFace = FrontFace.CounterClockwise
             }
         };
     }
@@ -71,9 +133,8 @@ public static class GlStateManager
     private static void BuildPipelineIfDirty()
     {
         if (_pipeline != null && !_pipelineDirty) return;
-        
-        _pipeline?.Dispose();
-        _pipeline = _resourceFactory!.CreateGraphicsPipeline(_pipelineDescription);
+        _pipeline = _pipelineCache.ComputeIfAbsent(_pipelineDescription, d =>
+            ResourceFactory.CreateGraphicsPipeline(d));
         _pipelineDirty = false;
     }
     
@@ -119,11 +180,16 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThread();
         _blend.State.Disable();
 
-        var state = _pipelineDescription.BlendState.AttachmentStates[0];
-        if (state.BlendEnabled)
+        unsafe
         {
-            state.BlendEnabled = false;
-            _pipelineDirty = true;
+            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
+            {
+                if (state->BlendEnabled)
+                {
+                    state->BlendEnabled = false;
+                    _pipelineDirty = true;
+                }
+            }
         }
     }
 
@@ -131,12 +197,17 @@ public static class GlStateManager
     {
         RenderSystem.AssertOnRenderThread();
         _blend.State.Enable();
-        
-        var state = _pipelineDescription.BlendState.AttachmentStates[0];
-        if (state.BlendEnabled)
+
+        unsafe
         {
-            state.BlendEnabled = true;
-            _pipelineDirty = true;
+            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
+            {
+                if (!state->BlendEnabled)
+                {
+                    state->BlendEnabled = true;
+                    _pipelineDirty = true;
+                }
+            }
         }
     }
 
@@ -155,27 +226,37 @@ public static class GlStateManager
         _blend.SrcAlpha = sourceAlpha;
         _blend.DstAlpha = destAlpha;
 
-        var state = _pipelineDescription.BlendState.AttachmentStates[0];
-        if (state.SourceColorFactor == sourceRgb && state.DestinationColorFactor == destRgb &&
-            state.SourceAlphaFactor == sourceAlpha && state.DestinationAlphaFactor == destAlpha) return;
-        
-        state.SourceColorFactor = sourceRgb;
-        state.DestinationColorFactor = destRgb;
-        state.SourceAlphaFactor = sourceAlpha;
-        state.DestinationAlphaFactor = destAlpha;
-        _pipelineDirty = true;
+        unsafe
+        {
+            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
+            {
+                if (state->SourceColorFactor == sourceRgb && state->DestinationColorFactor == destRgb &&
+                    state->SourceAlphaFactor == sourceAlpha && state->DestinationAlphaFactor == destAlpha) return;
+
+                state->SourceColorFactor = sourceRgb;
+                state->DestinationColorFactor = destRgb;
+                state->SourceAlphaFactor = sourceAlpha;
+                state->DestinationAlphaFactor = destAlpha;
+                _pipelineDirty = true;
+            }
+        }
     }
 
     public static void BlendEquation(BlendFunction func)
     {
         RenderSystem.AssertOnRenderThread();
 
-        var state = _pipelineDescription.BlendState.AttachmentStates[0];
-        if (state.ColorFunction == func && state.AlphaFunction == func) return;
-        
-        state.ColorFunction = func;
-        state.AlphaFunction = func;
-        _pipelineDirty = true;
+        unsafe
+        {
+            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
+            {
+                if (state->ColorFunction == func && state->AlphaFunction == func) return;
+
+                state->ColorFunction = func;
+                state->AlphaFunction = func;
+                _pipelineDirty = true;
+            }
+        }
     }
 
     public static void UseProgram(ShaderSetDescription shaderSet)
@@ -183,6 +264,27 @@ public static class GlStateManager
         if (_pipelineDescription.ShaderSet.Equals(shaderSet)) return;
         _pipelineDescription.ShaderSet = shaderSet;
         _pipelineDirty = true;
+    }
+
+    public static void BindOutput(Framebuffer framebuffer)
+    {
+        if (_framebuffer == framebuffer) return;
+        _framebuffer = framebuffer;
+        
+        if (_pipelineDescription.Outputs.Equals(framebuffer.OutputDescription)) return;
+        
+        // Incompatible framebuffer. Flush the commands first. 
+        SubmitCommands();
+        
+        EnsureFramebufferSet(framebuffer);
+        _pipelineDescription.Outputs = framebuffer.OutputDescription;
+        _pipelineDirty = true;
+    }
+
+    [Obsolete]
+    public static void QueueFramebufferCommand()
+    {
+        CommandList.SetFramebuffer(_framebuffer);
     }
 
     public static void Viewport(int x, int y, int width, int height)
@@ -193,7 +295,7 @@ public static class GlStateManager
         ViewportState.Width = width;
         ViewportState.Height = height;
         
-        _commandList!.SetViewport(0, 
+        CommandList.SetViewport(0, 
             new Viewport(ViewportState.X, ViewportState.Y, ViewportState.Width, ViewportState.Height, 
                 0, 1));
     }
@@ -201,19 +303,19 @@ public static class GlStateManager
     public static void ClearDepth(double depth)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        _commandList!.ClearDepthStencil((float) depth);
+        CommandList.ClearDepthStencil((float) depth);
     }
 
     public static void BindVertexBuffer(DeviceBuffer buffer)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        _commandList!.SetVertexBuffer(0, buffer);
+        CommandList.SetVertexBuffer(0, buffer);
     }
     
     public static void BindIndexBuffer(DeviceBuffer buffer, IndexFormat format)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        _commandList!.SetIndexBuffer(buffer, format);
+        CommandList.SetIndexBuffer(buffer, format);
     }
 
     public static void BufferData(DeviceBuffer buffer, ReadOnlySpan<byte> span)
@@ -223,28 +325,43 @@ public static class GlStateManager
         {
             fixed (byte* ptr = span)
             {
-                _commandList!.UpdateBuffer(buffer, 0, (IntPtr) ptr, (uint) span.Length);
+                EnsureCommandBegan();
+                CommandList.UpdateBuffer(buffer, 0, (IntPtr) ptr, (uint) span.Length);
             }
         }
     }
-    
-    public static void DrawElements(PrimitiveTopology mode, int count)
+
+    public static void SetPrimitiveTopology(PrimitiveTopology mode)
     {
-        RenderSystem.AssertOnRenderThread();
         if (_pipelineDescription.PrimitiveTopology != mode)
         {
             _pipelineDescription.PrimitiveTopology = mode;
             _pipelineDirty = true;
-        } 
-        
-        BuildPipelineIfDirty();
-        
-        _commandList!.SetPipeline(_pipeline);
-        // TODO: Bind resource sets
-        // _commandList!.SetGraphicsResourceSet(0, );
-        // _commandList!.SetGraphicsResourceSet(1, );
+        }
+    }
 
-        _commandList.Draw((uint) count);
+    public static void SetResourceLayouts(ResourceLayout[] layouts)
+    {
+        if (_pipelineDescription.ResourceLayouts != layouts)
+        {
+            _pipelineDescription.ResourceLayouts = layouts;
+            _pipelineDirty = true;
+        }
+    } 
+
+    public static void SetPipeline()
+    {
+        RenderSystem.AssertOnRenderThread();
+        BuildPipelineIfDirty();
+        CommandList.SetPipeline(_pipeline);
+        CommandList.SetIndexBuffer(_indexBuffer, _indexFormat);
+        EnsureFramebufferSet();
+    }
+    
+    public static void DrawElements(int count)
+    {
+        RenderSystem.AssertOnRenderThread();
+        CommandList.Draw((uint) count);
     }
 
     public static void EnableCull()
@@ -289,39 +406,45 @@ public static class GlStateManager
         _colorMask.Blue = blue;
         _colorMask.Alpha = alpha;
 
-        var state = _pipelineDescription.BlendState.AttachmentStates[0];
-        
-        var mask = ColorWriteMask.None;
-        if (red) mask |= ColorWriteMask.Red;
-        if (green) mask |= ColorWriteMask.Green;
-        if (blue) mask |= ColorWriteMask.Blue;
-        if (alpha) mask |= ColorWriteMask.Alpha;
-        
-        if (!state.ColorWriteMask.HasValue)
+        unsafe
         {
-            state.ColorWriteMask = mask;
-            _pipelineDirty = true;
-        }
-        else
-        {
-            var oldMask = state.ColorWriteMask.Value;
-            if (oldMask == mask) return;
+            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
+            {
+                var mask = ColorWriteMask.None;
+                if (red) mask |= ColorWriteMask.Red;
+                if (green) mask |= ColorWriteMask.Green;
+                if (blue) mask |= ColorWriteMask.Blue;
+                if (alpha) mask |= ColorWriteMask.Alpha;
 
-            state.ColorWriteMask = mask;
-            _pipelineDirty = true;
+                if (!state->ColorWriteMask.HasValue)
+                {
+                    state->ColorWriteMask = mask;
+                    _pipelineDirty = true;
+                }
+                else
+                {
+                    var oldMask = state->ColorWriteMask!.Value;
+                    if (oldMask == mask) return;
+
+                    state->ColorWriteMask = mask;
+                    _pipelineDirty = true;
+                }
+            }
         }
     }
 
     public static void PushDebugGroup(string message)
     {
         RenderSystem.AssertOnRenderThread();
-        _commandList!.PushDebugGroup(message);
+        EnsureCommandBegan();
+        CommandList.PushDebugGroup(message);
     }
     
     public static void PopDebugGroup()
     {
         RenderSystem.AssertOnRenderThread();
-        _commandList!.PopDebugGroup();
+        EnsureCommandBegan();
+        CommandList.PopDebugGroup();
     }
 
     public static void WrapWithDebugGroup(string message, Action action)
@@ -374,7 +497,7 @@ public static class GlStateManager
     public static void ScissorBox(int x, int y, int width, int height)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
-        _commandList!.SetScissorRect(0, (uint) x, (uint) y, (uint) width, (uint) height);
+        CommandList.SetScissorRect(0, (uint) x, (uint) y, (uint) width, (uint) height);
     }
 
     public static void DisableScissorTest()
@@ -385,6 +508,12 @@ public static class GlStateManager
         if (!_pipelineDescription.RasterizerState.ScissorTestEnabled) return;
         _pipelineDescription.RasterizerState.ScissorTestEnabled = false;
         _pipelineDirty = true;
+    }
+
+    public static void SetIndexBuffer(DeviceBuffer indexBuffer, IndexFormat indexFormat)
+    {
+        _indexBuffer = indexBuffer;
+        _indexFormat = indexFormat;
     }
 
     // Why is this needed?

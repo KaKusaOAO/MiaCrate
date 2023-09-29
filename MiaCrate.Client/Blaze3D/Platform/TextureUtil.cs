@@ -8,16 +8,16 @@ namespace MiaCrate.Client.Platform;
 
 public static class TextureUtil
 {
-    public static TexturePreparation PrepareImage(int width, int height) =>
+    public static TextureInstance PrepareImage(int width, int height) =>
         PrepareImage(PixelFormat.R8_G8_B8_A8_UNorm, 0, width, height);
     
-    public static TexturePreparation PrepareImage(PixelFormat format, int width, int height) =>
+    public static TextureInstance PrepareImage(PixelFormat format, int width, int height) =>
         PrepareImage(format, 0, width, height);
 
-    public static TexturePreparation PrepareImage(int maxLevel, int width, int height) =>
+    public static TextureInstance PrepareImage(int maxLevel, int width, int height) =>
         PrepareImage(PixelFormat.R8_G8_B8_A8_UNorm, maxLevel, width, height);
 
-    public static TexturePreparation PrepareImage(PixelFormat format, int maxLevel, int width, int height)
+    public static TextureInstance PrepareImage(PixelFormat format, int maxLevel, int width, int height)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         
@@ -25,9 +25,12 @@ public static class TextureUtil
         {
             Width = (uint) width,
             Height = (uint) height,
+            Depth = 1,
+            ArrayLayers = 1,
             Format = format,
-            MipLevels = (uint) maxLevel,
-            Usage = TextureUsage.Sampled
+            MipLevels = (uint) maxLevel + 1,
+            Usage = TextureUsage.Sampled,
+            Type = TextureType.Texture2D
         };
 
         var sampleDesc = new SamplerDescription();
@@ -53,10 +56,8 @@ public static class TextureUtil
         //         PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
         // }
         
-        return new TexturePreparation(texDesc, sampleDesc);
+        return new TextureInstance(texDesc, sampleDesc);
     }
-
-    public record TexturePreparation(TextureDescription TextureDescription, SamplerDescription SamplerDescription);
 
     public static void WriteAsPng(Texture texture, string path, string str, int j, int k, int l, Func<Argb32, Argb32>? transform)
     {
