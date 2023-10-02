@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
@@ -468,7 +469,10 @@ public static class RenderSystem
         for (e = SDL.SDL_GetTicks() / 1000.0; e < d; e = SDL.SDL_GetTicks() / 1000.0)
         {
             var timeout = (int) ((d - e) * 1000);
-            SDL.SDL_WaitEventTimeout(out _, timeout);
+            unsafe
+            {
+                SDL.SDL_WaitEventTimeout(out Unsafe.AsRef<SDL.SDL_Event>((void*) 0), timeout);
+            }
         }
 
         _lastDrawTime = e;
