@@ -93,7 +93,7 @@ public class MainTarget : RenderTarget
         try
         {
             var desc = TextureDescription.Texture2D((uint) dimension.Width, (uint) dimension.Height,
-                1, 1, PixelFormat.D24_UNorm_S8_UInt,
+                1, 1, PixelFormat.R16_UNorm,
                 TextureUsage.DepthStencil);
             DepthBuffer!.UpdateTextureDescription(desc);
             DepthBuffer.EnsureTextureUpToDate();

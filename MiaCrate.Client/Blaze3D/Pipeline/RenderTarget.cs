@@ -95,7 +95,7 @@ public abstract class RenderTarget
         if (UseDepth)
         {
             var depthTextureDesc = TextureDescription.Texture2D((uint) Width, (uint) Height, 1, 1,
-                PixelFormat.D24_UNorm_S8_UInt, TextureUsage.DepthStencil);
+                PixelFormat.R16_UNorm, TextureUsage.DepthStencil);
 
             var depthBufferDescription = new SamplerDescription
             {
