@@ -17,6 +17,7 @@ public class TitleScreen : Screen
     private readonly bool _fading;
     private readonly LogoRenderer _logoRenderer;
     private readonly PanoramaRenderer _panorama;
+    private SplashRenderer? _splash;
     private long _fadeInStart;
 
     public override bool IsPauseScreen => false;
@@ -41,6 +42,8 @@ public class TitleScreen : Screen
 
     protected override void Init()
     {
+        _splash ??= new SplashRenderer("Now on .NET!");
+        
         var i = Font.Width(CopyrightText);
         var j = Width - i - 2;
         var l = Height / 4 + 48;
@@ -121,6 +124,8 @@ public class TitleScreen : Screen
         var k = (byte) Math.Ceiling(h * 255);
         if ((k & 0xfc) != 0)
         {
+            _splash?.Render(graphics, Width, Font, k);
+            
             var str = $"{MiaCore.ProductName} {SharedConstants.CurrentVersion.Name}";
             graphics.DrawString(Font, str, 2, Height - 10, Argb32.White.WithAlpha(k));
             
