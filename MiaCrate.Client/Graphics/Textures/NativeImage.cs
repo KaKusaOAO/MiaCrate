@@ -177,6 +177,10 @@ public sealed class NativeImage : IDisposable
             }
             else
             {
+                // Move the source bitmap by the given offset before upload.
+                // Implemented with a SKBitmap + SKCanvas, drawing the source bitmap at the calculated position.
+                // New bitmap size is set to the update region size, which is provided by parameters.
+                
                 target = new SKBitmap(width, height);
                 using var canvas = new SKCanvas(target);
                 canvas.DrawBitmap(_bitmap, -skipPixels, -skipRows);
@@ -187,15 +191,18 @@ public sealed class NativeImage : IDisposable
             // which is the reverse of RGBA, the order represents in the buffer.
             
             // Rearrange the pixel to the correct order: ARGB => ABGR (reversed form of RGBA)
-            
-            var pixels = Enumerable.Range(0, target.Height)
-                .Select(y => Enumerable.Range(0, target.Width)
-                    .Select(x => (x, y)))
-                .SelectMany(e => 
-                    e.Select(n => target.GetPixel(n.x, n.y))
-                )
-                .Select(c => new Rgba32(c.Red, c.Green, c.Blue, c.Alpha).RGBA)
-                .ToArray();
+            var pixels = new int[target.Width * target.Height];
+            for (var y = 0; y < target.Height; y++)
+            {
+                for (var x = 0; x < target.Width; x++)
+                {
+                    var index = y * target.Width + x;
+                    
+                    // Directly query from the pointer doesn't always work, use API
+                    var c = (Argb32) target.GetPixel(x, y);
+                    pixels[index] = ((Rgba32) c).RGBA;
+                }
+            }
             
             var device = GlStateManager.Device;
             texture.Texture!.EnsureTextureUpToDate();
