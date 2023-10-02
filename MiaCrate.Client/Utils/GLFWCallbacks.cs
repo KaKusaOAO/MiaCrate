@@ -18,7 +18,7 @@ public static class GLFWCallbacks
 
 public enum MouseButton
 {
-    Left,
+    Left = 1,
     Middle,
     Right,
     Button4,
