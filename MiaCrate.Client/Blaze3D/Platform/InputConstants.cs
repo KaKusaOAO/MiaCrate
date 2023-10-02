@@ -106,26 +106,14 @@ public static class InputConstants
 		var state = ev.state;
 		var handle = Game.Instance.Window.Handle;
 
-		void DispatchMouseEvents(uint mask, MouseButton button)
+		if (state == SDL.SDL_PRESSED)
 		{
-			if ((state & mask) != (_lastState & mask))
-			{
-				if ((state & mask) == mask)
-				{
-					_mouseButtonCallback?.Invoke(handle, button, InputAction.Press, 0);
-				}
-				else
-				{
-					_mouseButtonCallback?.Invoke(handle, button, InputAction.Release, 0);
-				}
-			}
+			_mouseButtonCallback?.Invoke(handle, (MouseButton) ev.button, InputAction.Press, 0);
 		}
-		
-		DispatchMouseEvents(SDL.SDL_BUTTON_LMASK, MouseButton.Left);
-		DispatchMouseEvents(SDL.SDL_BUTTON_MMASK, MouseButton.Middle);
-		DispatchMouseEvents(SDL.SDL_BUTTON_RMASK, MouseButton.Right);
-		DispatchMouseEvents(SDL.SDL_BUTTON_X1MASK, MouseButton.Button4);
-		DispatchMouseEvents(SDL.SDL_BUTTON_X2MASK, MouseButton.Button5);
+		else
+		{
+			_mouseButtonCallback?.Invoke(handle, (MouseButton) ev.button, InputAction.Release, 0);
+		}
 
 		_lastState = state;
 	}
