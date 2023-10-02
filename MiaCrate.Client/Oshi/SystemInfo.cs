@@ -5,8 +5,8 @@ using MiaCrate.Client.Oshi.Windows;
 
 namespace MiaCrate.Client.Oshi;
 
-[SupportedOSPlatform("windows")]
-[SupportedOSPlatform("macos")]
+// [SupportedOSPlatform("windows")]
+// [SupportedOSPlatform("macos")]
 public class SystemInfo
 {
     private readonly Lazy<IHardware> _hardware = new(CreateHardware);
