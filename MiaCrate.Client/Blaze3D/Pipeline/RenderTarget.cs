@@ -244,10 +244,15 @@ public abstract class RenderTarget
         var tesselator = RenderSystem.RenderThreadTesselator;
         var builder = tesselator.Builder;
         builder.Begin(VertexFormat.Mode.Quads, DefaultVertexFormat.PositionTexColor);
-        builder.Vertex(0, g, 0).Uv(0, 0).Color(255, 255, 255, 255).EndVertex();
-        builder.Vertex(f, g, 0).Uv(h, 0).Color(255, 255, 255, 255).EndVertex();
-        builder.Vertex(f, 0, 0).Uv(h, k).Color(255, 255, 255, 255).EndVertex();
-        builder.Vertex(0, 0, 0).Uv(0, k).Color(255, 255, 255, 255).EndVertex();
+
+        var device = GlStateManager.Device;
+        var top = device.IsUvOriginTopLeft ? 0 : k;
+        var bottom = device.IsUvOriginTopLeft ? k : 0;
+        
+        builder.Vertex(0, g, 0).Uv(0, bottom).Color(255, 255, 255, 255).EndVertex();
+        builder.Vertex(f, g, 0).Uv(h, bottom).Color(255, 255, 255, 255).EndVertex();
+        builder.Vertex(f, 0, 0).Uv(h, top).Color(255, 255, 255, 255).EndVertex();
+        builder.Vertex(0, 0, 0).Uv(0, top).Color(255, 255, 255, 255).EndVertex();
         BufferUploader.Draw(builder.End());
 
         shader.Clear();

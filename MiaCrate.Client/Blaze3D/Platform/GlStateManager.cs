@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using MiaCrate.Client.Systems;
 using Mochi.Extensions;
 using Veldrid;
+using Veldrid.Utilities;
 
 namespace MiaCrate.Client.Platform;
 
@@ -30,6 +31,7 @@ public static class GlStateManager
     public static GraphicsDevice Device { get; private set; } = null!;
     
     public static ResourceFactory ResourceFactory { get; private set; } = null!;
+    public static DisposeCollectorResourceFactory DisposableResourceFactory { get; private set; } = null!;
 
     public static CommandList CommandList { get; private set; } = null!;
     public static CommandList BufferCommandList { get; private set; } = null!;
@@ -97,6 +99,7 @@ public static class GlStateManager
     {
         Device = device;
         ResourceFactory = device.ResourceFactory;
+        DisposableResourceFactory = new DisposeCollectorResourceFactory(device.ResourceFactory);
         CommandList = ResourceFactory.CreateCommandList();
         BufferCommandList = ResourceFactory.CreateCommandList();
 
@@ -133,8 +136,8 @@ public static class GlStateManager
     private static void BuildPipelineIfDirty()
     {
         if (_pipeline != null && !_pipelineDirty) return;
-        _pipeline = _pipelineCache.ComputeIfAbsent(_pipelineDescription, d =>
-            ResourceFactory.CreateGraphicsPipeline(d));
+        _pipeline = _pipelineCache.ComputeIfAbsent(_pipelineDescription, 
+            d => ResourceFactory.CreateGraphicsPipeline(d));
         _pipelineDirty = false;
     }
     
@@ -180,16 +183,11 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThread();
         _blend.State.Disable();
 
-        unsafe
+        ref var state = ref _pipelineDescription.BlendState.AttachmentStates[0];
+        if (state.BlendEnabled)
         {
-            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
-            {
-                if (state->BlendEnabled)
-                {
-                    state->BlendEnabled = false;
-                    _pipelineDirty = true;
-                }
-            }
+            state.BlendEnabled = false;
+            _pipelineDirty = true;
         }
     }
 

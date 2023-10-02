@@ -584,7 +584,8 @@ public class ShaderInstance : IShader, IDisposable
         {
             uniform.Dispose();
         }
-        
+
+        _uniforms.Clear();
         ProgramManager.ReleaseProgram(this);
     }
 
@@ -594,7 +595,7 @@ public class ShaderInstance : IShader, IDisposable
         GlStateManager.SetPipeline();
 
         var cl = GlStateManager.CommandList;
-        var factory = GlStateManager.ResourceFactory;
+        var factory = GlStateManager.DisposableResourceFactory;
         var shader = this;
         var texResSet = factory.CreateResourceSet(
             new ResourceSetDescription(ResourceLayouts[TextureSamplerResourceSetIndex], TextureResources));
@@ -602,7 +603,7 @@ public class ShaderInstance : IShader, IDisposable
             new ResourceSetDescription(ResourceLayouts[VertexUniformResourceSetIndex], VertexUniformResources));
         var fUniformResSet = factory.CreateResourceSet(
             new ResourceSetDescription(ResourceLayouts[FragmentUniformResourceSetIndex], FragmentUniformResources));
-        
+
         cl.SetGraphicsResourceSet(TextureSamplerResourceSetIndex, texResSet);
         cl.SetGraphicsResourceSet(VertexUniformResourceSetIndex, vUniformResSet);
         cl.SetGraphicsResourceSet(FragmentUniformResourceSetIndex, fUniformResSet);

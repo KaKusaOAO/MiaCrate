@@ -266,6 +266,8 @@ public static class RenderSystem
         device.WaitForIdle();
         device.SwapBuffers();
         
+        GlStateManager.DisposableResourceFactory.DisposeCollector.DisposeAll();
+        
         PollEvents();
     }
 
@@ -584,7 +586,6 @@ public static class RenderSystem
         private void RecreateBuffer(int count)
         {
             var buffer = GlStateManager.ResourceFactory.CreateBuffer(new BufferDescription((uint) count, BufferUsage.IndexBuffer));
-                
             buffer.Name = $"{nameof(AutoStorageIndexBuffer)} #{buffer.GetHashCode()}";
             
             if (_name != null)
