@@ -20,7 +20,7 @@
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="OpenTK" Version="4.8.0" />
+      <PackageReference Include="OpenTK" Version="4.8.1" />
       <PackageReference Include="SkiaSharp" Version="2.88.5" />
       <PackageReference Include="System.Management" Version="7.0.2" />
     </ItemGroup>
