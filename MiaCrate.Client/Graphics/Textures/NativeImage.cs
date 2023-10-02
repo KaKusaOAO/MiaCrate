@@ -196,15 +196,18 @@ public sealed class NativeImage : IDisposable
             // which is the reverse of RGBA, the order represents in the buffer.
             
             // Rearrange the pixel to the correct order: ARGB => ABGR (reversed form of RGBA)
-            
-            var pixels = Enumerable.Range(0, _bitmap.Height)
-                .Select(y => Enumerable.Range(0, _bitmap.Width)
-                    .Select(x => (x, y)))
-                .SelectMany(e => 
-                    e.Select(n => _bitmap.GetPixel(n.x, n.y))
-                )
-                .Select(c => new Rgba32(c.Red, c.Green, c.Blue, c.Alpha).RGBA)
-                .ToArray();
+            var pixels = new int[_bitmap.Width * _bitmap.Height];
+            for (var y = 0; y < _bitmap.Height; y++)
+            {
+                for (var x = 0; x < _bitmap.Width; x++)
+                {
+                    var index = y * _bitmap.Width + x;
+                    
+                    // Directly query from the pointer doesn't always work, use API
+                    var c = (Argb32) _bitmap.GetPixel(x, y);
+                    pixels[index] = ((Rgba32) c).RGBA;
+                }
+            }
 
             GlStateManager.TexSubImage2D(TextureTarget.Texture2D, level, xOffset, yOffset, width, height, Format.Format,
                 PixelType.UnsignedByte, pixels);
