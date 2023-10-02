@@ -35,10 +35,9 @@ public class EffectInstance : IEffect, IDisposable
     private ShaderSetDescription _shaderSetDesc;
     
     public ResourceLayout[] ResourceLayouts { get; }
-    public BindableResource[] TextureResources { get; private set; } = Array.Empty<BindableResource>();
-    public BindableResource[] SamplerResources { get; private set; } = Array.Empty<BindableResource>();
-    public BindableResource[] VertexUniformResources { get; private set; } = Array.Empty<BindableResource>();
-    public BindableResource[] FragmentUniformResources { get; private set; } = Array.Empty<BindableResource>();
+    public BindableResource[] TextureResources { get; }
+    public BindableResource[] VertexUniformResources { get; }
+    public BindableResource[] FragmentUniformResources { get; }
 
     public ResourceLayoutElementDescription[] VertexUniformDescriptions { get; private set; } = 
         Array.Empty<ResourceLayoutElementDescription>();
@@ -122,8 +121,7 @@ public class EffectInstance : IEffect, IDisposable
             VertexUniformDescriptions = layoutDescs[ShaderInstance.VertexUniformResourceSetIndex].Elements;
             FragmentUniformDescriptions = layoutDescs[ShaderInstance.FragmentUniformResourceSetIndex].Elements;
             
-            TextureResources = new BindableResource[layoutDescs[ShaderInstance.TextureResourceSetIndex].Elements.Length]; 
-            SamplerResources = new BindableResource[layoutDescs[ShaderInstance.SamplerResourceSetIndex].Elements.Length];
+            TextureResources = new BindableResource[layoutDescs[ShaderInstance.TextureSamplerResourceSetIndex].Elements.Length]; 
             VertexUniformResources = new BindableResource[VertexUniformDescriptions.Length];
             FragmentUniformResources = new BindableResource[FragmentUniformDescriptions.Length];
             

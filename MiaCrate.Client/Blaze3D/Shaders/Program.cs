@@ -139,25 +139,24 @@ public class Program : IDisposable
             {
                 var texName = name.Replace("Sampler", "Texture");
                 
-                var texBind = bindings.ComputeIfAbsent(ShaderInstance.TextureResourceSetIndex, _ => 0);
-                sb.Append($"layout(set = {ShaderInstance.TextureResourceSetIndex}, binding = {texBind}) uniform texture2D ");
+                var texBind = bindings.ComputeIfAbsent(ShaderInstance.TextureSamplerResourceSetIndex, _ => 0);
+                texBind *= 2;
+                
+                sb.Append($"layout(set = {ShaderInstance.TextureSamplerResourceSetIndex}, binding = {texBind}) uniform texture2D ");
                 sb.Append(texName);
                 sb.AppendLine(";");
-                
-                var samplerBind = bindings.ComputeIfAbsent(ShaderInstance.SamplerResourceSetIndex, _ => 0);
-                sb.Append($"layout(set = {ShaderInstance.SamplerResourceSetIndex}, binding = {samplerBind}) uniform sampler ");
+
+                var samplerBind = texBind + 1;
+                sb.Append($"layout(set = {ShaderInstance.TextureSamplerResourceSetIndex}, binding = {samplerBind}) uniform sampler ");
                 sb.Append(name);
                 sb.Append(";");
 
-                bindings[ShaderInstance.TextureResourceSetIndex]++;
-                bindings[ShaderInstance.SamplerResourceSetIndex]++;
+                bindings[ShaderInstance.TextureSamplerResourceSetIndex]++;
 
-                var textures = elements.ComputeIfAbsent(ShaderInstance.TextureResourceSetIndex,
-                    _ => new List<ResourceLayoutElementDescription>());
-                var samplers = elements.ComputeIfAbsent(ShaderInstance.SamplerResourceSetIndex,
+                var textures = elements.ComputeIfAbsent(ShaderInstance.TextureSamplerResourceSetIndex,
                     _ => new List<ResourceLayoutElementDescription>());
                 textures.Add(new ResourceLayoutElementDescription(texName, ResourceKind.TextureReadOnly, stage));
-                samplers.Add(new ResourceLayoutElementDescription(name, ResourceKind.Sampler, stage));
+                textures.Add(new ResourceLayoutElementDescription(name, ResourceKind.Sampler, stage));
 
                 handleSamplerCalls.Add((texName, name));
             }
@@ -210,7 +209,7 @@ public class Program : IDisposable
         temp = temp.Replace("gl_VertexID", "gl_VertexIndex");
         
         // Replace version
-        temp = "#version 450\n" + string.Join('\n', temp.Split('\n')
+        temp = "#version 450\n#extension GL_KHR_vulkan_glsl : enable\n" + string.Join('\n', temp.Split('\n')
             .Where(l => !l.Trim().StartsWith("#version ")));
 
         return new ConvertResult(temp, elements);

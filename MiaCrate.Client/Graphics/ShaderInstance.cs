@@ -16,10 +16,9 @@ namespace MiaCrate.Client.Graphics;
 
 public class ShaderInstance : IShader, IDisposable
 {
-    public const int TextureResourceSetIndex = 0;
-    public const int SamplerResourceSetIndex = 1;
-    public const int VertexUniformResourceSetIndex = 2;
-    public const int FragmentUniformResourceSetIndex = 3;
+    public const int TextureSamplerResourceSetIndex = 0;
+    public const int VertexUniformResourceSetIndex = 1;
+    public const int FragmentUniformResourceSetIndex = 2;
     
     public const string ShaderPath = "shaders";
     private const string ShaderCorePath = $"{ShaderPath}/core/";
@@ -44,10 +43,9 @@ public class ShaderInstance : IShader, IDisposable
     private readonly Dictionary<string, int> _samplerLookup;
 
     public ResourceLayout[] ResourceLayouts { get; }
-    public BindableResource[] TextureResources { get; private set; } = Array.Empty<BindableResource>();
-    public BindableResource[] SamplerResources { get; private set; } = Array.Empty<BindableResource>();
-    public BindableResource[] VertexUniformResources { get; private set; } = Array.Empty<BindableResource>();
-    public BindableResource[] FragmentUniformResources { get; private set; } = Array.Empty<BindableResource>();
+    public BindableResource[] TextureResources { get; }
+    public BindableResource[] VertexUniformResources { get; }
+    public BindableResource[] FragmentUniformResources { get; }
 
     public ResourceLayoutElementDescription[] VertexUniformDescriptions { get; private set; } = 
         Array.Empty<ResourceLayoutElementDescription>();
@@ -131,7 +129,7 @@ public class ShaderInstance : IShader, IDisposable
             }
 
             var layoutDescs = new List<ResourceLayoutDescription>();
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i <= FragmentUniformResourceSetIndex; i++)
             {
                 // Ensure we have a list instance here
                 elements.ComputeIfAbsent(i, _ => new List<ResourceLayoutElementDescription>());
@@ -147,16 +145,15 @@ public class ShaderInstance : IShader, IDisposable
             VertexUniformDescriptions = layoutDescs[VertexUniformResourceSetIndex].Elements;
             FragmentUniformDescriptions = layoutDescs[FragmentUniformResourceSetIndex].Elements;
             
-            TextureResources = new BindableResource[layoutDescs[TextureResourceSetIndex].Elements.Length]; 
-            SamplerResources = new BindableResource[layoutDescs[SamplerResourceSetIndex].Elements.Length];
+            TextureResources = new BindableResource[layoutDescs[TextureSamplerResourceSetIndex].Elements.Length]; 
             VertexUniformResources = new BindableResource[VertexUniformDescriptions.Length];
             FragmentUniformResources = new BindableResource[FragmentUniformDescriptions.Length];
 
             // Sampler to location lookup
             var dict = new Dictionary<string, int>();
-            for (var i = 0; i < layoutDescs[SamplerResourceSetIndex].Elements.Length; i++)
+            for (var i = 0; i < layoutDescs[TextureSamplerResourceSetIndex].Elements.Length; i++)
             {
-                var elem = layoutDescs[SamplerResourceSetIndex].Elements[i];
+                var elem = layoutDescs[TextureSamplerResourceSetIndex].Elements[i];
                 dict[elem.Name] = i;
             }
 
@@ -428,8 +425,8 @@ public class ShaderInstance : IShader, IDisposable
                 sampler.EnsureUpToDate();
                 var index = _samplerLookup[name];
 
-                TextureResources[index] = sampler.TextureView;
-                SamplerResources[index] = sampler.Sampler;
+                TextureResources[index - 1] = sampler.TextureView;
+                TextureResources[index] = sampler.Sampler;
             }
         }
 
@@ -600,16 +597,13 @@ public class ShaderInstance : IShader, IDisposable
         var factory = GlStateManager.ResourceFactory;
         var shader = this;
         var texResSet = factory.CreateResourceSet(
-            new ResourceSetDescription(ResourceLayouts[TextureResourceSetIndex], TextureResources));
-        var samplerResSet = factory.CreateResourceSet(
-            new ResourceSetDescription(ResourceLayouts[SamplerResourceSetIndex], SamplerResources));
+            new ResourceSetDescription(ResourceLayouts[TextureSamplerResourceSetIndex], TextureResources));
         var vUniformResSet = factory.CreateResourceSet(
             new ResourceSetDescription(ResourceLayouts[VertexUniformResourceSetIndex], VertexUniformResources));
         var fUniformResSet = factory.CreateResourceSet(
             new ResourceSetDescription(ResourceLayouts[FragmentUniformResourceSetIndex], FragmentUniformResources));
         
-        cl.SetGraphicsResourceSet(TextureResourceSetIndex, texResSet);
-        cl.SetGraphicsResourceSet(SamplerResourceSetIndex, samplerResSet);
+        cl.SetGraphicsResourceSet(TextureSamplerResourceSetIndex, texResSet);
         cl.SetGraphicsResourceSet(VertexUniformResourceSetIndex, vUniformResSet);
         cl.SetGraphicsResourceSet(FragmentUniformResourceSetIndex, fUniformResSet);
     }
