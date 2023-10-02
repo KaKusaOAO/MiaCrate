@@ -16,13 +16,13 @@ public class PoseStack
     public void Translate(float x, float y, float z)
     {
         var pose = _poseStack.Peek();
-        pose.Pose *= Matrix4.CreateTranslation(x, y, z);
+        pose.Pose = Matrix4.CreateTranslation(x, y, z) * pose.Pose;
     }
 
     public void Scale(float x, float y, float z)
     {
         var pose = _poseStack.Peek();
-        pose.Pose *= Matrix4.CreateScale(x, y, z);
+        pose.Pose = Matrix4.CreateScale(x, y, z) * pose.Pose;
 
         // ReSharper disable CompareOfFloatsByEqualityOperator
         if (x == y && y == z)
@@ -35,21 +35,21 @@ public class PoseStack
         var j = 1 / y;
         var k = 1 / z;
         var l = Util.FastInvCubeRoot(i * j * k);
-        pose.Normal *= Matrix3.CreateScale(l * i, l * j, l * k);
+        pose.Normal = Matrix3.CreateScale(l * i, l * j, l * k) * pose.Normal;
     }
 
     public void MulPose(Quaternion q)
     {
         var pose = _poseStack.Peek();
-        pose.Pose *= Matrix4.CreateFromQuaternion(q);
-        pose.Normal *= Matrix3.CreateFromQuaternion(q);
+        pose.Pose = Matrix4.CreateFromQuaternion(q) * pose.Pose;
+        pose.Normal = Matrix3.CreateFromQuaternion(q) * pose.Normal;
     }
     
     public void RotateAround(Quaternion q, float x, float y, float z)
     {
         var pose = _poseStack.Peek();
-        pose.Pose *= Matrix4.CreateTranslation(x, y, z) * Matrix4.CreateFromQuaternion(q) * Matrix4.CreateTranslation(-x, -y, -z);
-        pose.Normal *= Matrix3.CreateFromQuaternion(q);
+        pose.Pose = Matrix4.CreateTranslation(-x, -y, -z) * Matrix4.CreateFromQuaternion(q) * Matrix4.CreateTranslation(x, y, z) * pose.Pose;
+        pose.Normal = Matrix3.CreateFromQuaternion(q) * pose.Normal;
     }
 
     public void PushPose()
