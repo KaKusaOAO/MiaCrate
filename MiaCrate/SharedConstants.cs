@@ -2,7 +2,7 @@
 
 public static class SharedConstants
 {
-	public const bool UseHighDpi = true;
+	public const bool UseHighDpi = false;
 	
     public const bool IsSnapshot = false;
     public const int WorldVersion = 3465;

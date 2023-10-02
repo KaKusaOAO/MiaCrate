@@ -99,11 +99,11 @@ public unsafe class Window : IDisposable
             flags |= SDL.SDL_WindowFlags.SDL_WINDOW_ALLOW_HIGHDPI;
 
         GraphicsBackend backend;
-        if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Metal))
-        {
-            flags |= SDL.SDL_WindowFlags.SDL_WINDOW_METAL;
-            backend = GraphicsBackend.Metal;
-        } 
+        // if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Metal))
+        // {
+        //     flags |= SDL.SDL_WindowFlags.SDL_WINDOW_METAL;
+        //     backend = GraphicsBackend.Metal;
+        // } 
         // else if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Vulkan))
         // {
         //     flags |= SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN;
@@ -114,7 +114,7 @@ public unsafe class Window : IDisposable
         //     // Missing flag for Direct3D
         //     backend = GraphicsBackend.Direct3D11;
         // }
-        else
+        // else
         {
             flags |= SDL.SDL_WindowFlags.SDL_WINDOW_OPENGL;
             backend = GraphicsBackend.OpenGL;
