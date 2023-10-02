@@ -153,10 +153,15 @@ public class GuiGraphics
         RenderSystem.SetShaderColor(r, g, b, a);
     }
 
-    public void DrawCenteredString(Font font, IComponent component, int i, int j, int k)
+    public void DrawCenteredString(Font font, IComponent component, int centerX, int y, Argb32 color)
     {
         var seq = component.GetVisualOrderText();
-        DrawString(font, seq, i - font.Width(seq) / 2, j, k);
+        DrawString(font, seq, centerX - font.Width(seq) / 2, y, color);
+    }
+
+    public void DrawCenteredString(Font font, string text, int centerX, int y, Argb32 color)
+    {
+        DrawString(font, text, centerX - font.Width(text) / 2, y, color);
     }
 
     public int DrawString(Font font, string? str, int x, int y, Argb32 color) =>
