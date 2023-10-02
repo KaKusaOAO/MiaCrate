@@ -258,7 +258,7 @@ public static class RenderSystem
     
     public static void FlipFrame(IntPtr handle)
     {
-        // PollEvents();
+        PollEvents();
         ReplayQueue();
         
         GlStateManager.SubmitCommands();
