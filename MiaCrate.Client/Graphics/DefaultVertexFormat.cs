@@ -6,11 +6,11 @@ public static class DefaultVertexFormat
 {
     public static readonly VertexFormatElement ElementPosition =
         new(0, VertexFormatElement.TypeInfo.Float, VertexFormatElement.UsageInfo.Position, 3,
-            VertexElementFormat.Float3, VertexElementSemantic.Position);
+            VertexElementFormat.Float3, VertexElementSemantic.TextureCoordinate);
 
     public static readonly VertexFormatElement ElementColor =
         new(0, VertexFormatElement.TypeInfo.UByte, VertexFormatElement.UsageInfo.Color, 4,
-            VertexElementFormat.Byte4_Norm, VertexElementSemantic.Color);
+            VertexElementFormat.Byte4_Norm, VertexElementSemantic.TextureCoordinate);
 
     public static readonly VertexFormatElement ElementUv0 =
         new(0, VertexFormatElement.TypeInfo.Float, VertexFormatElement.UsageInfo.Uv, 2,
@@ -26,11 +26,11 @@ public static class DefaultVertexFormat
 
     public static readonly VertexFormatElement ElementNormal =
         new(0, VertexFormatElement.TypeInfo.Byte, VertexFormatElement.UsageInfo.Normal, 3,
-            VertexElementFormat.SByte2_Norm, VertexElementSemantic.Normal);
+            VertexElementFormat.SByte2_Norm, VertexElementSemantic.TextureCoordinate);
 
     public static readonly VertexFormatElement ElementPadding =
         new(0, VertexFormatElement.TypeInfo.Byte, VertexFormatElement.UsageInfo.Padding, 1,
-            VertexElementFormat.Byte2, VertexElementSemantic.Color);
+            VertexElementFormat.Byte2, VertexElementSemantic.TextureCoordinate);
 
     // Alias
     public static readonly VertexFormatElement ElementUv = ElementUv0;
