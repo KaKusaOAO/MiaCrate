@@ -8,7 +8,7 @@ public class PostPass : IDisposable
 {
     private readonly RenderTarget _inTarget;
     private readonly RenderTarget _outTarget;
-    private readonly List<Func<int>> _auxSamplers = new();
+    private readonly List<Func<TextureInstance>> _auxSamplers = new();
     private readonly List<object> _auxAssets = new();
     private readonly List<string> _auxNames = new();
     private readonly List<int> _auxWidths = new();
@@ -25,7 +25,7 @@ public class PostPass : IDisposable
         _outTarget = outTarget;
     }
 
-    public void AddAuxAsset<T>(string name, T asset, Func<T, int> getSampler, int width, int height)
+    public void AddAuxAsset<T>(string name, T asset, Func<T, TextureInstance> getSampler, int width, int height)
     {
         _auxNames.Add(name);
         _auxAssets.Add(asset!);

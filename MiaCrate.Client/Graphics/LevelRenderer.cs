@@ -7,7 +7,6 @@ using MiaCrate.Resources;
 using MiaCrate.World.Blocks;
 using MiaCrate.World.Phys;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace MiaCrate.Client.Graphics;
@@ -121,7 +120,7 @@ public class LevelRenderer : IResourceManagerReloadListener, IDisposable
         var builder = tesselator.Builder;
         
         _darkBuffer?.Dispose();
-        _darkBuffer = new VertexBuffer(BufferUsageHint.StaticDraw);
+        _darkBuffer = new VertexBuffer();
 
         var rendered = BuildSkyDisc(builder, -16f);
         _darkBuffer.Bind();
@@ -135,7 +134,7 @@ public class LevelRenderer : IResourceManagerReloadListener, IDisposable
         var builder = tesselator.Builder;
         
         _skyBuffer?.Dispose();
-        _skyBuffer = new VertexBuffer(BufferUsageHint.StaticDraw);
+        _skyBuffer = new VertexBuffer();
 
         var rendered = BuildSkyDisc(builder, 16f);
         _skyBuffer.Bind();
@@ -169,7 +168,7 @@ public class LevelRenderer : IResourceManagerReloadListener, IDisposable
         RenderSystem.SetShader(() => GameRenderer.PositionShader);
         
         _starBuffer?.Dispose();
-        _starBuffer = new VertexBuffer(BufferUsageHint.StaticDraw);
+        _starBuffer = new VertexBuffer();
 
         var rendered = DrawStars(builder);
         _starBuffer.Bind();

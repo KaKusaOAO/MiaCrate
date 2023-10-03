@@ -4,8 +4,8 @@ using MiaCrate.Client.Systems;
 using MiaCrate.Json;
 using MiaCrate.Resources;
 using Mochi.Utils;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -182,25 +182,29 @@ public class PostChain : IDisposable
 
                         if (bl2)
                         {
-                            RenderSystem.TexMinFilter(TextureTarget.Texture2D, TextureMinFilter.Linear);
-                            RenderSystem.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Linear);
+                            texture.Texture!.ModifySampler((ref SamplerDescription sd) =>
+                            {
+                                sd.Filter = SamplerFilter.MinLinear_MagLinear_MipLinear;
+                            });
                         }
                         else
                         {
-                            RenderSystem.TexMinFilter(TextureTarget.Texture2D, TextureMinFilter.Nearest);
-                            RenderSystem.TexMagFilter(TextureTarget.Texture2D, TextureMagFilter.Nearest);
+                            texture.Texture!.ModifySampler((ref SamplerDescription sd) =>
+                            {
+                                sd.Filter = SamplerFilter.MinPoint_MagPoint_MipPoint;
+                            });
                         }
 
-                        postPass.AddAuxAsset(targetName, texture, t => t.Id, j, k);
+                        postPass.AddAuxAsset(targetName, texture, t => t.Texture!, j, k);
                     }
                     else if (bl)
                     {
-                        postPass.AddAuxAsset(targetName, renderTarget, t => t.DepthBufferId, renderTarget.Width,
+                        postPass.AddAuxAsset(targetName, renderTarget, t => t.DepthBuffer!, renderTarget.Width,
                             renderTarget.Height);
                     }
                     else
                     {
-                        postPass.AddAuxAsset(targetName, renderTarget, t => t.ColorTextureId, renderTarget.Width,
+                        postPass.AddAuxAsset(targetName, renderTarget, t => t.ColorTexture!, renderTarget.Width,
                             renderTarget.Height);
                     }
 
