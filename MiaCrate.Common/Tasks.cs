@@ -1,6 +1,16 @@
-﻿using Mochi.Core;
+﻿namespace MiaCrate.Common;
 
-namespace MiaCrate;
+#if NET5_0_OR_GREATER
+using NoResultTaskCompletionSource = TaskCompletionSource;
+#else
+using NoResultTaskCompletionSource = TaskCompletionSource<Unit>;
+#endif
+
+
+internal readonly struct Unit
+{
+    public static Unit Instance { get; } = new();
+}
 
 public static class Tasks
 {
@@ -23,13 +33,13 @@ public static class Tasks
     
     public static Task RunAsync(Action action, IExecutor executor)
     {
-        var source = new TaskCompletionSource();
+        var source = new NoResultTaskCompletionSource();
         executor.Execute(() =>
         {
             try
             {
                 action();
-                source.SetResult();
+                NotifyDone(source);
             }
             catch (Exception ex)
             {
@@ -39,12 +49,12 @@ public static class Tasks
         return source.Task;
     }
     
-    private static void TryRun(TaskCompletionSource source, Action action)
+    private static void TryRun(NoResultTaskCompletionSource source, Action action)
     {
         try
         {
             action();
-            source.SetResult();
+            NotifyDone(source);
         }
         catch (Exception ex)
         {
@@ -55,7 +65,7 @@ public static class Tasks
     public static Task<TOther> ApplyToEitherAsync<T, TOther>(this Task<T> task, Task<T> other, Func<T, TOther> func) => 
         Task.WhenAny(task, other).ThenApplyAsync(t => func(t.Result));
 
-    private static void TrySetException(TaskCompletionSource source, Exception ex)
+    private static void TrySetException(NoResultTaskCompletionSource source, Exception ex)
     {
         if (ex is AggregateException aggregateException)
         {
@@ -168,7 +178,7 @@ public static class Tasks
     
     public static Task ThenRunAsync(this Task task, Action action, IExecutor executor)
     {
-        var source = new TaskCompletionSource();
+        var source = new NoResultTaskCompletionSource();
         task.ContinueWith(t =>
         {
             executor.Execute(() =>
@@ -180,7 +190,7 @@ public static class Tasks
 
                     // Run the action
                     action();
-                    source.SetResult();
+                    NotifyDone(source);
                 });
             });
         });
@@ -264,6 +274,15 @@ public static class Tasks
         });
 
         return source.Task;
+    }
+
+    private static void NotifyDone(NoResultTaskCompletionSource source)
+    {
+        #if NET5_0_OR_GREATER
+        source.SetResult();
+        #else
+        source.SetResult(Unit.Instance);
+        #endif
     }
     
     public static Task<T> ThenCombineAsync<TA, TB, T>(this Task<TA> task, Task<TB> other, Func<TA, TB, T> func, IExecutor executor) => 

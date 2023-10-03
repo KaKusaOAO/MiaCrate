@@ -6,7 +6,8 @@ namespace MiaCrate.Data;
 public interface IType : IApp
 {
     public class Mu : IK1 {}
-
+    
+    public ICodec<object> Codec { get; }
     public IBang CreateBang();
     public IType FindFieldType(string name) => 
         FindFieldTypeOpt(name).OrElseGet(() => throw new ArgumentException($"Field not found: {name}"));
@@ -21,7 +22,9 @@ public interface IType : IApp
 
 public interface IType<T> : IType, IApp<IType.Mu, T>
 {
-    public ICodec<T> Codec { get; }
+    public new ICodec<T> Codec { get; }
+    ICodec<object> IType.Codec => Codec.Cast<object>();
+    
     public IOptional<T> Point(IDynamicOps ops) => Optional.Empty<T>();
     public IDataResult<TDynamic> Write<TDynamic>(IDynamicOps<TDynamic> ops, T value);
     public IDataResult<IDynamic<TDynamic>> WriteDynamic<TDynamic>(IDynamicOps<TDynamic> ops, T value);
@@ -43,8 +46,8 @@ public abstract class DataType<T> : IType<T>
     public ITypeTemplate Template => _template ??= BuildTemplate();
     public ICodec<T> Codec => _codec ??= BuildCodec();
 
-    public IType UpdateMu(RecursiveTypeFamily newFamily) => this;
-    public IOptional<IType> FindCheckedType(int index) => Optional.Empty<IType>();
+    public virtual IType UpdateMu(RecursiveTypeFamily newFamily) => this;
+    public virtual IOptional<IType> FindCheckedType(int index) => Optional.Empty<IType>();
 
     public virtual IOptional<T> Point(IDynamicOps ops) => Optional.Empty<T>();
 

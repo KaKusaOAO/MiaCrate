@@ -1,6 +1,6 @@
 namespace MiaCrate.Core;
 
-public class BlockPos : Vec3I
+public class BlockPos : Vec3I, IEquatable<BlockPos>
 {
     public static readonly BlockPos Zero = new(0, 0, 0);
     
@@ -38,5 +38,19 @@ public class BlockPos : Vec3I
         l |= (y & PackedYMask) << YOffset;
         l |= (z & PackedZMask) << ZOffset;
         return l;
+    }
+
+    public override bool Equals(object? obj) => obj is BlockPos other && Equals(other);
+
+    public bool Equals(BlockPos? other)
+    {
+        if (other == null) return false;
+        return X == other.X && Y == other.Y && Z == other.Z;
+    }
+
+    public override int GetHashCode()
+    {
+        // ReSharper disable NonReadonlyMemberInGetHashCode
+        return HashCode.Combine(X, Y, Z);
     }
 }

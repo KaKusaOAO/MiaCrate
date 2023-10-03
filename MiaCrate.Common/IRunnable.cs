@@ -1,4 +1,4 @@
-﻿namespace MiaCrate;
+﻿namespace MiaCrate.Common;
 
 public interface IRunnable
 {

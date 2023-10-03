@@ -25,7 +25,7 @@ public static class BuiltinRegistries
     /// The root registry of builtin registries.
     /// </summary>
     private static readonly IWritableRegistry<IRegistry> _writableRegistry =
-        new MappedRegistry<IRegistry>(ResourceKey<IRegistry>.CreateRegistryKey(_rootRegistryName));
+        new MappedRegistry<IRegistry>(ResourceKey<IRegistry>.CreateRegistryKey(_rootRegistryName), Lifecycle.Stable);
 
     #region ## Built-in registries
 
@@ -37,20 +37,27 @@ public static class BuiltinRegistries
     /// <summary>
     /// The registry of all the block types.
     /// </summary>
-    public static readonly IRegistry<Block> Block = 
+    public static IRegistry<Block> Block { get; } = 
         RegisterDefaultedWithIntrusiveHolders<Block>(Registries.Block, 
             "air", _ => World.Blocks.Block.Air);
     
-    public static readonly IRegistry<Item> Item =
+    public static IRegistry<Item> Item { get; } =
         RegisterDefaultedWithIntrusiveHolders<Item>(Registries.Item,
             "air", _ => World.Items.Item.Air);
 
     /// <summary>
     /// The registry of all the entity types.
     /// </summary>
-    public static readonly IRegistry<IEntityType> EntityType = 
+    public static IRegistry<IEntityType> EntityType { get; } = 
         RegisterDefaultedWithIntrusiveHolders<IEntityType>(Registries.EntityType, 
             "pig", _ => World.Entities.EntityType.Pig);
+    
+    /// <summary>
+    /// The registry of all the entity types.
+    /// </summary>
+    public static IRegistry<IBlockEntityType> BlockEntityType { get; } = 
+        RegisterSimpleWithIntrusiveHolders<IBlockEntityType>(Registries.BlockEntityType, 
+            _ => World.Blocks.BlockEntityType.Furnace);
     
     /// <summary>
     /// The registry of all the living entity attribute types.
@@ -71,15 +78,19 @@ public static class BuiltinRegistries
 
     private static IRegistry<T> RegisterSimple<T>(IResourceKey<IRegistry> key, RegistryBootstrap<T> bootstrap) 
         where T : class =>
-        InternalRegister(key, new MappedRegistry<T>(key), bootstrap, Lifecycle.Stable);
+        InternalRegister(key, new MappedRegistry<T>(key, Lifecycle.Stable), bootstrap, Lifecycle.Stable);
     
     private static IRegistry<T> RegisterSimple<T>(IResourceKey<IRegistry> key, Lifecycle lifecycle, 
         RegistryBootstrap<T> bootstrap) where T : class =>
-        InternalRegister(key, new MappedRegistry<T>(key), bootstrap, lifecycle);
+        InternalRegister(key, new MappedRegistry<T>(key, lifecycle), bootstrap, lifecycle);
 
     private static DefaultedMappedRegistry<T> RegisterDefaulted<T>(IResourceKey<IRegistry> key, string str,
         Lifecycle lifecycle, RegistryBootstrap<T> bootstrap) where T : class =>
-        InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, false), bootstrap, lifecycle);
+        InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, lifecycle, false), bootstrap, lifecycle);
+    
+    private static MappedRegistry<T> RegisterSimpleWithIntrusiveHolders<T>(
+        IResourceKey<IRegistry> key, RegistryBootstrap<T> bootstrap) where T : class =>
+        InternalRegister(key, new MappedRegistry<T>(key, Lifecycle.Stable, true), bootstrap, Lifecycle.Stable);
 
     private static DefaultedMappedRegistry<T> RegisterDefaultedWithIntrusiveHolders<T>(IResourceKey<IRegistry> key,
         string str, RegistryBootstrap<T> bootstrap) where T : class =>
@@ -87,7 +98,7 @@ public static class BuiltinRegistries
     
     private static DefaultedMappedRegistry<T> RegisterDefaultedWithIntrusiveHolders<T>(IResourceKey<IRegistry> key, 
         string str, Lifecycle lifecycle, RegistryBootstrap<T> bootstrap) where T : class =>
-        InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, true), bootstrap, lifecycle);
+        InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, lifecycle, true), bootstrap, lifecycle);
 
     private static TRegistry InternalRegister<T, TRegistry>(IResourceKey<IRegistry> key, TRegistry registry,
         RegistryBootstrap<T> bootstrap, Lifecycle lifecycle) 

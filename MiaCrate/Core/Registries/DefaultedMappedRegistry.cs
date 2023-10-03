@@ -8,7 +8,8 @@ public class DefaultedMappedRegistry<T> : MappedRegistry<T>, IDefaultedRegistry 
     public ResourceLocation DefaultKey { get; }
     private IHolder<T>? _defaultValue;
     
-    public DefaultedMappedRegistry(string defaultKey, IResourceKey<IRegistry> key, bool hasIntrusiveHolders) : base(key, hasIntrusiveHolders)
+    public DefaultedMappedRegistry(string defaultKey, IResourceKey<IRegistry> key, Lifecycle lifecycle, bool hasIntrusiveHolders) 
+        : base(key, lifecycle, hasIntrusiveHolders)
     {
         DefaultKey = defaultKey;
     }

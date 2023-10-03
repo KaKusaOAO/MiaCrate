@@ -19,7 +19,9 @@ using MiaCrate.Client.Systems;
 using MiaCrate.Client.UI;
 using MiaCrate.Client.UI.Screens;
 using MiaCrate.Client.Utils;
+using MiaCrate.Common;
 using MiaCrate.Data;
+using MiaCrate.DataFixes;
 using MiaCrate.Resources;
 using MiaCrate.Texts;
 using MiaCrate.World.Entities;
@@ -49,7 +51,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 
     private readonly Timer _timer = new(SharedConstants.TicksPerSecond, 0L);
     private readonly RenderBuffers _renderBuffers;
-	// public readonly LevelRenderer levelRenderer;
+    public LevelRenderer LevelRenderer { get; }
 	public EntityRenderDispatcher EntityRenderDispatcher { get; }
 
 	public ItemRenderer ItemRenderer { get; }
@@ -80,7 +82,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	private readonly bool _demo;
 	private readonly bool _allowsMultiplayer;
 	private readonly bool _allowsChat;
-	private readonly ReloadableResourceManager _resourceManager;
+	public ReloadableResourceManager ResourceManager { get; }
 
 	// private readonly DownloadedPackSource _downloadedPackSource;
 	private readonly PackRepository _resourcePackRepository;
@@ -227,6 +229,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         _demo = config.Game.IsDemo;
         _allowsMultiplayer = !config.Game.IsMultiplayerDisabled;
         _allowsChat = !config.Game.IsChatDisabled;
+        _fixerUpper = DataFixers.DataFixer;
         _gameThread = Thread.CurrentThread;
         Options = new Options(this, GameDirectory); 
         IsRunning = true;
@@ -257,21 +260,21 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         MainRenderTarget.SetClearColor(0f, 0f, 0f, 0f);
         MainRenderTarget.Clear(OnMacOs);
         
-        _resourceManager = new ReloadableResourceManager(PackType.ClientResources);
+        ResourceManager = new ReloadableResourceManager(PackType.ClientResources);
         
 	    // Find all the available packs and apply vanilla pack if not
         _resourcePackRepository.Reload();
 
-        TextureManager = new TextureManager(_resourceManager);
-        _resourceManager.RegisterReloadListener(TextureManager);
+        TextureManager = new TextureManager(ResourceManager);
+        ResourceManager.RegisterReloadListener(TextureManager);
         
         SoundManager = new SoundManager(Options);
-        _resourceManager.RegisterReloadListener(SoundManager);
+        ResourceManager.RegisterReloadListener(SoundManager);
         
         _fontManager = new FontManager(TextureManager);
         Font = _fontManager.CreateFont();
         FontFilterFishy = _fontManager.CreateFontFilterFishy();
-        _resourceManager.RegisterReloadListener(_fontManager);
+        ResourceManager.RegisterReloadListener(_fontManager);
 
         Window.SetErrorSection("Startup");
         Window.SetErrorSection("Post startup");
@@ -280,34 +283,39 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         _itemColors = ItemColors.CreateDefault();
         
         ModelManager = new ModelManager(TextureManager, _blockColors, 0); // options.mipmapLevels
-        _resourceManager.RegisterReloadListener(ModelManager);
+        ResourceManager.RegisterReloadListener(ModelManager);
 
         _entityModels = new EntityModelSet();
-        _resourceManager.RegisterReloadListener(_entityModels);
+        ResourceManager.RegisterReloadListener(_entityModels);
 
         _blockEntityRenderDispatcher = new BlockEntityRenderDispatcher(Font, _entityModels, () => BlockRenderer!,
 	        () => ItemRenderer!, () => EntityRenderDispatcher!);
-        _resourceManager.RegisterReloadListener(_blockEntityRenderDispatcher);
+        ResourceManager.RegisterReloadListener(_blockEntityRenderDispatcher);
 
         var blockEntityRenderer = new BlockEntityWithoutLevelRenderer(_blockEntityRenderDispatcher, _entityModels);
-        _resourceManager.RegisterReloadListener(blockEntityRenderer);
+        ResourceManager.RegisterReloadListener(blockEntityRenderer);
 
         ItemRenderer = new ItemRenderer(this, TextureManager, ModelManager, _itemColors, blockEntityRenderer);
-        _resourceManager.RegisterReloadListener(ItemRenderer);
+        ResourceManager.RegisterReloadListener(ItemRenderer);
         
         _renderBuffers = new RenderBuffers();
         
         BlockRenderer = new BlockRenderDispatcher(ModelManager.BlockModelShaper, blockEntityRenderer, _blockColors);
-        _resourceManager.RegisterReloadListener(BlockRenderer);
+        ResourceManager.RegisterReloadListener(BlockRenderer);
 
         EntityRenderDispatcher = new EntityRenderDispatcher(this, TextureManager, ItemRenderer, BlockRenderer, Font, Options, _entityModels);
-        _resourceManager.RegisterReloadListener(EntityRenderDispatcher);
+        ResourceManager.RegisterReloadListener(EntityRenderDispatcher);
         
-        GameRenderer = new GameRenderer(this, EntityRenderDispatcher.ItemInHandRenderer, _resourceManager, _renderBuffers);
-        _resourceManager.RegisterReloadListener(GameRenderer.CreateReloadListener());
+        GameRenderer = new GameRenderer(this, EntityRenderDispatcher.ItemInHandRenderer, ResourceManager, _renderBuffers);
+        ResourceManager.RegisterReloadListener(GameRenderer.CreateReloadListener());
+
+        LevelRenderer = new LevelRenderer(this, EntityRenderDispatcher, _blockEntityRenderDispatcher, _renderBuffers);
+        ResourceManager.RegisterReloadListener(LevelRenderer);
+        
+        // CreateSearchTrees();
 
         GuiSprites = new GuiSpriteManager(TextureManager);
-        _resourceManager.RegisterReloadListener(GuiSprites);
+        ResourceManager.RegisterReloadListener(GuiSprites);
 
         var realmsClient = RealmsClient.Create(this);
         
@@ -323,7 +331,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         var cookie = new GameLoadCookie(realmsClient, config.QuickPlay);
   
         // Create a new reload instance and set overlay
-        var reloadInstance = _resourceManager
+        var reloadInstance = ResourceManager
 	        .CreateReload(Util.BackgroundExecutor, this, _resourceReloadInitialTask, list);
         
         Overlay = new LoadingOverlay(this, reloadInstance, exception =>
@@ -537,7 +545,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	        _reloadStateTracker.StartReload(ResourceLoadStateTracker.ReloadReason.Manual, list);
         }
 
-        Overlay = new LoadingOverlay(this, _resourceManager.CreateReload(Util.BackgroundExecutor, this, _resourceReloadInitialTask, list),
+        Overlay = new LoadingOverlay(this, ResourceManager.CreateReload(Util.BackgroundExecutor, this, _resourceReloadInitialTask, list),
 	        x =>
 	        {
 		        x.IfPresent(ex =>
@@ -677,7 +685,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
     {
 	    try
 	    {
-		    _resourceManager.Dispose();
+		    ResourceManager.Dispose();
 	    }
 	    catch (Exception ex)
 	    {

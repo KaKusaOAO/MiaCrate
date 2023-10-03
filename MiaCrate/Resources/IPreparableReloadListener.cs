@@ -1,4 +1,6 @@
-﻿namespace MiaCrate.Resources;
+﻿using MiaCrate.Common;
+
+namespace MiaCrate.Resources;
 
 public interface IPreparableReloadListener
 {

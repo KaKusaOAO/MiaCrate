@@ -8,7 +8,6 @@ using MiaCrate.Resources;
 using Mochi.Extensions;
 using Mochi.Utils;
 using Veldrid;
-using Veldrid.OpenGLBinding;
 using Veldrid.SPIRV;
 
 namespace MiaCrate.Client.Graphics;
@@ -267,6 +266,12 @@ public class EffectInstance : IEffect, IDisposable
     public void MarkDirty()
     {
         _dirty = true;
+    }
+
+    public Uniform? GetUniform(string name)
+    {
+        RenderSystem.AssertOnRenderThread();
+        return _uniformMap.GetValueOrDefault(name);
     }
 
     public static Program.ConvertResult GetOrCreate(IResourceManager manager, ProgramType type, string str)

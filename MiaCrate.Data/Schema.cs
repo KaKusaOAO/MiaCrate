@@ -24,14 +24,9 @@ public class Schema
         var subVersion = DataFixUtils.GetSubVersion(versionKey);
         var version = DataFixUtils.GetVersion(versionKey);
         Name = $"V{version}" + (subVersion == 0 ? "" : $".{subVersion}");
-    }
-
-    public void InitializeTypes()
-    {
-        RegisterTypes(this);
         
-        _types.Clear();
-        foreach (var (k, v) in BuildTypes()) _types[k] = v;
+        RegisterTypes(this, RegisterEntities(this), RegisterBlockEntities(this));
+        _types = BuildTypes().ToDictionary(e => e.Key, e => e.Value);
     }
 
     protected IDictionary<string, IType> BuildTypes()
@@ -63,21 +58,31 @@ public class Schema
         _typeTemplates.GetValueOrDefault(name, 
             () => throw new ArgumentException($"Unknown type: {name}"))();
 
+    public void Register(IDictionary<string, Func<ITypeTemplate>> map, string name,
+        Func<string, ITypeTemplate> template) =>
+        Register(map, name, () => template(name));
+
+    public void Register(IDictionary<string, Func<ITypeTemplate>> map, string name, Func<ITypeTemplate> template) => 
+        map[name] = template;
+
+    public void RegisterSimple(IDictionary<string, Func<ITypeTemplate>> map, string name) => 
+        Register(map, name, Dsl.Remainder);
+
     public void RegisterType(bool recursive, Dsl.ITypeReference type, Func<ITypeTemplate> template)
     {
         _typeTemplates[type.TypeName] = template;
         if (recursive) RecursiveTypes.TryAdd(type.TypeName, RecursiveTypes.Count);
     }
 
-    public static SchemaFactory? CreateFactory<T>() where T : Schema
+    public static SchemaFactory CreateFactory<T>() where T : Schema
     {
         var ctor = typeof(T).GetConstructor(new[] { typeof(int), typeof(Schema) });
-        if (ctor == null) return null;
+        if (ctor == null)
+            throw new Exception($"Standard schema constructor of type {typeof(T).Name} not found");
+        
         return (i, s) =>
         {
-            var schema = (Schema)ctor.Invoke(new object?[] { i, s });
-            schema.InitializeTypes();
-            return schema;
+            return (Schema)ctor.Invoke(new object?[] { i, s });
         };
     }
 
@@ -97,15 +102,15 @@ public class Schema
     }
 
 
-    public virtual void RegisterTypes(Schema schema) => Parent!.RegisterTypes(schema);
+    // public virtual void RegisterTypes(Schema schema) => Parent!.RegisterTypes(schema);
 
-    // public virtual void RegisterTypes(Schema schema, IDictionary<string, Func<ITypeTemplate>> entityTypes,
-    //     IDictionary<string, Func<ITypeTemplate>> blockEntityTypes) =>
-    //     Parent!.RegisterTypes(schema, entityTypes, blockEntityTypes);
-    //
-    // public virtual IDictionary<string, Func<ITypeTemplate>> RegisterEntities(Schema schema) =>
-    //     Parent!.RegisterEntities(schema);
-    //
-    // public virtual IDictionary<string, Func<ITypeTemplate>> RegisterBlockEntities(Schema schema) =>
-    //     Parent!.RegisterBlockEntities(schema);
+    public virtual void RegisterTypes(Schema schema, IDictionary<string, Func<ITypeTemplate>> entityTypes,
+        IDictionary<string, Func<ITypeTemplate>> blockEntityTypes) =>
+        Parent!.RegisterTypes(schema, entityTypes, blockEntityTypes);
+    
+    public virtual IDictionary<string, Func<ITypeTemplate>> RegisterEntities(Schema schema) =>
+        Parent!.RegisterEntities(schema);
+    
+    public virtual IDictionary<string, Func<ITypeTemplate>> RegisterBlockEntities(Schema schema) =>
+        Parent!.RegisterBlockEntities(schema);
 }

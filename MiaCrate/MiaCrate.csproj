@@ -17,6 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\MiaCrate.Common\MiaCrate.Common.csproj" />
       <ProjectReference Include="..\MiaCrate.Data\MiaCrate.Data.csproj" />
       <ProjectReference Include="..\MiaCrate.Resources\MiaCrate.Resources.csproj" />
     </ItemGroup>

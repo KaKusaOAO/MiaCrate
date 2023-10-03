@@ -15,4 +15,8 @@
       <PackageReference Include="JetBrains.Annotations" Version="2022.3.1" />
       <PackageReference Include="Mochi" Version="1.3.8" />
     </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\MiaCrate.Common\MiaCrate.Common.csproj" />
+    </ItemGroup>
 </Project>

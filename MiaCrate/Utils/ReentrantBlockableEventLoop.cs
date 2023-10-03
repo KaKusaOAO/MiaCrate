@@ -1,4 +1,6 @@
-﻿namespace MiaCrate;
+﻿using MiaCrate.Common;
+
+namespace MiaCrate;
 
 public abstract class ReentrantBlockableEventLoop<T> : BlockableEventLoop<T> where T : IRunnable
 {

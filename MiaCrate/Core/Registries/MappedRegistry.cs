@@ -9,6 +9,7 @@ namespace MiaCrate.Core;
 
 public class MappedRegistry<T> : IWritableRegistry<T> where T : class
 {
+    private readonly Lifecycle _registryLifecycle;
     private int _nextId;
     public IResourceKey<IRegistry> Key { get; }
     private readonly Dictionary<int, IReferenceHolder<T>> _byId = new();
@@ -28,8 +29,9 @@ public class MappedRegistry<T> : IWritableRegistry<T> where T : class
     public ISet<ResourceLocation> KeySet => _byLocation.Keys.ToHashSet();
     public IHolderOwner<T> HolderOwner => _lookup;
 
-    public MappedRegistry(IResourceKey<IRegistry> key, bool hasIntrusiveHolders = false)
+    public MappedRegistry(IResourceKey<IRegistry> key, Lifecycle lifecycle, bool hasIntrusiveHolders = false)
     {
+        _registryLifecycle = lifecycle;
         _lookup = new Lookup(this);
         Key = key;
         

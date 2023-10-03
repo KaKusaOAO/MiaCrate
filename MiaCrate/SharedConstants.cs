@@ -1,4 +1,7 @@
-﻿namespace MiaCrate;
+﻿using MiaCrate.Data;
+using MiaCrate.DataFixes;
+
+namespace MiaCrate;
 
 public static class SharedConstants
 {
@@ -108,7 +111,7 @@ public static class SharedConstants
 		? (1 << SnapshotProtocolBit) | SnapshotNetworkProtocolVersion
 		: ReleaseNetworkProtocolVersion;
 
-	// public static Set<DSL.TypeReference> dataFixTypesToOptimize;
+	public static HashSet<Dsl.ITypeReference> DataFixTypesToOptimize { get; private set; } = new();
 	public const int WorldResolution = 16;
 	public const int MaxChatLength = 256;
 	public const int MaxCommandLength = 32500;
@@ -141,5 +144,10 @@ public static class SharedConstants
 			else if (_currentVersion != value)
 				throw new Exception("Cannot override the current game version!");
 		}
+	}
+
+	public static void EnableDataFixerOptimization()
+	{
+		DataFixTypesToOptimize = DataFixTypes.TypesForLevelList;
 	}
 }
