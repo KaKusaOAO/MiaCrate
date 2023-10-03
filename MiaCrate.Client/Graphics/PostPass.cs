@@ -6,7 +6,6 @@ namespace MiaCrate.Client.Graphics;
 
 public class PostPass : IDisposable
 {
-    private readonly EffectInstance _effect;
     private readonly RenderTarget _inTarget;
     private readonly RenderTarget _outTarget;
     private readonly List<Func<int>> _auxSamplers = new();
@@ -16,11 +15,12 @@ public class PostPass : IDisposable
     private readonly List<int> _auxHeights = new();
     private Matrix4 _shaderOrthoMatrix;
 
-    public string Name => _effect.Name;
+    public string Name => Effect.Name;
+    public EffectInstance Effect { get; }
 
     public PostPass(IResourceManager manager, string name, RenderTarget inTarget, RenderTarget outTarget)
     {
-        _effect = new EffectInstance(manager, name);
+        Effect = new EffectInstance(manager, name);
         _inTarget = inTarget;
         _outTarget = outTarget;
     }
@@ -55,6 +55,6 @@ public class PostPass : IDisposable
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        _effect.Dispose();
+        Effect.Dispose();
     }
 }

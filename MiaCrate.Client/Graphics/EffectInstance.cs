@@ -202,6 +202,12 @@ public class EffectInstance : IEffect, IDisposable
         _dirty = true;
     }
 
+    public Uniform? GetUniform(string name)
+    {
+        RenderSystem.AssertOnRenderThread();
+        return _uniformMap.GetValueOrDefault(name);
+    }
+
     public static EffectProgram GetOrCreate(IResourceManager manager, ProgramType type, string str)
     {
         var hasValue = type.Programs.TryGetValue(str, out var program);

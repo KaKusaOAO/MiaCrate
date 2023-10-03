@@ -2,7 +2,9 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using MiaCrate.Common;
 using MiaCrate.Core;
+using MiaCrate.Data;
 using MiaCrate.Data.Codecs;
 using MiaCrate.Extensions;
 using MiaCrate.Texts;
@@ -255,5 +257,18 @@ public static partial class Util
         {
             _queue.Enqueue(runnable);
         }
+    }
+
+    public static IType? FetchChoiceType(Dsl.ITypeReference typeRef, string name)
+    {
+        return !SharedConstants.CheckDataFixerSchema
+            ? null
+            : DoFetchChoiceType(typeRef, name);
+    }
+
+    private static IType? DoFetchChoiceType(Dsl.ITypeReference typeRef, string name)
+    {
+        LogFoobar();
+        return null;
     }
 }

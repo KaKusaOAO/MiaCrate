@@ -38,6 +38,11 @@ public partial class Block : BlockBehavior, IItemLike, IBuiltinRegistryEntryWith
         
     }
 
+    public virtual void AnimateTick(BlockState state, Level level, BlockPos pos, IRandomSource randomSource)
+    {
+        
+    }
+
     public Item AsItem()
     {
         throw new NotImplementedException();

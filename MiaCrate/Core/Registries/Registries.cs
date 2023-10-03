@@ -23,6 +23,9 @@ public static class Registries
     public static IResourceKey<IRegistry<IEntityType>> EntityType { get; } = 
         CreateRegistryKey<IEntityType>("entity_type");
     
+    public static IResourceKey<IRegistry<IBlockEntityType>> BlockEntityType { get; } = 
+        CreateRegistryKey<IBlockEntityType>("block_entity_type");
+    
     public static IResourceKey<IRegistry<Attribute>> Attribute { get; } = 
         CreateRegistryKey<Attribute>("attribute");
 

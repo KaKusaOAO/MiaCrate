@@ -26,8 +26,8 @@ public interface IFuncType<TIn, TOut> : IType<IFunction<TIn, TOut>>, IFuncTypeIn
 {
     public new ICodec<IFunction<TIn, TOut>> Codec { get; }
     ICodec<IFunction<TIn, TOut>> IType<IFunction<TIn, TOut>>.Codec => Codec;
-    ICodec<IFunction> IType<IFunction>.Codec => 
-        Codec.CrossSelect<IFunction>(e => e, e => (IFunction<TIn, TOut>)e);
+    ICodec<object> IType.Codec => Codec.Cast<object>();
+    ICodec<IFunction> IType<IFunction>.Codec => Codec.Cast<IFunction>();
 
     public new IBang<IFunction<TIn, TOut>> CreateBang() => Functions.Bang<IFunction<TIn, TOut>>(this);
     IBang<IFunction<TIn, TOut>> IType<IFunction<TIn, TOut>>.CreateBang() => CreateBang();

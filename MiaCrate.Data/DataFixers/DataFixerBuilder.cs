@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using MiaCrate.Common;
 using Mochi.Texts;
 using Mochi.Utils;
 
@@ -48,7 +49,7 @@ public class DataFixerBuilder
 
     public IDataFixer BuildUnoptimized() => Build();
 
-    public IDataFixer BuildOptimized(ISet<Dsl.ITypeReference> requiredTypes)
+    public IDataFixer BuildOptimized(ISet<Dsl.ITypeReference> requiredTypes, IExecutor executor)
     {
         var fixerUpper = Build();
         var stopwatch = new Stopwatch();
@@ -63,23 +64,24 @@ public class DataFixerBuilder
             foreach (var typeName in schema.Types)
             {
                 if (!requiredTypeNames.Contains(typeName)) continue;
-                var task = Task.Run(() =>
+
+                var task = Tasks.RunAsync(() =>
                 {
                     var dataType = schema.GetType(Dsl.CreateReference(() => typeName));
                     var rule = fixerUpper.GetRule(DataFixUtils.GetVersion(versionKey), DataVersion);
                     dataType.Rewrite(rule, DataFixerUpper.OptimizationRule);
-                }).ContinueWith(t =>
+                }, executor).ExceptionallyAsync(ex =>
                 {
-                    if (!t.IsFaulted) return;
-                    var e = t.Exception!;
                     Logger.Error("Unable to build datafixers");
-                    Logger.Error(e);
+                    Logger.Error(ex);
+                    Environment.Exit(1);
                 });
+                
                 tasks.Add(task);
             }
         }
 
-        Task.WhenAll(tasks.ToArray()).ContinueWith(_ =>
+        Task.WhenAll(tasks.ToArray()).ThenRunAsync(() =>
         {
             Logger.Info(FormattedText.Of("%s datafixer optimizations took %s milliseconds")
                 .AddWith(Component.Represent(tasks.Count))
