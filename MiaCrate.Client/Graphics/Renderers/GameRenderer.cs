@@ -1,4 +1,6 @@
-﻿using MiaCrate.Client.Platform;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
+using MiaCrate.Client.Platform;
 using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.UI;
@@ -208,173 +210,211 @@ public class GameRenderer : IDisposable
     {
         RenderSystem.AssertOnRenderThread();
 
-        var list2 = new List<(ShaderInstance, Action<ShaderInstance>)>();
+        var list2 = new List<(Task<ShaderInstance>, Action<ShaderInstance>)>();
+        var list3 = new ConcurrentBag<(ShaderInstance, Action<ShaderInstance>)>();
+        var tcs = new TaskCompletionSource();
 
         try
         {
             #region => Basic shaders
-            list2.Add((new ShaderInstance(provider, ShaderNames.Particle, DefaultVertexFormat.Particle),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.Particle, DefaultVertexFormat.Particle),
                 s => ParticleShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.Position, DefaultVertexFormat.Position),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.Position, DefaultVertexFormat.Position),
                 s => PositionShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.PositionColor, DefaultVertexFormat.PositionColor),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.PositionColor, DefaultVertexFormat.PositionColor),
                 s => PositionColorShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.PositionColorLightmap,
+                ShaderInstance.CreateAsync(provider, ShaderNames.PositionColorLightmap,
                     DefaultVertexFormat.PositionColorLightmap),
                 s => PositionColorLightmapShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.PositionColorTex, DefaultVertexFormat.PositionColorTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.PositionColorTex, DefaultVertexFormat.PositionColorTex),
                 s => PositionColorTexShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.PositionColorTexLightmap,
+                ShaderInstance.CreateAsync(provider, ShaderNames.PositionColorTexLightmap,
                     DefaultVertexFormat.PositionColorTexLightmap),
                 s => PositionColorTexLightmapShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.PositionTex, DefaultVertexFormat.PositionTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.PositionTex, DefaultVertexFormat.PositionTex),
                 s => PositionTexShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.PositionTexColor, DefaultVertexFormat.PositionTexColor),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.PositionTexColor, DefaultVertexFormat.PositionTexColor),
                 s => PositionTexColorShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.PositionTexColorNormal,
+                ShaderInstance.CreateAsync(provider, ShaderNames.PositionTexColorNormal,
                     DefaultVertexFormat.PositionTexColorNormal),
                 s => PositionTexColorNormalShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.PositionTexLightmapColor,
+                ShaderInstance.CreateAsync(provider, ShaderNames.PositionTexLightmapColor,
                     DefaultVertexFormat.PositionTexLightmapColor),
                 s => PositionTexLightmapColorShader = s));
             #endregion
 
             #region => Block shaders
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeSolid, DefaultVertexFormat.Block),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeSolid, DefaultVertexFormat.Block),
                 s => RenderTypeSolidShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeCutoutMipped, DefaultVertexFormat.Block), 
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeCutoutMipped, DefaultVertexFormat.Block), 
                 s => RenderTypeCutoutMippedShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeCutout, DefaultVertexFormat.Block), 
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeCutout, DefaultVertexFormat.Block), 
                 s => RenderTypeCutoutShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeTranslucent, DefaultVertexFormat.Block), 
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeTranslucent, DefaultVertexFormat.Block), 
                 s => RenderTypeTranslucentShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeTranslucentMovingBlock, DefaultVertexFormat.Block), 
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeTranslucentMovingBlock, DefaultVertexFormat.Block), 
                 s => RenderTypeTranslucentMovingBlockShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeTranslucentNoCrumbling, DefaultVertexFormat.Block), 
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeTranslucentNoCrumbling, DefaultVertexFormat.Block), 
                 s => RenderTypeTranslucentNoCrumblingShader = s));
             #endregion
 
             #region => Entity shaders
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeArmorCutoutNoCull, DefaultVertexFormat.NewEntity), 
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeArmorCutoutNoCull, DefaultVertexFormat.NewEntity), 
                 s => RenderTypeArmorCutoutNoCullShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntitySolid, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntitySolid, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntitySolidShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityCutout, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityCutout, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityCutoutShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityCutoutNoCull, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityCutoutNoCull, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityCutoutNoCullShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityCutoutNoCullZOffset, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityCutoutNoCullZOffset, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityCutoutNoCullZOffsetShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeItemEntityTranslucentCull, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeItemEntityTranslucentCull, DefaultVertexFormat.NewEntity),
                 s => RenderTypeItemEntityTranslucentCullShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityTranslucentCull, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityTranslucentCull, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityTranslucentCullShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityTranslucent, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityTranslucent, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityTranslucentShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityTranslucentEmissive, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityTranslucentEmissive, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityTranslucentEmissiveShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntitySmoothCutout, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntitySmoothCutout, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntitySmoothCutoutShader = s));
             
             // This is not an entity shader, fyi
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeBeaconBeam, DefaultVertexFormat.Block),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeBeaconBeam, DefaultVertexFormat.Block),
                 s => RenderTypeBeaconBeamShader = s));
             
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityDecal, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityDecal, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityDecalShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityNoOutline, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityNoOutline, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityNoOutlineShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityShadow, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityShadow, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityShadowShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityAlpha, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityAlpha, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEntityAlphaShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEyes, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEyes, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEyesShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEnergySwirl, DefaultVertexFormat.NewEntity),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEnergySwirl, DefaultVertexFormat.NewEntity),
                 s => RenderTypeEnergySwirlShader = s));
             #endregion
             
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeLeash, DefaultVertexFormat.PositionColorLightmap),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeLeash, DefaultVertexFormat.PositionColorLightmap),
                 s => RenderTypeLeashShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeWaterMask, DefaultVertexFormat.Position),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeWaterMask, DefaultVertexFormat.Position),
                 s => RenderTypeWaterMaskShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeOutline, DefaultVertexFormat.PositionColorTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeOutline, DefaultVertexFormat.PositionColorTex),
                 s => RenderTypeOutlineShader = s));
             
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeArmorGlint, DefaultVertexFormat.PositionTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeArmorGlint, DefaultVertexFormat.PositionTex),
                 s => RenderTypeArmorGlintShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeArmorEntityGlint, DefaultVertexFormat.PositionTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeArmorEntityGlint, DefaultVertexFormat.PositionTex),
                 s => RenderTypeArmorEntityGlintShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeGlintTranslucent, DefaultVertexFormat.PositionTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeGlintTranslucent, DefaultVertexFormat.PositionTex),
                 s => RenderTypeGlintTranslucentShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeGlint, DefaultVertexFormat.PositionTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeGlint, DefaultVertexFormat.PositionTex),
                 s => RenderTypeGlintShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeGlintDirect, DefaultVertexFormat.PositionTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeGlintDirect, DefaultVertexFormat.PositionTex),
                 s => RenderTypeGlintDirectShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityGlint, DefaultVertexFormat.PositionTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityGlint, DefaultVertexFormat.PositionTex),
                 s => RenderTypeEntityGlintShader = s));
-            list2.Add((new ShaderInstance(provider, ShaderNames.RenderTypeEntityGlintDirect, DefaultVertexFormat.PositionTex),
+            list2.Add((ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEntityGlintDirect, DefaultVertexFormat.PositionTex),
                 s => RenderTypeEntityGlintDirectShader = s));
             
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeText, DefaultVertexFormat.PositionColorTexLightmap),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeText, DefaultVertexFormat.PositionColorTexLightmap),
                 s => RenderTypeTextShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeTextBackground, DefaultVertexFormat.PositionColorLightmap),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeTextBackground, DefaultVertexFormat.PositionColorLightmap),
                 s => RenderTypeTextBackgroundShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeTextIntensity, DefaultVertexFormat.PositionColorTexLightmap),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeTextIntensity, DefaultVertexFormat.PositionColorTexLightmap),
                 s => RenderTypeTextIntensityShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeTextSeeThrough, DefaultVertexFormat.PositionColorTexLightmap),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeTextSeeThrough, DefaultVertexFormat.PositionColorTexLightmap),
                 s => RenderTypeTextSeeThroughShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeTextBackgroundSeeThrough, DefaultVertexFormat.PositionColorLightmap),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeTextBackgroundSeeThrough, DefaultVertexFormat.PositionColorLightmap),
                 s => RenderTypeTextBackgroundSeeThroughShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeTextIntensitySeeThrough, DefaultVertexFormat.PositionColorTexLightmap),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeTextIntensitySeeThrough, DefaultVertexFormat.PositionColorTexLightmap),
                 s => RenderTypeTextIntensitySeeThroughShader = s));
 
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeLightning, DefaultVertexFormat.PositionColor),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeLightning, DefaultVertexFormat.PositionColor),
                 s => RenderTypeLightningShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeTripwire, DefaultVertexFormat.Block),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeTripwire, DefaultVertexFormat.Block),
                 s => RenderTypeTripwireShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeEndPortal, DefaultVertexFormat.Position),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEndPortal, DefaultVertexFormat.Position),
                 s => RenderTypeEndPortalShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeEndGateway, DefaultVertexFormat.Position),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeEndGateway, DefaultVertexFormat.Position),
                 s => RenderTypeEndGatewayShader = s));
             
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeLines, DefaultVertexFormat.Position),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeLines, DefaultVertexFormat.Position),
                 s => RenderTypeLinesShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeCrumbling, DefaultVertexFormat.Position),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeCrumbling, DefaultVertexFormat.Position),
                 s => RenderTypeCrumblingShader = s));
             
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeGui, DefaultVertexFormat.PositionColor),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeGui, DefaultVertexFormat.PositionColor),
                 s => RenderTypeGuiShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeGuiOverlay, DefaultVertexFormat.PositionColor),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeGuiOverlay, DefaultVertexFormat.PositionColor),
                 s => RenderTypeGuiOverlayShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeGuiTextHighlight, DefaultVertexFormat.PositionColor),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeGuiTextHighlight, DefaultVertexFormat.PositionColor),
                 s => RenderTypeGuiTextHighlightShader = s));
             list2.Add((
-                new ShaderInstance(provider, ShaderNames.RenderTypeGuiGhostRecipeOverlay, DefaultVertexFormat.PositionColor),
+                ShaderInstance.CreateAsync(provider, ShaderNames.RenderTypeGuiGhostRecipeOverlay, DefaultVertexFormat.PositionColor),
                 s => RenderTypeGuiGhostRecipeOverlayShader = s));
+
+            var tasks = list2.Select(t => t.Item1).ToList();
+            var times = new ConcurrentBag<double>();
+            Logger.Info($"Compiling {tasks.Count} shaders...");
+
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            for (var i = 0; i < tasks.Count; i++)
+            {
+                var index = i;
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        var shader = await tasks[index];
+                        list3.Add((shader, list2[index].Item2));
+                        times.Add(stopwatch.Elapsed.TotalMilliseconds);
+
+                        if (list3.Count == tasks.Count)
+                        {
+                            tcs.SetResult();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Failed to load one of the shader");
+                        Logger.Error(ex);
+                        tcs.TrySetException(ex);
+                    }
+                });
+            }
+            
+            tcs.Task.Wait();
+            Logger.Info($"Compilation of {tasks.Count} shaders completed in {stopwatch.Elapsed.TotalMilliseconds} ms " +
+                        $"(total: {times.Sum()} ms)");
         }
         catch (Exception ex)
         {
-            foreach (var (shaderInstance, _) in list2)
+            foreach (var (shaderInstance, _) in list3)
             {
                 shaderInstance.Dispose();
             }
@@ -382,8 +422,13 @@ public class GameRenderer : IDisposable
             throw new Exception("Could not reload shaders", ex);
         }
 
+        if (list2.Count != list3.Count)
+        {
+            throw new Exception($"Shader count mismatch with task count! Tasks = {list2.Count}, Shaders = {list3.Count}");
+        }
+        
         ShutdownShaders();
-        foreach (var (shaderInstance, action) in list2)
+        foreach (var (shaderInstance, action) in list3)
         {
             _shaders[shaderInstance.Name] = shaderInstance;
             action(shaderInstance);

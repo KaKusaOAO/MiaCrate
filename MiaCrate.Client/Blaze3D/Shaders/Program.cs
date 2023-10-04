@@ -33,7 +33,7 @@ public class Program : IDisposable
     public static ConvertResult CompileShader(ProgramType type, string name, Stream stream, string str2,
         GlslPreprocessor preprocessor)
     {
-        RenderSystem.AssertOnRenderThread();
+        // RenderSystem.AssertOnRenderThread();
         var result = InternalCompileShader(type, name, stream, str2, preprocessor);
         type.Programs[name] = result;
         return result;

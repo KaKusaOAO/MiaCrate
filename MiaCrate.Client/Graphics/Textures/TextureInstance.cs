@@ -114,12 +114,15 @@ public class TextureInstance : IDisposable
         
         UpdateNames();
     }
-    
+
+    private bool IsTextureViewAvailable() => 
+        _texture!.Usage.HasFlag(TextureUsage.Sampled) || _texture.Usage.HasFlag(TextureUsage.Storage);
+
     private TextureView GetOrCreateTextureView()
     {
         if (_texture == null || _texture.IsDisposed || _textureDirty) EnsureTextureUpToDate();
         
-        if (!Texture.Usage.HasFlag(TextureUsage.Sampled) && !Texture.Usage.HasFlag(TextureUsage.Storage))
+        if (!IsTextureViewAvailable())
             throw new InvalidOperationException("The specified texture cannot be used to create a texture view");
         
         if (_textureView == null || _textureView.IsDisposed) EnsureTextureViewUpToDate();
@@ -144,8 +147,8 @@ public class TextureInstance : IDisposable
                 GlStateManager.ResourceFactory.CreateSampler(_samplerDescription);
         }
         
-        UpdateNames();
         _samplerDirty = false;
+        UpdateNames();
     }
 
     private void UpdateNames()
@@ -153,7 +156,11 @@ public class TextureInstance : IDisposable
         if (!_nameChanged) return;
         Texture.Name = $"Texture - {_name}";
         Sampler.Name = $"Sampler - {_name}";
-        TextureView.Name = $"TextureView - {_name}";
+
+        if (IsTextureViewAvailable())
+        {
+            TextureView.Name = $"TextureView - {_name}";
+        }
     }
 
     public void EnsureUpToDate()
@@ -175,8 +182,8 @@ public class TextureInstance : IDisposable
                 GlStateManager.ResourceFactory.CreateTexture(_textureDescription);
         }
         
-        UpdateNames();
         _textureDirty = false;
+        UpdateNames();
     }
 
     public void Dispose()

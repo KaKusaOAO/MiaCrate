@@ -38,6 +38,7 @@ public class SimpleTexture : AbstractTexture
     private void DoLoad(NativeImage image, bool blur, bool clamp)
     {
         Texture = TextureUtil.PrepareImage(0, image.Width, image.Height);
+        Texture.Name = $"Texture - {Location}";
         image.Upload(this, 0, 0, 0, 0, 0, image.Width, image.Height, blur, clamp, false, true);
     }
 

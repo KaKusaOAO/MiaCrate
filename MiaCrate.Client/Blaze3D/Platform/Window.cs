@@ -109,7 +109,8 @@ public unsafe class Window : IDisposable
         //     flags |= SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN;
         //     backend = GraphicsBackend.Vulkan;
         // }
-        // else if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Direct3D11))
+        // else
+        // if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Direct3D11))
         // {
         //     // Missing flag for Direct3D
         //     backend = GraphicsBackend.Direct3D11;
@@ -153,6 +154,7 @@ public unsafe class Window : IDisposable
         var options = new GraphicsDeviceOptions
         {
             PreferStandardClipSpaceYDirection = true,
+            Debug = true,
         };
 
         var swapchainSource = GetSwapchainSource();

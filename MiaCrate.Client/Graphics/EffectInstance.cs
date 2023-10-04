@@ -38,11 +38,9 @@ public class EffectInstance : IEffect, IDisposable
     public BindableResource[] VertexUniformResources { get; }
     public BindableResource[] FragmentUniformResources { get; }
 
-    public ResourceLayoutElementDescription[] VertexUniformDescriptions { get; private set; } = 
-        Array.Empty<ResourceLayoutElementDescription>();
+    public ResourceLayoutElementDescription[] VertexUniformDescriptions { get; }
     
-    public ResourceLayoutElementDescription[] FragmentUniformDescriptions { get; private set; } = 
-        Array.Empty<ResourceLayoutElementDescription>();
+    public ResourceLayoutElementDescription[] FragmentUniformDescriptions { get; }
 
     public int Id { get; }
     public string Name { get; }

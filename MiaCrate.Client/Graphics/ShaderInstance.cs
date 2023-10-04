@@ -266,10 +266,16 @@ public class ShaderInstance : IShader, IDisposable
         Light0Direction = GetUniform("Light0_Direction");
         Light1Direction = GetUniform("Light1_Direction");
     }
+
+    public static async Task<ShaderInstance> CreateAsync(IResourceProvider provider, string name, VertexFormat format)
+    {
+        await Task.Yield();
+        return new ShaderInstance(provider, name, format);
+    }
     
     private void UpdateLocations()
     {
-        RenderSystem.AssertOnRenderThread();
+        // RenderSystem.AssertOnRenderThread();
         
         _uniformLocations.Clear();
         foreach (var uniform in _uniforms)
@@ -322,7 +328,7 @@ public class ShaderInstance : IShader, IDisposable
 
     public Uniform? GetUniform(string name)
     {
-        RenderSystem.AssertOnRenderThread();
+        // RenderSystem.AssertOnRenderThread();
         return _uniformMap.TryGetValue(name, out var result) ? result : null;
     }
 

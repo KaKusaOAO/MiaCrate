@@ -106,11 +106,13 @@ public abstract class RenderTarget
 
             DepthBuffer!.UpdateTextureDescription(depthTextureDesc);
             DepthBuffer!.UpdateSamplerDescription(depthBufferDescription);
+            DepthBuffer.Name = "Render Target - Depth";
         }
         
         var colorTextureDesc = TextureDescription.Texture2D((uint) Width, (uint) Height, 1, 1,
             PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.RenderTarget | TextureUsage.Sampled);
         ColorTexture!.UpdateTextureDescription(colorTextureDesc);
+        ColorTexture.Name = "Render Target - Color";
         
         SetFilterMode(SamplerFilter.MinPoint_MagPoint_MipPoint);
         ColorTexture.ModifySampler((ref SamplerDescription s) =>
