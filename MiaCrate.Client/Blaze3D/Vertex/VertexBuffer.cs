@@ -56,10 +56,7 @@ public class VertexBuffer : IDisposable
         }
 
         var b = RenderSystem.GetSequentialBuffer(drawState.Mode);
-        if (b != _sequencialIndices || !b.HasStorage(drawState.IndexCount))
-        {
-            b.Bind(drawState.IndexCount);
-        }
+        b.Bind(drawState.IndexCount);
 
         return b;
     }
