@@ -16,9 +16,10 @@ namespace MiaCrate.Client.Graphics;
 
 public class ShaderInstance : IShader, IDisposable
 {
-    public const int TextureSamplerResourceSetIndex = 0;
-    public const int VertexUniformResourceSetIndex = 1;
-    public const int FragmentUniformResourceSetIndex = 2;
+    public const int VTextureSamplerResourceSetIndex = 0;
+    public const int FTextureSamplerResourceSetIndex = 1;
+    public const int VertexUniformResourceSetIndex = 2;
+    public const int FragmentUniformResourceSetIndex = 3;
     
     public const string ShaderPath = "shaders";
     private const string ShaderCorePath = $"{ShaderPath}/core/";
@@ -40,18 +41,18 @@ public class ShaderInstance : IShader, IDisposable
     private bool _dirty;
     private readonly BlendMode _blend;
     private ShaderSetDescription _shaderSetDesc;
-    private readonly Dictionary<string, int> _samplerLookup;
+    private readonly Dictionary<string, Dictionary<string, int>> _samplerLookup;
+    private readonly Dictionary<string, ShaderStages> _samplerStageLookup;
 
     public ResourceLayout[] ResourceLayouts { get; }
-    public BindableResource[] TextureResources { get; }
+    public BindableResource[] VTextureResources { get; }
+    public BindableResource[] FTextureResources { get; }
     public BindableResource[] VertexUniformResources { get; }
     public BindableResource[] FragmentUniformResources { get; }
 
-    public ResourceLayoutElementDescription[] VertexUniformDescriptions { get; private set; } = 
-        Array.Empty<ResourceLayoutElementDescription>();
+    public ResourceLayoutElementDescription[] VertexUniformDescriptions { get; }
     
-    public ResourceLayoutElementDescription[] FragmentUniformDescriptions { get; private set; } = 
-        Array.Empty<ResourceLayoutElementDescription>();
+    public ResourceLayoutElementDescription[] FragmentUniformDescriptions { get; }
 
     public int Id { get; }
     public string Name { get; }
@@ -145,19 +146,35 @@ public class ShaderInstance : IShader, IDisposable
             VertexUniformDescriptions = layoutDescs[VertexUniformResourceSetIndex].Elements;
             FragmentUniformDescriptions = layoutDescs[FragmentUniformResourceSetIndex].Elements;
             
-            TextureResources = new BindableResource[layoutDescs[TextureSamplerResourceSetIndex].Elements.Length]; 
+            VTextureResources = new BindableResource[layoutDescs[VTextureSamplerResourceSetIndex].Elements.Length]; 
+            FTextureResources = new BindableResource[layoutDescs[FTextureSamplerResourceSetIndex].Elements.Length]; 
             VertexUniformResources = new BindableResource[VertexUniformDescriptions.Length];
             FragmentUniformResources = new BindableResource[FragmentUniformDescriptions.Length];
 
             // Sampler to location lookup
-            var dict = new Dictionary<string, int>();
-            for (var i = 0; i < layoutDescs[TextureSamplerResourceSetIndex].Elements.Length; i++)
+            var vDict = new Dictionary<string, int>();
+            var fDict = new Dictionary<string, int>();
+            var dict = new Dictionary<string, Dictionary<string, int>>();
+            var sDict = new Dictionary<string, ShaderStages>();
+            
+            for (var i = 0; i < layoutDescs[VTextureSamplerResourceSetIndex].Elements.Length; i++)
             {
-                var elem = layoutDescs[TextureSamplerResourceSetIndex].Elements[i];
-                dict[elem.Name] = i;
+                var elem = layoutDescs[VTextureSamplerResourceSetIndex].Elements[i];
+                vDict[elem.Name] = i;
+                dict[elem.Name] = vDict;
+                sDict[elem.Name] = ShaderStages.Vertex;
+            }
+            
+            for (var i = 0; i < layoutDescs[FTextureSamplerResourceSetIndex].Elements.Length; i++)
+            {
+                var elem = layoutDescs[FTextureSamplerResourceSetIndex].Elements[i];
+                fDict[elem.Name] = i;
+                dict[elem.Name] = fDict;
+                sDict[elem.Name] = ShaderStages.Fragment;
             }
 
             _samplerLookup = dict;
+            _samplerStageLookup = sDict;
 
             var vShaderDesc = new ShaderDescription(ShaderStages.Vertex, Encoding.ASCII.GetBytes(vConvertResult.Source),
                 "main");
@@ -166,6 +183,9 @@ public class ShaderInstance : IShader, IDisposable
 
             var shaders = factory.CreateFromSpirv(vShaderDesc, fShaderDesc);
             var layout = format.CreateVertexLayoutDescription();
+
+            shaders[0].Name = $"Vertex Shader - {Name}";
+            shaders[1].Name = $"Fragment Shader - {Name}";
 
             VertexProgram = new Program(ProgramType.Vertex, shaders[0], name);
             FragmentProgram = new Program(ProgramType.Fragment, shaders[1], name);
@@ -429,10 +449,22 @@ public class ShaderInstance : IShader, IDisposable
             if (_samplerMap.TryGetValue(name, out var sampler))
             {
                 sampler.EnsureUpToDate();
-                var index = _samplerLookup[name];
+                var index = _samplerLookup[name][name];
 
-                TextureResources[index - 1] = sampler.TextureView;
-                TextureResources[index] = sampler.Sampler;
+                var targetStage = _samplerStageLookup[name];
+                switch (targetStage)
+                {
+                    case ShaderStages.Vertex:
+                        VTextureResources[index - 1] = sampler.TextureView;
+                        VTextureResources[index] = sampler.Sampler;
+                        break;
+                    case ShaderStages.Fragment:
+                        FTextureResources[index - 1] = sampler.TextureView;
+                        FTextureResources[index] = sampler.Sampler;
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Invalid stage {targetStage}");
+                }
             }
         }
 
@@ -603,14 +635,36 @@ public class ShaderInstance : IShader, IDisposable
         var cl = GlStateManager.CommandList;
         var factory = GlStateManager.DisposableResourceFactory;
         var shader = this;
-        var texResSet = factory.CreateResourceSet(
-            new ResourceSetDescription(ResourceLayouts[TextureSamplerResourceSetIndex], TextureResources));
+        
+        foreach (var resource in VTextureResources)
+        {
+            if (resource is Texture {IsDisposed: true})
+                throw new InvalidOperationException("Texture is disposed!");
+
+            if (resource is Sampler {IsDisposed: true})
+                throw new InvalidOperationException("Sampler is disposed!");
+        }
+        
+        foreach (var resource in FTextureResources)
+        {
+            if (resource is Texture {IsDisposed: true})
+                throw new InvalidOperationException("Texture is disposed!");
+
+            if (resource is Sampler {IsDisposed: true})
+                throw new InvalidOperationException("Sampler is disposed!");
+        }
+        
+        var vTexResSet = factory.CreateResourceSet(
+            new ResourceSetDescription(ResourceLayouts[VTextureSamplerResourceSetIndex], VTextureResources));
+        var fTexResSet = factory.CreateResourceSet(
+            new ResourceSetDescription(ResourceLayouts[FTextureSamplerResourceSetIndex], FTextureResources));
         var vUniformResSet = factory.CreateResourceSet(
             new ResourceSetDescription(ResourceLayouts[VertexUniformResourceSetIndex], VertexUniformResources));
         var fUniformResSet = factory.CreateResourceSet(
             new ResourceSetDescription(ResourceLayouts[FragmentUniformResourceSetIndex], FragmentUniformResources));
 
-        cl.SetGraphicsResourceSet(TextureSamplerResourceSetIndex, texResSet);
+        cl.SetGraphicsResourceSet(VTextureSamplerResourceSetIndex, vTexResSet);
+        cl.SetGraphicsResourceSet(FTextureSamplerResourceSetIndex, fTexResSet);
         cl.SetGraphicsResourceSet(VertexUniformResourceSetIndex, vUniformResSet);
         cl.SetGraphicsResourceSet(FragmentUniformResourceSetIndex, fUniformResSet);
     }

@@ -137,23 +137,26 @@ public class Program : IDisposable
             
             if (type == "sampler2D")
             {
-                var texName = name.Replace("Sampler", "Texture");
+                var setIndex = stage == ShaderStages.Vertex 
+                    ? ShaderInstance.VTextureSamplerResourceSetIndex
+                    : ShaderInstance.FTextureSamplerResourceSetIndex;
                 
-                var texBind = bindings.ComputeIfAbsent(ShaderInstance.TextureSamplerResourceSetIndex, _ => 0);
+                var texName = name.Replace("Sampler", "Texture");
+                var texBind = bindings.ComputeIfAbsent(setIndex, _ => 0);
                 texBind *= 2;
                 
-                sb.Append($"layout(set = {ShaderInstance.TextureSamplerResourceSetIndex}, binding = {texBind}) uniform texture2D ");
+                sb.Append($"layout(set = {setIndex}, binding = {texBind}) uniform texture2D ");
                 sb.Append(texName);
                 sb.AppendLine(";");
 
                 var samplerBind = texBind + 1;
-                sb.Append($"layout(set = {ShaderInstance.TextureSamplerResourceSetIndex}, binding = {samplerBind}) uniform sampler ");
+                sb.Append($"layout(set = {setIndex}, binding = {samplerBind}) uniform sampler ");
                 sb.Append(name);
                 sb.Append(";");
 
-                bindings[ShaderInstance.TextureSamplerResourceSetIndex]++;
+                bindings[setIndex]++;
 
-                var textures = elements.ComputeIfAbsent(ShaderInstance.TextureSamplerResourceSetIndex,
+                var textures = elements.ComputeIfAbsent(setIndex,
                     _ => new List<ResourceLayoutElementDescription>());
                 textures.Add(new ResourceLayoutElementDescription(texName, ResourceKind.TextureReadOnly, stage));
                 textures.Add(new ResourceLayoutElementDescription(name, ResourceKind.Sampler, stage));

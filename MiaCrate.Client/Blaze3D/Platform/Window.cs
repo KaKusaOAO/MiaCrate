@@ -104,18 +104,19 @@ public unsafe class Window : IDisposable
         //     flags |= SDL.SDL_WindowFlags.SDL_WINDOW_METAL;
         //     backend = GraphicsBackend.Metal;
         // } 
-        // else if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Vulkan))
-        // {
-        //     flags |= SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN;
-        //     backend = GraphicsBackend.Vulkan;
-        // }
-        // else
-        // if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Direct3D11))
-        // {
-        //     // Missing flag for Direct3D
-        //     backend = GraphicsBackend.Direct3D11;
-        // }
-        // else
+        // else 
+        if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Vulkan))
+        {
+            flags |= SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN;
+            backend = GraphicsBackend.Vulkan;
+        }
+        else
+        if (GraphicsDevice.IsBackendSupported(GraphicsBackend.Direct3D11))
+        {
+            // Missing flag for Direct3D
+            backend = GraphicsBackend.Direct3D11;
+        }
+        else
         {
             flags |= SDL.SDL_WindowFlags.SDL_WINDOW_OPENGL;
             backend = GraphicsBackend.OpenGL;
