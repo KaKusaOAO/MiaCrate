@@ -264,6 +264,8 @@ public static class RenderSystem
         GlStateManager.SubmitCommands();
         var device = GlStateManager.Device;
         device.WaitForIdle();
+        
+        Tesselator.Instance.Builder.Clear();
         device.SwapBuffers();
         
         GlStateManager.DisposableResourceFactory.DisposeCollector.DisposeAll();
@@ -327,6 +329,14 @@ public static class RenderSystem
         {
             CheckedSetShaderTexture(i, location);
         }
+    }
+    
+    public static void RemoveShaderTexture(int i)
+    {
+        EnsureOnRenderThread(() =>
+        {
+            _shaderTextures[i] = null!;
+        });
     }
 
     public static void CheckedSetShaderTexture(int i, ResourceLocation location)
@@ -580,21 +590,16 @@ public static class RenderSystem
         {
             if (_name == null) RecreateBuffer(count);
             EnsureStorage(count);
-            GlStateManager.SetIndexBuffer(_name, Type.Format);
+            GlStateManager.SetIndexBuffer(_name!, Type.Format);
         }
 
         private void RecreateBuffer(int count)
         {
-            var buffer = GlStateManager.ResourceFactory.CreateBuffer(new BufferDescription((uint) count, BufferUsage.IndexBuffer));
+            var buffer = GlStateManager.ResourceFactory.CreateBuffer(new BufferDescription((uint) count, 
+                BufferUsage.IndexBuffer | BufferUsage.Dynamic));
             buffer.Name = $"{nameof(AutoStorageIndexBuffer)} #{buffer.GetHashCode()}";
             
-            if (_name != null)
-            {
-                var cl = GlStateManager.EnsureBufferCommandBegan();
-                cl.CopyBuffer(_name, 0, buffer, 0, _name.SizeInBytes);
-                _name.Dispose();
-            }
-
+            _name?.Dispose();
             _name = buffer;
         }
 
@@ -608,10 +613,11 @@ public static class RenderSystem
 
             var j = Util.RoundToward(count * indexType.Bytes, 4);
             RecreateBuffer(j);
-            
-            var buffer = Marshal.AllocHGlobal((int) _name!.SizeInBytes);
+
+            var mapped = GlStateManager.Device.Map(_name, MapMode.Write);
+            var buffer = mapped.Data;
             if (buffer == 0)
-                throw new Exception("Failed to allocate memory");
+                throw new Exception("Failed to map buffer");
 
             Type = indexType;
             var tracker = new PointerTrackingIntConsumer(buffer);
@@ -622,10 +628,7 @@ public static class RenderSystem
                 _generator(consumer, k * _vertexStride / _indexStride);
             }
 
-
-            var cl = GlStateManager.EnsureBufferCommandBegan();
-            cl.UpdateBuffer(_name, 0, buffer, _name.SizeInBytes);
-            
+            GlStateManager.Device.Unmap(_name);
             _indexCount = count;
         }
 

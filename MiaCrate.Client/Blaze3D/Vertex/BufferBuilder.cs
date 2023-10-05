@@ -128,20 +128,20 @@ public class BufferBuilder : DefaultedVertexConsumer, IBufferVertexConsumer
         var j = !_indexOnly ? _vertices * _format.VertexSize : 0;
         var indexType = VertexFormat.IndexType.Least(i);
 
-        bool bl;
+        bool sequentialIndex;
         int l, k;
         if (_sortingPoints != null)
         {
             k = Util.RoundToward(i * indexType.Bytes, 4);
             EnsureCapacity(k);
             PutSortedQuadIndices(indexType);
-            bl = false;
+            sequentialIndex = false;
             _nextElementByte += k;
             l = j + k;
         }
         else
         {
-            bl = true;
+            sequentialIndex = true;
             l = j;
         }
 
@@ -149,7 +149,7 @@ public class BufferBuilder : DefaultedVertexConsumer, IBufferVertexConsumer
         _renderedBufferPointer += l;
         _renderedBufferCount++;
 
-        var drawState = new DrawState(_format, _vertices, i, _mode, indexType, _indexOnly, bl);
+        var drawState = new DrawState(_format, _vertices, i, _mode, indexType, _indexOnly, sequentialIndex);
         return new RenderedBuffer(this, k, drawState);
     }
 

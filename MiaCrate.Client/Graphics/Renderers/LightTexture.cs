@@ -45,7 +45,7 @@ public class LightTexture : IDisposable
 
     public void TurnOffLightLayer()
     {
-        // RenderSystem.SetShaderTexture(2, 0);
+        RenderSystem.RemoveShaderTexture(2);
     }
 
     public void TurnOnLightLayer()

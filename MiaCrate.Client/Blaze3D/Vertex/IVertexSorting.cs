@@ -29,12 +29,11 @@ public interface IVertexSorting
         public int[] Sort(Vector3[] vectors)
         {
             var fs = new float[vectors.Length];
-            var iArr = new int[vectors.Length];
+            var iArr = Enumerable.Range(0, vectors.Length);
             
             for (var i = 0; i < vectors.Length; i++)
             {
                 fs[i] = _func.Apply(vectors[i]);
-                iArr[i] = i;
             }
 
             return iArr.OrderBy(i => fs[i]).ToArray();

@@ -166,6 +166,7 @@ public class FontSet : IDisposable
         
         var tex = new FontTexture(renderTypes, bl);
         tex.Texture!.Name = $"FontTexture - {location}";
+        tex.Texture.EnsureUpToDate();
         _textures.Add(tex);
         _textureManager.Register(location, tex);
 

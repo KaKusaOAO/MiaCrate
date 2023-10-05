@@ -6,6 +6,7 @@ using MiaCrate.Auth;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Systems;
 using Mochi.Utils;
+using Veldrid;
 using IPlatform = MiaCrate.Platforms.IPlatform;
 
 namespace MiaCrate.Client;
@@ -16,7 +17,7 @@ internal static class MainEntry
     {
         Logger.Logged += Logger.LogToEmulatedTerminalAsync;
         Logger.RunThreaded();
-     
+
 #if DEBUG
         SharedConstants.IsRunningInIde = true;
 #endif

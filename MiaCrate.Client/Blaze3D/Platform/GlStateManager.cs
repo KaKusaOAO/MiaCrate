@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using MiaCrate.Client.Systems;
 using Mochi.Extensions;
+using Mochi.Utils;
 using Veldrid;
 using Veldrid.Utilities;
 
@@ -47,6 +48,7 @@ public static class GlStateManager
         {
             CommandList.End();
             Device.SubmitCommands(CommandList);
+            Device.WaitForIdle();
         }
 
         _beganCommand = false;
@@ -91,6 +93,7 @@ public static class GlStateManager
         
         BufferCommandList.End();
         Device.SubmitCommands(BufferCommandList);
+        Device.WaitForIdle();
         
         _beganBufferCommand = false;
     }
@@ -102,6 +105,7 @@ public static class GlStateManager
         DisposableResourceFactory = new DisposeCollectorResourceFactory(device.ResourceFactory);
         CommandList = ResourceFactory.CreateCommandList();
         BufferCommandList = ResourceFactory.CreateCommandList();
+        Logger.Info($"Graphic backend: {device.BackendType}");
 
         _pipelineDescription = new GraphicsPipelineDescription
         {
