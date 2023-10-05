@@ -1,7 +1,7 @@
 using MiaCrate.Client.Platform;
 using OpenTK.Graphics.OpenGL4;
 
-namespace MiaCrate.Client.Graphics;
+namespace MiaCrate.Client;
 
 public class VertexFormatElement
 {

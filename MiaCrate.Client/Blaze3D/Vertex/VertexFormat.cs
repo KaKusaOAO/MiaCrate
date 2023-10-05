@@ -2,7 +2,7 @@ using MiaCrate.Client.Systems;
 using OpenTK.Graphics.OpenGL4;
 using DrawElementsType = OpenTK.Graphics.OpenGL4.DrawElementsType;
 
-namespace MiaCrate.Client.Graphics;
+namespace MiaCrate.Client;
 
 public class VertexFormat
 {

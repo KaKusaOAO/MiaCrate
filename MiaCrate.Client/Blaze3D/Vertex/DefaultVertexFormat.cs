@@ -1,4 +1,4 @@
-namespace MiaCrate.Client.Graphics;
+namespace MiaCrate.Client;
 
 public static class DefaultVertexFormat
 {
