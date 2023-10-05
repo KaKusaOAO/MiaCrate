@@ -104,4 +104,9 @@ public static partial class Util
         var l = (long) d;
         return d < l ? l - 1 : l;
     }
+
+    public static int RandomBetweenInclusive(IRandomSource source, int min, int max) => 
+        source.Next(max - min + 1) + min;
+
+    public static double RotLerp(double d, double e, double f) => e + d * WrapDegrees(f - e);
 }

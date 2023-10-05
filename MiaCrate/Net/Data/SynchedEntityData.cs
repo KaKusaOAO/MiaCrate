@@ -26,9 +26,9 @@ public class SynchedEntityData
             while (t != typeof(Entity))
             {
                 t = t.BaseType!;
-                if (_entityIdMap.ContainsKey(t))
+                if (_entityIdMap.TryGetValue(t, out var id))
                 {
-                    j = _entityIdMap[t] + 1;
+                    j = id + 1;
                     break;
                 }
             }

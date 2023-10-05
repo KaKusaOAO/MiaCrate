@@ -120,8 +120,8 @@ public static class SharedConstants
 	};
 	
 	public const int TicksPerSecond = 20;
-	public const int TicksPerMinute = 1200;
-	public const int TicksPerGameDay = 24000;
+	public const int TicksPerMinute = TicksPerSecond * 60;
+	public const int TicksPerGameDay = TicksPerMinute * 20;
 	public const float AverageGameTicksPerRandomTickPerBlock = 1365.3334f;
 	public const float AverageRandomTicksPerBlockPerMinute = 0.87890625f;
 	public const float AverageRandomTicksPerBlockPerGameDay = 17.578125f;

@@ -1,3 +1,5 @@
+using Mochi.Utils;
+
 namespace MiaCrate.World.Entities;
 
 public static partial class EntityType
@@ -19,7 +21,10 @@ public static partial class EntityType
     
     public static readonly EntityType<Horse> Horse = Register("horse",  
         EntityType<Horse>.Builder.Of(MobCategory.Creature));
-    
+
+    public static readonly EntityType<ItemEntity> Item = Register("item",
+        EntityType<ItemEntity>.Builder.Of(MobCategory.Misc));
+
     public static readonly EntityType<Ocelot> Ocelot = Register("ocelot",  
         EntityType<Ocelot>.Builder.Of(MobCategory.Creature));
     

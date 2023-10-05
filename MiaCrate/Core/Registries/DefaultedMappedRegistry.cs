@@ -3,7 +3,7 @@ using MiaCrate.Resources;
 
 namespace MiaCrate.Core;
 
-public class DefaultedMappedRegistry<T> : MappedRegistry<T>, IDefaultedRegistry where T : class
+public class DefaultedMappedRegistry<T> : MappedRegistry<T>, IDefaultedRegistry<T> where T : class
 {
     public ResourceLocation DefaultKey { get; }
     private IHolder<T>? _defaultValue;

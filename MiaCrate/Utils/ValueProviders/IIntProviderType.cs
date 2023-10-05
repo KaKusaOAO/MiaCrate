@@ -8,6 +8,7 @@ public interface IIntProviderType
     public ICodec<IntProvider> Codec { get; }
 
     public static IIntProviderType<ConstantInt> Constant { get; } = Register("constant", ConstantInt.Codec);
+    public static IIntProviderType<UniformInt> Uniform { get; } = Register("uniform", UniformInt.Codec);
 
     public static IIntProviderType<T> Create<T>(ICodec<T> codec) where T : IntProvider => new InstanceDirect<T>(codec);
     public static IIntProviderType<T> Create<T>(Func<ICodec<T>> codec) where T : IntProvider => new Instance<T>(codec);

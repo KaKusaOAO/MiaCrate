@@ -1,6 +1,6 @@
 namespace MiaCrate.Core;
 
-public class Vec3I : IComparable<Vec3I>
+public class Vec3I : IComparable<Vec3I>, IVec3I<Vec3I>
 {
     public int X { get; protected set; }
     public int Y { get; protected set; }
@@ -12,6 +12,8 @@ public class Vec3I : IComparable<Vec3I>
         Y = y;
         Z = z;
     }
+
+    public static Vec3I Create(int x, int y, int z) => new(x, y, z);
 
     public int CompareTo(Vec3I? other)
     {
@@ -25,11 +27,25 @@ public class Vec3I : IComparable<Vec3I>
     }
 }
 
+public interface IVec3I<T> where T : IVec3I<T>
+{
+    public int X { get; }
+    public int Y { get; }
+    public int Z { get; }
+    
+    public static abstract T Create(int x, int y, int z);
+}
+
 public static class Vec3IExtension
 {
-    public static Vec3I Offset(this Vec3I v, int x, int y, int z) => 
-        x == 0 && y == 0 && z == 0 ? v : new Vec3I(v.X + x, v.Y + y, v.Z + z);
+    public static T Offset<T>(this T v, int x, int y, int z) where T : IVec3I<T> => 
+        x == 0 && y == 0 && z == 0 ? v : T.Create(v.X + x, v.Y + y, v.Z + z);
 
-    public static BlockPos Offset(this BlockPos v, int x, int y, int z) => 
-        x == 0 && y == 0 && z == 0 ? v : new BlockPos(v.X + x, v.Y + y, v.Z + z);
+    public static T Relative<T>(this T v, Direction direction, int steps = 1) where T : IVec3I<T> =>
+        steps == 0 
+            ? v
+            : T.Create(v.X + direction.StepX * steps, v.Y + direction.StepY * steps, v.Z + direction.StepZ * steps);
+    
+    public static T Below<T>(this T v, int steps = 1) where T : IVec3I<T> => 
+        v.Relative(Direction.Down, steps);
 } 

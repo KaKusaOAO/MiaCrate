@@ -1,5 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using MiaCrate.Core;
+using MiaCrate.Resources;
+using MiaCrate.Tags;
+using MiaCrate.World.Blocks;
 using Mochi.Utils;
 
 namespace MiaCrate.World.Entities;
@@ -21,7 +24,10 @@ public static partial class EntityType
 
 public interface IEntityType : IBuiltinRegistryEntryWithHolder<IEntityType>
 {
+    public bool IsFireImmune { get; }
+
     public Entity? Create(Level level);
+    public bool Is(ITagKey<IEntityType> tag) => BuiltinRegistryHolder.Is(tag);
 }
 
 public interface IEntityType<out T> : IEntityType where T : Entity
@@ -37,27 +43,62 @@ public class EntityType<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTyp
 {
     private readonly EntityFactoryDelegate<T> _factory;
     private readonly MobCategory _category;
-
-    public T? Create(Level level) => _factory(this, level);
+    private readonly HashSet<Block> _immuneTo;
+    
+    public bool IsSerialized { get; }
+    public bool CanBeSummoned { get; }
+    public bool IsFireImmune { get; }
+    public bool CanSpawnFarFromPlayer { get; }
+    public int ClientTrackingRange { get; }
+    public int UpdateInterval { get; }
+    public FeatureFlagSet RequiredFeatures { get; }
+    public EntityDimensions Dimensions { get; }
+    public float Width => Dimensions.Width;
+    public float Height => Dimensions.Height;
 
     public IReferenceHolder<IEntityType> BuiltinRegistryHolder { get; }
 
-    public EntityType(EntityFactoryDelegate<T> factory, MobCategory category)
+    public EntityType(EntityFactoryDelegate<T> factory, MobCategory category, bool serialize, bool summon,
+        bool fireImmune, bool canSpawnFarFromPlayer, HashSet<Block> immuneTo, EntityDimensions dimensions, 
+        int clientTrackingRange, int updateInterval,
+        FeatureFlagSet requiredFeatures)
     {
         BuiltinRegistryHolder = BuiltinRegistries.EntityType.CreateIntrusiveHolder(this);
         _factory = factory;
         _category = category;
+        _immuneTo = immuneTo;
+        Dimensions = dimensions;
+        IsSerialized = serialize;
+        CanBeSummoned = summon;
+        IsFireImmune = fireImmune;
+        CanSpawnFarFromPlayer = canSpawnFarFromPlayer;
+        ClientTrackingRange = clientTrackingRange;
+        UpdateInterval = updateInterval;
+        RequiredFeatures = requiredFeatures;
     }
+    
+    public T? Create(Level level) => _factory(this, level);
     
     public class Builder
     {
         private readonly EntityFactoryDelegate<T> _factory;
         private readonly MobCategory _category;
+        
+        public HashSet<Block> ImmuneTo { get; set; } = new();
+        public bool IsSerialized { get; set; } = true;
+        public bool CanBeSummoned { get; set; } = true;
+        public bool IsFireImmune { get; set; }
+        public bool CanSpawnFarFromPlayer { get; set; }
+        public int ClientTrackingRange { get; set; } = 3;
+        public int UpdateInterval { get; set; } = 3;
+        public EntityDimensions Dimensions { get; set; } = EntityDimensions.CreateScalable(0.6f, 1.8f);
+        public FeatureFlagSet RequiredFeatures { get; set; } = FeatureFlags.VanillaSet;
 
         private Builder(EntityFactoryDelegate<T> factory, MobCategory category)
         {
             _factory = factory;
             _category = category;
+            CanSpawnFarFromPlayer = category == MobCategory.Creature || category == MobCategory.Misc;
         }
 
         public static Builder Of(MobCategory category)
@@ -79,7 +120,8 @@ public class EntityType<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTyp
 
         public EntityType<T> Build()
         {
-            return new EntityType<T>(_factory, _category);
+            return new EntityType<T>(_factory, _category, IsSerialized, CanBeSummoned, IsFireImmune,
+                CanSpawnFarFromPlayer, ImmuneTo, Dimensions, ClientTrackingRange, UpdateInterval, RequiredFeatures);
         }
     }
 }

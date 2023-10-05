@@ -6,6 +6,7 @@ public class ChunkPos
 {
     private const int SafetyMargin = 1056;
 
+    public static ChunkPos Zero { get; } = new(0, 0);
     public static long InvalidChunkPos { get; } = AsLong(1875066, 1875066);
     
     private const int CoordBits = 32;

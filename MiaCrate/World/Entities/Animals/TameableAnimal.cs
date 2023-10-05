@@ -6,6 +6,7 @@ public abstract class TameableAnimal : Animal, IOwnableEntity
     {
     }
 
-    public Guid OwnerId { get; }
-    public Entity Owner { get; }
+    public Uuid? OwnerUuid => throw new NotImplementedException();
+
+    IEntityGetter IOwnableEntity.Level => Level;
 }

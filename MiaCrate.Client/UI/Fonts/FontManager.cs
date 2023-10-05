@@ -133,7 +133,7 @@ public class FontManager : IPreparableReloadListener, IDisposable
         
         foreach (var glyph in set)
         {
-            if (glyph == 32) continue;
+            if (glyph == ' ') continue;
 
             foreach (var p in reverse)
             {

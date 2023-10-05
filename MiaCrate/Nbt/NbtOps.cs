@@ -6,7 +6,9 @@ namespace MiaCrate.Nbt;
 
 public class NbtOps : IDynamicOps<NbtTag>
 {
-    public NbtOps()
+    public static NbtOps Instance { get; } = new();
+    
+    private NbtOps()
     {
         MapBuilder = new NbtRecordBuilder(this);
     }

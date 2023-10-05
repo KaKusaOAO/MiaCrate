@@ -8,6 +8,7 @@ public interface IBang<T> : IBang, IFuncPointFree<T, Unit> {}
 public class Bang<T> : PointFree<IFunction<T, Unit>>, IBang<T>
 {
     private IType<T> _type;
+    
     public override IType<IFunction<T, Unit>> Type => Dsl.Func(_type, Dsl.EmptyPartType);
 
     public Bang(IType<T> type)

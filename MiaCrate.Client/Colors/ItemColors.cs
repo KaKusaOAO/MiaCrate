@@ -1,3 +1,5 @@
+using MiaCrate.World.Items;
+
 namespace MiaCrate.Client.Colors;
 
 public class ItemColors
@@ -9,7 +11,4 @@ public class ItemColors
     }
 }
 
-public interface IItemColor
-{
-    
-}
+public delegate int ItemColorDelegate(ItemStack itemStack, int i);

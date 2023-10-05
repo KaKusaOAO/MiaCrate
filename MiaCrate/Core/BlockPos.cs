@@ -3,9 +3,9 @@ using Mochi.Texts;
 
 namespace MiaCrate.Core;
 
-public class BlockPos : Vec3I, IEquatable<BlockPos>
+public class BlockPos : Vec3I, IEquatable<BlockPos>, IVec3I<BlockPos>
 {
-    public static readonly BlockPos Zero = new(0, 0, 0);
+    public static BlockPos Zero { get; } = new(0, 0, 0);
     
     private const int LongSizeBytes = sizeof(long) * 8;
     
@@ -24,6 +24,8 @@ public class BlockPos : Vec3I, IEquatable<BlockPos>
     }
     
     public BlockPos(Vec3I v) : this(v.X, v.Y, v.Z) {}
+    
+    public new static BlockPos Create(int x, int y, int z) => new(x, y, z);
 
     public static int GetX(long l) =>
         (int) (l << (LongSizeBytes - XOffset - PackedXLength) >> (LongSizeBytes - PackedXLength));
@@ -42,13 +44,6 @@ public class BlockPos : Vec3I, IEquatable<BlockPos>
         l |= (z & PackedZMask) << ZOffset;
         return l;
     }
-
-    public BlockPos Below(int steps = 1) => Relative(Direction.Down, steps);
-
-    public BlockPos Relative(Direction direction, int steps = 1) =>
-        steps == 0 
-            ? this 
-            : new(X + direction.StepX * steps, Y + direction.StepY * steps, Z + direction.StepZ * steps);
 
     public override bool Equals(object? obj) => obj is BlockPos other && Equals(other);
 
