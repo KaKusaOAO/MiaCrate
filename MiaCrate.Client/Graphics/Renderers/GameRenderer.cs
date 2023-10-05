@@ -504,7 +504,7 @@ public class GameRenderer : IDisposable
 
         var window = _game.Window;
         var matrix = Matrix4.CreateOrthographicOffCenter(0, (float) (window.Width / window.GuiScale),
-            (float) (window.Height / window.GuiScale), 0, 1000, 21000);
+            (float) (window.Height / window.GuiScale), 0, 500, 21000);
         RenderSystem.SetProjectionMatrix(matrix, IVertexSorting.OrthoZ);
         
         var poseStack = RenderSystem.ModelViewStack;
