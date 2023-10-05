@@ -89,7 +89,7 @@ public abstract class AbstractWidget : IRenderable, IGuiEventListener, ILayoutEl
             var d = Util.GetMillis() / 1000.0;
             var e = Math.Max(r * 0.5, 3.0);
             var f = Math.Sin(1.5707963267948966 * Math.Cos(6.283185307179586 * d / e)) / 2.0 + 0.5;
-            var g = Mth.Lerp(f, 0.0, (double) r);
+            var g = Mth.Lerp(0.0, (double) r, f);
 
             graphics.EnableScissor(j, k, l, m);
             graphics.DrawString(font, component, j - (int) g, p, n);

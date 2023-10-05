@@ -5,6 +5,9 @@ namespace MiaCrate.World;
 public class ChunkPos
 {
     private const int SafetyMargin = 1056;
+
+    public static long InvalidChunkPos { get; } = AsLong(1875066, 1875066);
+    
     private const int CoordBits = 32;
     private const long CoordMask = (1L << CoordBits) - 1;
     private const int RegionBits = 5;

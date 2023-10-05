@@ -4,13 +4,14 @@ namespace MiaCrate.World.Blocks;
 
 public abstract class BlockEntity
 {
-    private readonly IBlockEntityType _type;
     private readonly BlockPos _worldPosition;
     private readonly BlockState _blockState;
 
+    public IBlockEntityType Type { get; }
+    
     protected BlockEntity(IBlockEntityType type, BlockPos worldPosition, BlockState blockState)
     {
-        _type = type;
+        Type = type;
         _worldPosition = worldPosition;
         _blockState = blockState;
     }

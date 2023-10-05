@@ -54,4 +54,25 @@ public class LightTexture : IDisposable
         _game.TextureManager.BindForSetup(_lightTextureLocation);
         _lightTexture.SetFilter(true, false);
     }
+
+    public void Tick()
+    {
+        var rand = Random.Shared;
+        _blockLightRedFlicker += (rand.NextSingle() - rand.NextSingle()) * rand.NextSingle() * rand.NextSingle() * 0.1f;
+        _blockLightRedFlicker *= 0.9f;
+        _updateLightTexture = true;
+    }
+
+    public void UpdateLightTexture(float f)
+    {
+        if (!_updateLightTexture) return;
+        _updateLightTexture = false;
+
+        var level = _game.Level;
+        if (level == null) return;
+
+        var g = level.GetSkyDarken(1f);
+        
+        Util.LogFoobar();
+    }
 }

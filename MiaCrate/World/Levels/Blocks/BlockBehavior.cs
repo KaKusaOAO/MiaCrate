@@ -1,4 +1,5 @@
-﻿using MiaCrate.Data.Codecs;
+﻿using MiaCrate.Core;
+using MiaCrate.Data.Codecs;
 using MiaCrate.Resources;
 
 namespace MiaCrate.World.Blocks;
@@ -26,10 +27,14 @@ public abstract class BlockBehavior : IFeatureElement
         
         Properties = properties;
     }
+
+    public virtual int GetDirectSignal(BlockState state, IBlockGetter level, BlockPos pos, Direction direction) => 
+        Redstone.SignalNone;
     
     public class BlockProperties
     {
         public bool HasCollision { get; set; } = true;
+        public Func<BlockState, int> LightEmission { get; set; } = _ => 0;
         public float ExplosionResistance { get; set; }
         public float DestroyTime { get; set; }
         public bool RequiresCorrectToolForDrops { get; set; }
@@ -66,14 +71,22 @@ public abstract class BlockBehavior : IFeatureElement
 
     public abstract class BlockStateBase : StateHolder<Block, BlockState>
     {
+        public int LightEmission { get; }
+        public bool IsAir { get; }
+        
         public Block Block => Owner;
         
         protected BlockStateBase(Block owner, 
             Dictionary<IProperty, IComparable> values, IMapCodec<BlockState> propertiesCodec) 
             : base(owner, values, propertiesCodec)
         {
-            
+            var props = owner.Properties;
+            LightEmission = props.LightEmission(AsState());
+            IsAir = props.IsAir;
         }
+
+        public int GetDirectSignal(IBlockGetter level, BlockPos pos, Direction direction) => 
+            Block.GetDirectSignal(AsState(), level, pos, direction);
 
         protected abstract BlockState AsState();
     }

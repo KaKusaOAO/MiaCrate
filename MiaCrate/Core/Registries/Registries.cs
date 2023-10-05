@@ -38,6 +38,9 @@ public static class Registries
     public static IResourceKey<IRegistry<SoundEvent>> SoundEvent { get; } =
         CreateRegistryKey<SoundEvent>("sound_event");
 
+    public static IResourceKey<IRegistry<ChunkStatus>> ChunkStatus { get; } =
+        CreateRegistryKey<ChunkStatus>("chunk_status");
+
     private static IResourceKey<IRegistry<T>> CreateRegistryKey<T>(string str) where T : class => 
         ResourceKey.CreateRegistryKey<IRegistry<T>>(new ResourceLocation(str));
 }

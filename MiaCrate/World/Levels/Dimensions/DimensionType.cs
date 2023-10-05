@@ -33,4 +33,11 @@ public record DimensionType(long? FixedTime, bool HasSkyLight, bool HasCeiling, 
                 .Apply<MonsterSettingRecord>(instance)
             );
     }
+
+    public float TimeOfDay(long dayTime)
+    {
+        var d = Util.Frac((FixedTime ?? dayTime) / 24000.0 - 0.25);
+        var e = 0.5 - Math.Cos(d * Math.PI) / 2;
+        return (float) (d * 2 + e) / 3;
+    }
 }

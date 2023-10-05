@@ -1,3 +1,6 @@
+using MiaCrate.World.Phys;
+using Mochi.Texts;
+
 namespace MiaCrate.Core;
 
 public class BlockPos : Vec3I, IEquatable<BlockPos>
@@ -40,6 +43,13 @@ public class BlockPos : Vec3I, IEquatable<BlockPos>
         return l;
     }
 
+    public BlockPos Below(int steps = 1) => Relative(Direction.Down, steps);
+
+    public BlockPos Relative(Direction direction, int steps = 1) =>
+        steps == 0 
+            ? this 
+            : new(X + direction.StepX * steps, Y + direction.StepY * steps, Z + direction.StepZ * steps);
+
     public override bool Equals(object? obj) => obj is BlockPos other && Equals(other);
 
     public bool Equals(BlockPos? other)
@@ -52,5 +62,37 @@ public class BlockPos : Vec3I, IEquatable<BlockPos>
     {
         // ReSharper disable NonReadonlyMemberInGetHashCode
         return HashCode.Combine(X, Y, Z);
+    }
+
+    public static IEnumerable<BlockPos> BetweenClosed(AABB aabb) =>
+        BetweenClosed((int) Math.Floor(aabb.MinX), (int) Math.Floor(aabb.MinY), (int) Math.Floor(aabb.MinZ),
+            (int) Math.Floor(aabb.MaxX), (int) Math.Floor(aabb.MaxY), (int) Math.Floor(aabb.MaxZ));
+
+    public static IEnumerable<BlockPos> BetweenClosed(BlockPos a, BlockPos b) =>
+        BetweenClosed(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z),
+            Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z));
+
+    public static IEnumerable<BlockPos> BetweenClosed(int minX, int minY, int minZ, int maxX, int maxY, int maxZ)
+    {
+        var xCount = maxX - minX + 1;
+        var yCount = maxY - minY + 1;
+        var zCount = maxZ - minZ + 1;
+        var count = xCount * yCount * zCount;
+
+        var cursor = new MutableBlockPos();
+        var index = 0;
+        
+        while (true)
+        {
+            if (index == count) yield break;
+            
+            var xOffset = index % yCount;
+            var yIndex = index / yCount;
+            var yOffset = yIndex % zCount;
+            var zOffset = yIndex / zCount;
+
+            ++index;
+            yield return cursor.Set(maxX + xOffset, maxY + yOffset, maxZ + zOffset);
+        }
     }
 }

@@ -2,6 +2,7 @@
 using MiaCrate.Resources;
 using MiaCrate.World;
 using MiaCrate.World.Dimensions;
+using MiaCrate.World.Entities;
 
 namespace MiaCrate.Server.Levels;
 
@@ -19,6 +20,13 @@ public class ServerLevel : Level, IWorldGenLevel
     public long Seed => throw new NotImplementedException();
 
     public void SetCurrentlyGenerating(Func<string>? currentlyGenerating)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override bool AddFreshEntity(Entity entity) => AddEntity(entity);
+
+    private bool AddEntity(Entity entity)
     {
         throw new NotImplementedException();
     }

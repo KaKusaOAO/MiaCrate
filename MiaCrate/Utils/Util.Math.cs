@@ -96,4 +96,12 @@ public static partial class Util
         if (g < -180) g += 360;
         return g;
     }
+
+    public static double Frac(double d) => d - LFloor(d);
+
+    public static long LFloor(double d)
+    {
+        var l = (long) d;
+        return d < l ? l - 1 : l;
+    }
 }

@@ -49,6 +49,7 @@ public class SectionPos : Vec3I
 
     public static SectionPos Of(long l) => new(GetX(l), GetY(l), GetZ(l));
 
+    public static int SectionRelative(int i) => i & SectionMask;
     public static int SectionRelativeX(short s) => s >>> RelativeXShift & SectionMask;
     public static int SectionRelativeY(short s) => s >>> RelativeYShift & SectionMask;
     public static int SectionRelativeZ(short s) => s >>> RelativeZShift & SectionMask;
