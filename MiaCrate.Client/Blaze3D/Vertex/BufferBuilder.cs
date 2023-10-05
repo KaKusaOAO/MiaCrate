@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using MiaCrate.Client.Graphics;
+using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Utils;
 using Mochi.Utils;
 using OpenTK.Mathematics;

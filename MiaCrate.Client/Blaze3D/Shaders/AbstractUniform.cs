@@ -1,6 +1,6 @@
 ﻿using OpenTK.Mathematics;
 
-namespace MiaCrate.Client.Graphics;
+namespace MiaCrate.Client.Shaders;
 
 public class AbstractUniform
 {

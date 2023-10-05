@@ -1,3 +1,4 @@
+using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Systems;
 using MiaCrate.Common;
 using MiaCrate.Core;

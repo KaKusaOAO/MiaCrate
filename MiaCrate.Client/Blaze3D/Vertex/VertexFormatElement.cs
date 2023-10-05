@@ -1,6 +1,6 @@
 using Veldrid;
 
-namespace MiaCrate.Client.Graphics;
+namespace MiaCrate.Client;
 
 public class VertexFormatElement
 {

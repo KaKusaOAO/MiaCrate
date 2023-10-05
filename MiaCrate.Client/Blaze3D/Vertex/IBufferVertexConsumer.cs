@@ -1,4 +1,5 @@
 using MiaCrate.Client.Graphics;
+using MiaCrate.Client.Shaders;
 using Mochi.Structs;
 
 namespace MiaCrate.Client;

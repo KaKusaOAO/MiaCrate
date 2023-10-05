@@ -1,9 +1,8 @@
 ﻿using MiaCrate.Client.Preprocessor;
-using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Systems;
 using Veldrid;
 
-namespace MiaCrate.Client.Graphics;
+namespace MiaCrate.Client.Shaders;
 
 public class EffectProgram : Program
 {

@@ -1,3 +1,4 @@
+using MiaCrate.Client.Shaders;
 using Mochi.Utils;
 
 namespace MiaCrate.Client.Graphics;

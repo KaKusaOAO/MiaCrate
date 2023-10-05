@@ -1,5 +1,6 @@
 ﻿using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Platform;
+using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Systems;
 using Mochi.Extensions;
 using OpenTK.Mathematics;

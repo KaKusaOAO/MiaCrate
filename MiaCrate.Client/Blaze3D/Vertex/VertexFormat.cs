@@ -1,7 +1,7 @@
 using MiaCrate.Client.Systems;
 using Veldrid;
 
-namespace MiaCrate.Client.Graphics;
+namespace MiaCrate.Client;
 
 public class VertexFormat
 {

@@ -1,6 +1,7 @@
 ﻿using MiaCrate.Client.Multiplayer;
 using MiaCrate.Client.Pipeline;
 using MiaCrate.Client.Resources;
+using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Systems;
 using MiaCrate.Core;
 using MiaCrate.Resources;
