@@ -14,27 +14,29 @@ public abstract class Entity : IEntityAccess, ICommandSource
     private static IEntityDataAccessor<int> DataAirSupply { get; } =
         SynchedEntityData.DefineId<Entity, int>(EntityDataSerializers.Int);
 
-    public int Id => throw new NotImplementedException();
+    private static int _entityCounter;
+    
 
+    public int Id { get; }
     public Uuid Uuid { get; set; }
     public Vec3 Position => throw new NotImplementedException();
     public BlockPos BlockPosition => throw new NotImplementedException();
     public Level Level { get; }
     protected SynchedEntityData EntityData { get; }
-
     public float EyeHeight { get; }
-
     public virtual int MaxAirSupply => 300;
-
     public bool AcceptsSuccess => throw new NotImplementedException();
-
     public bool AcceptsFailure => true;
-
     public bool ShouldInformAdmins => true;
+    protected IRandomSource Random { get; }
+    public IEntityType Type { get; }
     
     [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     protected Entity(IEntityType type, Level level)
     {
+        Id = Interlocked.Increment(ref _entityCounter);
+        Random = IRandomSource.Create();
+        Type = type;
         Level = level;
         
         // Synched data

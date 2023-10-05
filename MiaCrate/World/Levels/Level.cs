@@ -47,6 +47,12 @@ public abstract class Level : ILevelAccessor, IDisposable
 
     public long DayTime => throw new NotImplementedException();
 
+    public abstract ChunkSource ChunkSource { get; }
+
+    public IRandomSource Random { get; } = IRandomSource.Create();
+
+    public abstract List<Player> Players { get; }
+
     protected Level(IWritableLevelData levelData, IResourceKey<Level> dimension, IRegistryAccess registryAccess,
         IHolder<DimensionType> dimensionTypeRegistration, Func<IProfilerFiller> profiler, bool isClientSide,
         bool isDebug, long l, int i)
@@ -61,7 +67,7 @@ public abstract class Level : ILevelAccessor, IDisposable
         Dimension = dimension;
         IsClientSide = isClientSide;
         
-        
+        Util.LogFoobar();
     }
 
     public void Dispose()
@@ -141,4 +147,6 @@ public abstract class Level : ILevelAccessor, IDisposable
     }
 
     public virtual bool AddFreshEntity(Entity entity) => ILevelWriter.LevelWriterDefaults.AddFreshEntity(this, entity);
+
+    public virtual void OnBlockStateChange(BlockPos pos, BlockState oldState, BlockState newState) {}
 }

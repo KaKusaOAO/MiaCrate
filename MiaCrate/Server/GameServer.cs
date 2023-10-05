@@ -1,11 +1,18 @@
 ﻿using MiaCrate.Commands;
 using MiaCrate.Common;
+using MiaCrate.Core;
 using Mochi.Texts;
 
 namespace MiaCrate.Server;
 
 public class GameServer : ReentrantBlockableEventLoop<TickTask>, ICommandSource, IDisposable
 {
+    public IRegistryAccess.IFrozen RegistryAccess { get; }
+    
+    public IProfilerFiller Profiler { get; }
+
+    public virtual int MaxChainedNeighborUpdates => SharedConstants.MaxChainedNeighborUpdates;
+    
     public GameServer() : base("Server")
     {
         Util.LogFoobar();
