@@ -71,6 +71,9 @@ public static class BuiltinRegistries
     public static IRegistry<IFloatProviderType> FloatProviderType { get; } =
         RegisterSimple<IFloatProviderType>(Registries.FloatProviderType, _ => IFloatProviderType.Constant);
 
+    public static IRegistry<ChunkStatus> ChunkStatus { get; } =
+        RegisterDefaulted<ChunkStatus>(Registries.ChunkStatus, "empty", _ => World.ChunkStatus.Empty);
+
     #endregion
     
     public static ResourceLocation RootRegistryName => _rootRegistryName;
@@ -84,6 +87,11 @@ public static class BuiltinRegistries
         RegistryBootstrap<T> bootstrap) where T : class =>
         InternalRegister(key, new MappedRegistry<T>(key, lifecycle), bootstrap, lifecycle);
 
+    private static DefaultedMappedRegistry<T> RegisterDefaulted<T>(IResourceKey<IRegistry> key, string str,
+        RegistryBootstrap<T> bootstrap) where T : class =>
+        InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, 
+            Lifecycle.Stable, false), bootstrap, Lifecycle.Stable);
+    
     private static DefaultedMappedRegistry<T> RegisterDefaulted<T>(IResourceKey<IRegistry> key, string str,
         Lifecycle lifecycle, RegistryBootstrap<T> bootstrap) where T : class =>
         InternalRegister(key, new DefaultedMappedRegistry<T>(str, key, lifecycle, false), bootstrap, lifecycle);

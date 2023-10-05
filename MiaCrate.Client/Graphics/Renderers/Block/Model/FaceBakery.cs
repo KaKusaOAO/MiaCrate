@@ -35,10 +35,10 @@ public class FaceBakery
         var g = (uv.Uvs[0] + uv.Uvs[0] + uv.Uvs[2] + uv.Uvs[2]) / 4;
         var h = (uv.Uvs[1] + uv.Uvs[1] + uv.Uvs[3] + uv.Uvs[3]) / 4;
 
-        uv.Uvs[0] = Mth.Lerp(f, uv.Uvs[0], g);
-        uv.Uvs[2] = Mth.Lerp(f, uv.Uvs[2], g);
-        uv.Uvs[1] = Mth.Lerp(f, uv.Uvs[1], h);
-        uv.Uvs[3] = Mth.Lerp(f, uv.Uvs[3], h);
+        uv.Uvs[0] = Mth.Lerp(uv.Uvs[0], g, f);
+        uv.Uvs[2] = Mth.Lerp(uv.Uvs[2], g, f);
+        uv.Uvs[1] = Mth.Lerp(uv.Uvs[1], h, f);
+        uv.Uvs[3] = Mth.Lerp(uv.Uvs[3], h, f);
 
         var iArr = MakeVertices(uv, sprite, direction, SetupShape(from, to), modelState.Rotation, rotation, shade);
         var d2 = CalculateFacing(iArr);

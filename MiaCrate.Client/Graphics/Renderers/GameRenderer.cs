@@ -506,6 +506,11 @@ public class GameRenderer : IDisposable
         RenderSystem.ApplyModelViewMatrix();
     }
 
+    public void RenderLevel(float f, float g, PoseStack pose)
+    {
+        LightTexture.UpdateLightTexture(f);
+    }
+
     private class ShaderLoader : SimplePreparableReloadListener<ResourceCache>
     {
         private readonly GameRenderer _renderer;
