@@ -199,17 +199,12 @@ public static class GlStateManager
     {
         RenderSystem.AssertOnRenderThread();
         _blend.State.Enable();
-
-        unsafe
+        
+        ref var state = ref _pipelineDescription.BlendState.AttachmentStates[0];
+        if (!state.BlendEnabled)
         {
-            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
-            {
-                if (!state->BlendEnabled)
-                {
-                    state->BlendEnabled = true;
-                    _pipelineDirty = true;
-                }
-            }
+            state.BlendEnabled = true;
+            _pipelineDirty = true;
         }
     }
 
@@ -227,38 +222,28 @@ public static class GlStateManager
         _blend.DstRgb = destRgb;
         _blend.SrcAlpha = sourceAlpha;
         _blend.DstAlpha = destAlpha;
+        
+        ref var state = ref _pipelineDescription.BlendState.AttachmentStates[0];
+        if (state.SourceColorFactor == sourceRgb && state.DestinationColorFactor == destRgb &&
+            state.SourceAlphaFactor == sourceAlpha && state.DestinationAlphaFactor == destAlpha) return;
 
-        unsafe
-        {
-            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
-            {
-                if (state->SourceColorFactor == sourceRgb && state->DestinationColorFactor == destRgb &&
-                    state->SourceAlphaFactor == sourceAlpha && state->DestinationAlphaFactor == destAlpha) return;
-
-                state->SourceColorFactor = sourceRgb;
-                state->DestinationColorFactor = destRgb;
-                state->SourceAlphaFactor = sourceAlpha;
-                state->DestinationAlphaFactor = destAlpha;
-                _pipelineDirty = true;
-            }
-        }
+        state.SourceColorFactor = sourceRgb;
+        state.DestinationColorFactor = destRgb;
+        state.SourceAlphaFactor = sourceAlpha;
+        state.DestinationAlphaFactor = destAlpha;
+        _pipelineDirty = true;
     }
 
     public static void BlendEquation(BlendFunction func)
     {
         RenderSystem.AssertOnRenderThread();
 
-        unsafe
-        {
-            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
-            {
-                if (state->ColorFunction == func && state->AlphaFunction == func) return;
+        ref var state = ref _pipelineDescription.BlendState.AttachmentStates[0];
+        if (state.ColorFunction == func && state.AlphaFunction == func) return;
 
-                state->ColorFunction = func;
-                state->AlphaFunction = func;
-                _pipelineDirty = true;
-            }
-        }
+        state.ColorFunction = func;
+        state.AlphaFunction = func;
+        _pipelineDirty = true;
     }
 
     public static void UseProgram(ShaderSetDescription shaderSet)
@@ -407,31 +392,26 @@ public static class GlStateManager
         _colorMask.Green = green;
         _colorMask.Blue = blue;
         _colorMask.Alpha = alpha;
+        
+        ref var state = ref _pipelineDescription.BlendState.AttachmentStates[0];
+        var mask = ColorWriteMask.None;
+        if (red) mask |= ColorWriteMask.Red;
+        if (green) mask |= ColorWriteMask.Green;
+        if (blue) mask |= ColorWriteMask.Blue;
+        if (alpha) mask |= ColorWriteMask.Alpha;
 
-        unsafe
+        if (!state.ColorWriteMask.HasValue)
         {
-            fixed (BlendAttachmentDescription* state = _pipelineDescription.BlendState.AttachmentStates)
-            {
-                var mask = ColorWriteMask.None;
-                if (red) mask |= ColorWriteMask.Red;
-                if (green) mask |= ColorWriteMask.Green;
-                if (blue) mask |= ColorWriteMask.Blue;
-                if (alpha) mask |= ColorWriteMask.Alpha;
+            state.ColorWriteMask = mask;
+            _pipelineDirty = true;
+        }
+        else
+        {
+            var oldMask = state.ColorWriteMask!.Value;
+            if (oldMask == mask) return;
 
-                if (!state->ColorWriteMask.HasValue)
-                {
-                    state->ColorWriteMask = mask;
-                    _pipelineDirty = true;
-                }
-                else
-                {
-                    var oldMask = state->ColorWriteMask!.Value;
-                    if (oldMask == mask) return;
-
-                    state->ColorWriteMask = mask;
-                    _pipelineDirty = true;
-                }
-            }
+            state.ColorWriteMask = mask;
+            _pipelineDirty = true;
         }
     }
 
