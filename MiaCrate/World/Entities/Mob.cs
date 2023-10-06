@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using MiaCrate.Net.Data;
+using MiaCrate.Net.Packets.Play;
 using MiaCrate.World.Entities.AI;
 
 namespace MiaCrate.World.Entities;
@@ -28,4 +29,11 @@ public abstract class Mob : LivingEntity
     }
     
     protected virtual void RegisterGoals() {}
+
+    public virtual bool ShouldRemoveWhenFarAway(double d) => true;
+
+    protected virtual void SendDebugPackets()
+    {
+        DebugPackets.SendGoalSelector(Level, this, GoalSelector);
+    }
 }

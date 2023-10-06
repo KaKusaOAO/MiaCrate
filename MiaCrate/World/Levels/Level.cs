@@ -2,6 +2,7 @@
 using MiaCrate.Resources;
 using MiaCrate.Server;
 using MiaCrate.World.Blocks;
+using MiaCrate.World.Damages;
 using MiaCrate.World.Dimensions;
 using MiaCrate.World.Entities;
 using MiaCrate.World.Phys;
@@ -23,10 +24,6 @@ public abstract class Level : ILevelAccessor, IDisposable
     public IHolder<DimensionType> DimensionTypeRegistration { get; }
     public IResourceKey<Level> Dimension { get; }
     public DimensionType DimensionType => DimensionTypeRegistration.Value;
-    public ChunkAccess GetChunk(int x, int z, ChunkStatus status, bool bl)
-    {
-        throw new NotImplementedException();
-    }
 
     public bool IsClientSide { get; }
     
@@ -52,6 +49,7 @@ public abstract class Level : ILevelAccessor, IDisposable
     public IRandomSource Random { get; } = IRandomSource.Create();
 
     public abstract List<Player> Players { get; }
+    public DamageSources DamageSources { get; }
 
     protected Level(IWritableLevelData levelData, IResourceKey<Level> dimension, IRegistryAccess registryAccess,
         IHolder<DimensionType> dimensionTypeRegistration, Func<IProfilerFiller> profiler, bool isClientSide,
@@ -68,6 +66,11 @@ public abstract class Level : ILevelAccessor, IDisposable
         IsClientSide = isClientSide;
         
         Util.LogFoobar();
+    }
+    
+    public ChunkAccess GetChunk(int x, int z, ChunkStatus status, bool bl)
+    {
+        throw new NotImplementedException();
     }
 
     public void Dispose()

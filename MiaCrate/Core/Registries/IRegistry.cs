@@ -56,6 +56,12 @@ public interface IRegistry<T> : IRegistry, IIdMap<T> where T : class
 
     public IOptional<IReferenceHolder<T>> GetHolder(int id);
     public IOptional<IReferenceHolder<T>> GetHolder(IResourceKey<T> key);
+
+    public IReferenceHolder<T> GetHolderOrThrow(IResourceKey<T> key)
+    {
+        return GetHolder(key).OrElseGet(
+            () => throw new InvalidOperationException($"Missing key in {Key}: {key}"));
+    }
     
     public new IRegistry<T> Freeze();
     IRegistry IRegistry.Freeze() => Freeze();

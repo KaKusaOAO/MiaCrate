@@ -4,9 +4,12 @@ namespace MiaCrate.World.Entities.AI;
 [Flags]
 public enum GoalFlag
 {
-    None = 0,
-    Move = 1,
-    Look = 2,
-    Jump = 4,
-    Target = 8
+    None,
+    
+    // @formatter:off
+    Move   = 1 << 0,
+    Look   = 1 << 1,
+    Jump   = 1 << 2,
+    Target = 1 << 3
+    // @formatter:on
 }

@@ -1,3 +1,7 @@
+using MiaCrate.Core;
+using MiaCrate.World;
+using MiaCrate.World.Blocks;
+
 namespace MiaCrate.Client.Colors;
 
 public class BlockColors
@@ -9,7 +13,4 @@ public class BlockColors
     }
 }
 
-public interface IBlockColor
-{
-    
-}
+public delegate int BlockColorDelegate(BlockState state, IBlockAndTintGetter? level, BlockPos? pos, int i);

@@ -7,6 +7,8 @@ using MiaCrate.World;
 using MiaCrate.World.Blocks;
 using MiaCrate.World.Entities;
 using MiaCrate.World.Entities.AI;
+using MiaCrate.World.Entities.AI.Memory;
+using MiaCrate.World.Entities.AI.Sensing;
 using MiaCrate.World.Items;
 using Mochi.Utils;
 using Attribute = MiaCrate.World.Entities.AI.Attribute;
@@ -37,18 +39,18 @@ public static class BuiltinRegistries
     /// <summary>
     /// The registry of all the block types.
     /// </summary>
-    public static IRegistry<Block> Block { get; } = 
+    public static IDefaultedRegistry<Block> Block { get; } = 
         RegisterDefaultedWithIntrusiveHolders<Block>(Registries.Block, 
             "air", _ => World.Blocks.Block.Air);
     
-    public static IRegistry<Item> Item { get; } =
+    public static IDefaultedRegistry<Item> Item { get; } =
         RegisterDefaultedWithIntrusiveHolders<Item>(Registries.Item,
             "air", _ => World.Items.Item.Air);
 
     /// <summary>
     /// The registry of all the entity types.
     /// </summary>
-    public static IRegistry<IEntityType> EntityType { get; } = 
+    public static IDefaultedRegistry<IEntityType> EntityType { get; } = 
         RegisterDefaultedWithIntrusiveHolders<IEntityType>(Registries.EntityType, 
             "pig", _ => World.Entities.EntityType.Pig);
     
@@ -71,8 +73,14 @@ public static class BuiltinRegistries
     public static IRegistry<IFloatProviderType> FloatProviderType { get; } =
         RegisterSimple<IFloatProviderType>(Registries.FloatProviderType, _ => IFloatProviderType.Constant);
 
-    public static IRegistry<ChunkStatus> ChunkStatus { get; } =
+    public static IDefaultedRegistry<ChunkStatus> ChunkStatus { get; } =
         RegisterDefaulted<ChunkStatus>(Registries.ChunkStatus, "empty", _ => World.ChunkStatus.Empty);
+
+    public static IDefaultedRegistry<IMemoryModuleType> MemoryModuleType { get; } =
+        RegisterDefaulted<IMemoryModuleType>(Registries.MemoryModuleType, "dummy", _ => IMemoryModuleType.Dummy);
+
+    public static IDefaultedRegistry<ISensorType> SensorType { get; } =
+        RegisterDefaulted<ISensorType>(Registries.SensorType, "dummy", _ => ISensorType.Dummy);
 
     #endregion
     

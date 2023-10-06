@@ -1,5 +1,6 @@
 ﻿using MiaCrate.Auth;
 using MiaCrate.Core;
+using MiaCrate.Server.Net;
 using MiaCrate.World;
 using MiaCrate.World.Entities;
 using Mochi.Texts;
@@ -13,6 +14,8 @@ public class ServerPlayer : Player
     {
         throw new NotImplementedException();
     }
+
+    public ServerGamePacketListenerImpl Connection { get; set; }
 
     public override void SendSystemMessage(IComponent component) => SendSystemMessage(component, false);
 

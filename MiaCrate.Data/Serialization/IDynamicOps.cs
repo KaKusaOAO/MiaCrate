@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Numerics;
 using MiaCrate.Data.Codecs;
 using Mochi.Utils;
@@ -15,6 +16,7 @@ public interface IDynamicOps
     public object CreateList(IEnumerable<object> input);
 
     public object CreateMap(IEnumerable<IPair> map);
+    public object CreateMap(IDictionary map);
     object? CreateString(string value);
     IDataResult<string> GetStringValue(object? value);
     IDataResult<decimal> GetNumberValue(object? value);
@@ -114,6 +116,10 @@ public interface IDynamicOps<T> : IDynamicOps
 
     public T CreateMap(IEnumerable<IPair<T, T>> map);
     object IDynamicOps.CreateMap(IEnumerable<IPair> input) => CreateMap(input.Cast<IPair<T, T>>())!;
+
+    public T CreateMap(IDictionary<T, T> map) => CreateMap(map.Select(e => Pair.Of(e.Key, e.Value)));
+
+    object IDynamicOps.CreateMap(IDictionary input) => CreateMap((IDictionary<T, T>) input)!;
     
     IDataResult<T> MergeToMap(T prefix, IDictionary<T, T> map) =>
         MergeToMap(prefix, MapLike.ForDictionary(map, this));
@@ -138,4 +144,10 @@ public interface IDynamicOps<T> : IDynamicOps
     public TOut ConvertMap<TOut>(IDynamicOps<TOut> outOps, T input) =>
         outOps.CreateMap(GetMapValues(input).Result.OrElse(Enumerable.Empty<IPair<T, T>>())
             .Select(e => Pair.Of(ConvertTo(outOps, e.First), ConvertTo(outOps, e.Second))));
+}
+
+public static class DynamicOpsExtension
+{
+    public static T CreateMap<T>(this IDynamicOps<T> ops, IDictionary<T, T> map) =>
+        ops.CreateMap(map);
 }
