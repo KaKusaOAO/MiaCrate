@@ -191,7 +191,21 @@ public static partial class SoundEvents
 
     public static SoundEvent ItemBreak { get; } = Register("entity.item.break");
     public static SoundEvent ItemPickup { get; } = Register("entity.item.pickup");
-    
+
+    public static IReferenceHolder<SoundEvent> MusicCreative { get; } = RegisterForHolder("music.creative");
+    public static IReferenceHolder<SoundEvent> MusicCredits { get; } = RegisterForHolder("music.credits");
+    public static SoundEvent MusicDisc5 { get; } = Register("music_disc.5");
+    public static SoundEvent MusicDisc11 { get; } = Register("music_disc.11");
+    public static SoundEvent MusicDisc13 { get; } = Register("music_disc.13");
+    public static SoundEvent MusicDiscBlocks { get; } = Register("music_disc.blocks");
+    public static SoundEvent MusicDiscCat { get; } = Register("music_disc.cat");
+    public static IReferenceHolder<SoundEvent> MusicDragon { get; } = RegisterForHolder("music.dragon");
+    public static IReferenceHolder<SoundEvent> MusicEnd { get; } = RegisterForHolder("music.end");
+    public static IReferenceHolder<SoundEvent> MusicGame { get; } = RegisterForHolder("music.game");
+    public static IReferenceHolder<SoundEvent> MusicMenu { get; } = RegisterForHolder("music.menu");
+    public static IReferenceHolder<SoundEvent> MusicBiomeBasaltDeltas { get; } = RegisterForHolder("music.nether.basalt_deltas");
+    public static IReferenceHolder<SoundEvent> MusicUnderwater { get; } = RegisterForHolder("music.under_water");
+
     public static SoundEvent PlayerAttackCrit { get; } = Register("entity.player.attack.crit");
     public static SoundEvent PlayerAttackKnockback { get; } = Register("entity.player.attack.knockback");
     public static SoundEvent PlayerAttackNoDamage { get; } = Register("entity.player.attack.nodamage");
