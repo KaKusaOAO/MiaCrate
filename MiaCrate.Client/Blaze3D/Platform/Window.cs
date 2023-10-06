@@ -252,8 +252,27 @@ public unsafe class Window : IDisposable
             case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_RESIZED:
                 OnResize(Handle, ev.data1, ev.data2);
                 GlStateManager.SubmitCommands();
-                GlStateManager.Device.ResizeMainWindow((uint) ev.data1, (uint) ev.data2);
-                WindowOnFramebufferResize(Handle, ev.data1, ev.data2);
+
+                int width, height;
+                switch (GlStateManager.Device.BackendType)
+                {
+                    case GraphicsBackend.Metal:
+                        SDL.SDL_Metal_GetDrawableSize(Handle, out width, out height);
+                        break;
+                    case GraphicsBackend.Vulkan:
+                        SDL.SDL_Vulkan_GetDrawableSize(Handle, out width, out height);
+                        break;
+                    case GraphicsBackend.OpenGL:
+                    case GraphicsBackend.OpenGLES:
+                        SDL.SDL_GL_GetDrawableSize(Handle, out width, out height);
+                        break;
+                    default:
+                        width = ev.data1;
+                        height = ev.data2;
+                        break;
+                }
+                GlStateManager.Device.ResizeMainWindow((uint) width, (uint) height);
+                WindowOnFramebufferResize(Handle, width, height);
                 break;
             case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_MOVED:
                 OnMove(Handle, ev.data1, ev.data2);

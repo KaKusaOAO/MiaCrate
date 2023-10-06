@@ -1,6 +1,8 @@
+using MiaCrate.Core;
 using MiaCrate.Data;
 using MiaCrate.Data.Codecs;
 using MiaCrate.Extensions;
+using MiaCrate.Resources;
 using Mochi.IO;
 using Mochi.Utils;
 
@@ -16,6 +18,9 @@ public class SoundEvent
             )
             .Apply(instance, Create)
         );
+
+    public static ICodec<IHolder<SoundEvent>> Codec { get; } =
+        RegistryFileCodec.Create(Registries.SoundEvent, DirectCodec);
 
     private const float DefaultRange = 16;
 
