@@ -116,9 +116,11 @@ public sealed partial class ChatFormatting : IEnumLike<ChatFormatting>, IStringR
         return _toColor[this];
     }
 
+    public override string ToString() => _toString;
+
     [GeneratedRegex($"{PrefixCodeString}[0-9a-fk-or]", RegexOptions.IgnoreCase)]
     private static partial Regex CreateStripFormattingRegex();
     
-    [GeneratedRegex("^[a-z]")]
+    [GeneratedRegex("[^a-z]")]
     private static partial Regex CreateCleanNameRegex();
 }

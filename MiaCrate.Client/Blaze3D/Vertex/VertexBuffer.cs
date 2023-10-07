@@ -145,7 +145,7 @@ public class VertexBuffer : IDisposable
         var cl = GlStateManager.CommandList;
         GlStateManager.BindVertexBuffer(_vertexBufferId!);
         cl.DrawIndexed((uint) _indexCount);
-        // GlStateManager.SubmitCommands();
+        GlStateManager.SubmitCommands();
     }
     
     public void Dispose()

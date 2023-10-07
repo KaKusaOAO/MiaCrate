@@ -479,6 +479,7 @@ public static class GlStateManager
     public static void ScissorBox(int x, int y, int width, int height)
     {
         RenderSystem.AssertOnRenderThreadOrInit();
+        EnsureFramebufferSet();
         CommandList.SetScissorRect(0, (uint) x, (uint) y, (uint) width, (uint) height);
     }
 

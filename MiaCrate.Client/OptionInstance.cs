@@ -43,7 +43,7 @@ public sealed class OptionInstance<T> : IOptionInstance<T>
     public OptionInstance(string captionKey, TooltipSupplier tooltip, CaptionBasedToString captionBasedToString,
         IValueSet values, ICodec<T> codec, T initialValue, Action<T> onValueUpdate)
     {
-        _caption = TranslateText.Of(captionKey);
+        _caption = MiaComponent.Translatable(captionKey);
         _tooltip = tooltip;
         _toString = v => captionBasedToString(_caption, v);
         Values = values;
@@ -74,6 +74,9 @@ public sealed class OptionInstance<T> : IOptionInstance<T>
         }
     }
 
+    public AbstractWidget CreateButton(Options options, int x, int y, int width) =>
+        CreateButton(options, x, y, width, _ => { });
+    
     public AbstractWidget CreateButton(Options options, int x, int y, int width, Action<T> consumer) => 
         Values.CreateButton(_tooltip, options, x, y, width, consumer)(this);
 
@@ -85,14 +88,14 @@ public sealed class OptionInstance<T> : IOptionInstance<T>
 
     public record EnumValue(List<T> Values, ICodec<T> Codec) : ICycleableValueSet
     {
-        public IOptional<T> ValidateValue(T obj) => Values.Contains(obj) ? Optional.Of(obj) : Optional.Empty<T>();
+        public IOptional<T> ValidateValue(T val) => Values.Contains(val) ? Optional.Of(val) : Optional.Empty<T>();
     }
-    
+
     public interface IValueSet
     {
         public Func<OptionInstance<T>, AbstractWidget> CreateButton(TooltipSupplier tooltipSupplier, Options options,
             int x, int y, int width, Action<T> consumer);
-        public IOptional<T> ValidateValue(T obj);
+        public IOptional<T> ValidateValue(T val);
         public ICodec<T> Codec { get; }
     }
     
@@ -112,6 +115,53 @@ public sealed class OptionInstance<T> : IOptionInstance<T>
         Func<OptionInstance<T>, AbstractWidget> IValueSet.CreateButton(TooltipSupplier tooltipSupplier, Options options,
             int x, int y, int width, Action<T> onValueChanged) =>
             CreateButton(tooltipSupplier, options, x, y, width, onValueChanged);
+    }
+    
+    public interface ISliderableValueSet : IValueSet
+    {
+        public double ToSliderValue(T val);
+
+        public T FromSliderValue(double sliderValue);
+        
+        public new Func<OptionInstance<T>, AbstractWidget> CreateButton(TooltipSupplier tooltipSupplier, Options options,
+            int x, int y, int width, Action<T> onValueChanged) =>
+            instance => new OptionInstanceSliderButton(options, x, y, width, Button.DefaultHeight, instance,
+                this, tooltipSupplier, onValueChanged);
+
+        Func<OptionInstance<T>, AbstractWidget> IValueSet.CreateButton(TooltipSupplier tooltipSupplier, Options options,
+            int x, int y, int width, Action<T> onValueChanged) =>
+            CreateButton(tooltipSupplier, options, x, y, width, onValueChanged);
+    }
+
+    private sealed class OptionInstanceSliderButton : AbstractOptionSliderButton
+    {
+        private readonly OptionInstance<T> _instance;
+        private readonly ISliderableValueSet _values;
+        private readonly TooltipSupplier _tooltipSupplier;
+        private readonly Action<T> _onValueChanged;
+
+        public OptionInstanceSliderButton(Options options, int x, int y, int width, int height, OptionInstance<T> instance, ISliderableValueSet values, TooltipSupplier tooltipSupplier, Action<T> onValueChanged) 
+            : base(options, x, y, width, height, values.ToSliderValue(instance.Value))
+        {
+            _instance = instance;
+            _values = values;
+            _tooltipSupplier = tooltipSupplier;
+            _onValueChanged = onValueChanged;
+            UpdateMessage();
+        }
+
+        protected override void ApplyValue()
+        {
+            _instance.Value = _values.FromSliderValue(Value);
+            Options.Save();
+            _onValueChanged(_instance.Value);
+        }
+
+        protected override void UpdateMessage()
+        {
+            Message = _instance._toString(_instance.Value);
+            Tooltip = _tooltipSupplier(_values.FromSliderValue(Value));
+        }
     }
 }
 
@@ -142,5 +192,29 @@ public static class OptionInstance
         OptionInstance<bool>.CaptionBasedToString captionBasedToString, bool bl, Action<bool> onChanged)
     {
         return new OptionInstance<bool>(name, tooltipSupplier, captionBasedToString, _boolValues, bl, onChanged);
+    }
+
+    public record IntRange(int MinInclusive, int MaxInclusive) : IIntRangeBase
+    {
+        public IOptional<int> ValidateValue(int val)
+        {
+            return val.CompareTo(MinInclusive) >= 0 && val.CompareTo(MaxInclusive) <= 0
+                ? Optional.Of(val)
+                : Optional.Empty<int>();
+        }
+
+        public ICodec<int> Codec => Data.Codec.IntRange(MinInclusive, MaxInclusive + 1);
+    }
+    
+    public interface IIntRangeBase : OptionInstance<int>.ISliderableValueSet
+    {
+        public int MinInclusive { get; }
+        public int MaxInclusive { get; }
+
+        double OptionInstance<int>.ISliderableValueSet.ToSliderValue(int val) => 
+            Util.Map(val, MinInclusive, MaxInclusive, 0, 1);
+
+        int OptionInstance<int>.ISliderableValueSet.FromSliderValue(double sliderValue) => 
+            (int) Math.Floor(Util.Map(sliderValue, 0, 1, MinInclusive, MaxInclusive));
     }
 }

@@ -7,6 +7,7 @@ namespace MiaCrate;
 
 public interface IFormattedText
 {
+    public static IFormattedText Empty { get; } = new EmptyText();
     public static IOptional<Unit> StopIteration { get; } = Optional.Of(Unit.Instance);
 
     public delegate IOptional<T> ContentConsumer<out T>(string str);
@@ -21,6 +22,66 @@ public interface IFormattedText
             throw new ArgumentException("The given component style is not an instance of MiaCrate Style");
         
         return new ComponentText(component);
+    }
+
+    public static IFormattedText Composite(params IFormattedText[] texts) => Composite(texts.ToList());
+
+    public static IFormattedText Composite(List<IFormattedText> texts) => new CompositedText(texts);
+
+    public static IFormattedText Of(string text, Style style) => new SimpleText(text, style);
+
+    private class EmptyText : IFormattedText
+    {
+        public IOptional<T> Visit<T>(ContentConsumer<T> consumer) => Optional.Empty<T>();
+        public IOptional<T> Visit<T>(StyledContentConsumer<T> consumer, Style style) => Optional.Empty<T>();
+    }
+    
+    private class SimpleText : IFormattedText
+    {
+        private readonly string _text;
+        private readonly Style _style;
+
+        public SimpleText(string text, Style style)
+        {
+            _text = text;
+            _style = style;
+        }
+
+        public IOptional<T> Visit<T>(ContentConsumer<T> consumer) => consumer(_text);
+
+        public IOptional<T> Visit<T>(StyledContentConsumer<T> consumer, Style style) => consumer(_style.ApplyTo(style), _text);
+    }
+    
+    private class CompositedText : IFormattedText
+    {
+        private readonly List<IFormattedText> _list;
+
+        public CompositedText(List<IFormattedText> list)
+        {
+            _list = list;
+        }
+
+        public IOptional<T> Visit<T>(ContentConsumer<T> consumer)
+        {
+            foreach (var text in _list)
+            {
+                var opt = text.Visit(consumer);
+                if (opt.IsPresent) return opt;
+            }
+            
+            return Optional.Empty<T>();
+        }
+
+        public IOptional<T> Visit<T>(StyledContentConsumer<T> consumer, Style style)
+        {
+            foreach (var text in _list)
+            {
+                var opt = text.Visit(consumer, style);
+                if (opt.IsPresent) return opt;
+            }
+            
+            return Optional.Empty<T>();
+        }
     }
 
     private class ComponentText : IFormattedText

@@ -65,6 +65,12 @@ public class Button : AbstractButton
             return this;
         }
 
+        public Builder Width(int width)
+        {
+            _width = width;
+            return this;
+        }
+
         public Builder Bounds(int x, int y, int width, int height) => 
             Pos(x, y).Size(width, height);
 

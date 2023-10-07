@@ -7,6 +7,8 @@ public interface ILayoutElement
     public int Width { get; }
     public int Height { get; }
 
+    public void VisitWidgets(Action<AbstractWidget> consumer);
+    
     public void SetPosition(int x, int y)
     {
         X = x;

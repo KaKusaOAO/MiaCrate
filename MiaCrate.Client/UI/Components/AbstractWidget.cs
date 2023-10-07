@@ -63,23 +63,23 @@ public abstract class AbstractWidget : IRenderable, IGuiEventListener, ILayoutEl
 
     protected abstract void RenderWidget(GuiGraphics graphics, int mouseX, int mouseY, float f);
 
-    protected void RenderScrollingString(GuiGraphics graphics, Font font, int i, int j)
+    protected void RenderScrollingString(GuiGraphics graphics, Font font, int margin, Argb32 color)
     {
-        var k = X + i;
-        var l = X + Width - i;
-        RenderScrollingString(graphics, font, Message, k, Y, l, Y + Height, j);
+        var x1 = X + margin;
+        var x2 = X + Width - margin;
+        RenderScrollingString(graphics, font, Message, x1, Y, x2, Y + Height, color);
     }
 
-    protected static void RenderScrollingString(GuiGraphics graphics, Font font, IComponent component, int i, int j,
-        int k, int l, int m) =>
-        RenderScrollingString(graphics, font, component, (i + k) / 2, i, j, k, l, m);
+    protected static void RenderScrollingString(GuiGraphics graphics, Font font, IComponent component, int x1, int y1,
+        int x2, int y2, Argb32 m) =>
+        RenderScrollingString(graphics, font, component, (x1 + x2) / 2, x1, y1, x2, y2, m);
 
-    protected static void RenderScrollingString(GuiGraphics graphics, Font font, IComponent component, int i, int j,
-        int k, int l, int m, int n)
+    protected static void RenderScrollingString(GuiGraphics graphics, Font font, IComponent component, int centerX, int x1,
+        int y1, int x2, int y2, Argb32 n)
     {
         var o = font.Width(component);
-        var p = (k + m - 9) / 2 + 1;
-        var q = l - j;
+        var p = (y1 + y2 - Font.LineHeight) / 2 + 1;
+        var q = x2 - x1;
 
         int r;
         if (o > q)
@@ -88,16 +88,16 @@ public abstract class AbstractWidget : IRenderable, IGuiEventListener, ILayoutEl
 
             var d = Util.GetMillis() / 1000.0;
             var e = Math.Max(r * 0.5, 3.0);
-            var f = Math.Sin(1.5707963267948966 * Math.Cos(6.283185307179586 * d / e)) / 2.0 + 0.5;
+            var f = Math.Sin(Math.PI / 2 * Math.Cos(Math.PI * 2 * d / e)) / 2.0 + 0.5;
             var g = Mth.Lerp(0.0, (double) r, f);
 
-            graphics.EnableScissor(j, k, l, m);
-            graphics.DrawString(font, component, j - (int) g, p, n);
+            graphics.EnableScissor(x1, y1, x2, y2);
+            graphics.DrawString(font, component, x1 - (int) g, p, n);
             graphics.DisableScissor();
         }
         else
         {
-            r = Math.Clamp(i, j + o / 2, l - o / 2);
+            r = Math.Clamp(centerX, x1 + o / 2, x2 - o / 2);
             graphics.DrawCenteredString(font, component, r, p, n);
         }
     }
@@ -123,7 +123,7 @@ public abstract class AbstractWidget : IRenderable, IGuiEventListener, ILayoutEl
 
     public virtual void OnClick(double x, double y) {}
     public virtual void OnRelease(double x, double y) {}
-    protected virtual void OnDrag(double x1, double y1, double x2, double y2) {}
+    protected virtual void OnDrag(double x, double y, double dx, double dy) {}
 
     protected bool Clicked(double x, double y) =>
         IsActive && IsVisible && x >= X && y >= Y && x < X + Width && y < Y + Height;
@@ -139,10 +139,19 @@ public abstract class AbstractWidget : IRenderable, IGuiEventListener, ILayoutEl
         return true;
     }
 
+    public virtual bool MouseDragged(double x, double y, MouseButton button, double dx, double dy)
+    {
+        if (!IsValidClickButton(button)) return false;
+        OnDrag(x, y, dx, dy);
+        return true;
+    }
+
     public virtual void PlayDownSound(SoundManager manager)
     {
         manager.Play(SimpleSoundInstance.ForUi(SoundEvents.UiButtonClick, 1f));
     }
 
     protected virtual bool IsValidClickButton(MouseButton button) => button == MouseButton.Left;
+    
+    public void VisitWidgets(Action<AbstractWidget> consumer) => consumer(this);
 }

@@ -10,6 +10,10 @@
         <OutputType>Exe</OutputType>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <DefineConstants>TRACE;INCLUDE_SODIUM</DefineConstants>
+    </PropertyGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\MiaCrate.Common\MiaCrate.Common.csproj" />
       <ProjectReference Include="..\MiaCrate\MiaCrate.csproj" />

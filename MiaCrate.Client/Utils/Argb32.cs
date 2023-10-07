@@ -39,6 +39,7 @@ public readonly struct Argb32
     public Argb32 WithBlue(byte blue) => new(Red, Green, blue, Alpha);
     public Argb32 WithAlpha(byte alpha) => new(Red, Green, Blue, alpha);
     public Argb32 WithAlpha(float val) => WithAlpha((byte) Math.Ceiling(Math.Clamp(val, 0, 1) * byte.MaxValue));
+    public Argb32 WithAlpha(double val) => WithAlpha((byte) Math.Ceiling(Math.Clamp(val, 0, 1) * byte.MaxValue));
     
     public Argb32 WithRed(int red) => WithRed((byte) (red & 0xff));
     public Argb32 WithGreen(int green) => WithGreen((byte) (green & 0xff));

@@ -1,4 +1,6 @@
-﻿namespace MiaCrate;
+﻿using Mochi.Utils;
+
+namespace MiaCrate;
 
 public static partial class Util
 {
@@ -109,4 +111,9 @@ public static partial class Util
         source.Next(max - min + 1) + min;
 
     public static double RotLerp(double d, double e, double f) => e + d * WrapDegrees(f - e);
+
+    public static float Map(float f, float g, float h, float i, float j) => Mth.Lerp(i, j, InverseLerp(f, g, h));
+    public static float InverseLerp(float f, float g, float h) => (f - g) / (h - g);
+    public static double Map(double f, double g, double h, double i, double j) => Mth.Lerp(i, j, InverseLerp(f, g, h));
+    public static double InverseLerp(double f, double g, double h) => (f - g) / (h - g);
 }

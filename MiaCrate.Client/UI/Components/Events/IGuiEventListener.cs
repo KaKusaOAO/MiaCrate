@@ -7,7 +7,7 @@ public interface IGuiEventListener
     public void MouseMoved(double x, double y) {}
     public bool MouseClicked(double x, double y, MouseButton button) => false;
     public bool MouseReleased(double x, double y, MouseButton button) => false;
-    public bool MouseDragged(double x, double y, MouseButton button, double x2, double y2) => false;
+    public bool MouseDragged(double x, double y, MouseButton button, double dx, double dy) => false;
     public bool MouseScrolled(double x, double y, double amount) => false;
     public bool KeyPressed(Keys key, int scancode, KeyModifiers modifiers) => false;
     public bool KeyReleased(Keys key, int scancode, KeyModifiers modifiers) => false;
@@ -27,9 +27,9 @@ public static class GuiEventListenerExtension
     public static bool MouseReleased(this IGuiEventListener listener, double x, double y, MouseButton button) =>
         listener.MouseReleased(x, y, button);
 
-    public static bool MouseDragged(this IGuiEventListener listener, double x, double y, MouseButton button, double x2,
-        double y2) =>
-        listener.MouseDragged(x, y, button, x2, y2);
+    public static bool MouseDragged(this IGuiEventListener listener, double x, double y, MouseButton button, double dx,
+        double dy) =>
+        listener.MouseDragged(x, y, button, dx, dy);
     
     public static bool MouseScrolled(this IGuiEventListener listener, double x, double y, double amount) =>
         listener.MouseScrolled(x, y, amount);

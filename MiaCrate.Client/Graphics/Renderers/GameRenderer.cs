@@ -2,11 +2,13 @@
 using System.Diagnostics;
 using MiaCrate.Client.Platform;
 using MiaCrate.Client.Shaders;
+using MiaCrate.Client.Sodium.UI;
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.UI;
 using MiaCrate.Resources;
 using Mochi.Utils;
 using OpenTK.Mathematics;
+using SDL2;
 using Veldrid;
 
 namespace MiaCrate.Client.Graphics;
@@ -539,6 +541,12 @@ public class GameRenderer : IDisposable
         }
         
         graphics.Flush();
+        
+#if INCLUDE_SODIUM
+        // Sodium inject
+        RenderSodiumConsole(f, l, bl);
+#endif
+        
         poseStack.PopPose();
         RenderSystem.ApplyModelViewMatrix();
     }
@@ -614,4 +622,28 @@ public class GameRenderer : IDisposable
     {
         _postEffect?.Dispose();
     }
+    
+#if INCLUDE_SODIUM
+    #region => Sodium - inject console renderer
+    private static bool HasRenderedOverlayOnce { get; set; }
+    
+    private void RenderSodiumConsole(float f, long l, bool bl)
+    {
+        if (Game.Instance.Overlay != null)
+        {
+            if (!HasRenderedOverlayOnce) return;
+        }
+
+        var graphics = new GuiGraphics(_game, _renderBuffers.BufferSource);
+
+        var currentTime = SDL.SDL_GetTicks() / 1000.0;
+        // var currentTime = GLFW.GetTime();
+        
+        SodiumConsoleHook.Render(graphics, currentTime);
+        graphics.Flush();
+        
+        HasRenderedOverlayOnce = true;
+    }
+    #endregion
+#endif
 }

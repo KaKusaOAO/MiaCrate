@@ -53,7 +53,7 @@ public class TitleScreen : Screen
         AddRenderableWidget(
             Button.CreateBuilder(
                     MiaComponent.Translatable("menu.options"),
-                    _ => Game!.Screen = new TitleScreen())
+                    _ => Game!.Screen = new OptionsScreen(this, Game.Options))
                 .Bounds(Width / 2 - 100, l + 72 + 12, 98, Button.DefaultHeight)
                 .Build()
         );
