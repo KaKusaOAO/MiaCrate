@@ -36,7 +36,7 @@ public interface IContainerEventHandler : IGuiEventListener
         {
             if (!child.MouseClicked(x, y, button)) continue;
             FocusedChild = child;
-            if (button == 0) IsDragging = true;
+            if (button == MouseButton.Left) IsDragging = true;
             return true;
         }
 
@@ -44,10 +44,10 @@ public interface IContainerEventHandler : IGuiEventListener
     }
     bool IGuiEventListener.MouseClicked(double x, double y, MouseButton button) => MouseClicked(x, y, button);
 
-    public new bool MouseDragged(double x, double y, MouseButton button, double x2, double y2) => 
-        FocusedChild != null && IsDragging && button == 0 && FocusedChild.MouseDragged(x, y, button, x2, y2);
-    bool IGuiEventListener.MouseDragged(double x, double y, MouseButton button, double x2, double y2) =>
-        MouseDragged(x, y, button, x2, y2);
+    public new bool MouseDragged(double x, double y, MouseButton button, double dx, double dy) => 
+        FocusedChild != null && IsDragging && button == MouseButton.Left && FocusedChild.MouseDragged(x, y, button, dx, dy);
+    bool IGuiEventListener.MouseDragged(double x, double y, MouseButton button, double dx, double dy) =>
+        MouseDragged(x, y, button, dx, dy);
 
     public new bool MouseScrolled(double x, double y, double amount) =>
         GetChildAt(x, y).Where(n => n.MouseScrolled(x, y, amount)).IsPresent;

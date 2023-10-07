@@ -74,7 +74,7 @@ public partial class TranslatableContent : IContent<TranslatableContent>
                 throw new FormatException($"Unsupported format: {p}");
             }
 
-            var ci = c.Length == 0 ? counter : int.Parse(c) - 1;
+            var ci = c.Length == 0 ? counter++ : int.Parse(c) - 1;
             result.Add(ci >= parameters.Count && ci < 0
                 ? new GenericMutableComponent(new LiteralContent(m.Value), style.Clear())
                 : parameters[ci].Clone());

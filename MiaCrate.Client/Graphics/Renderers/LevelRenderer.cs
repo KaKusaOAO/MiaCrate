@@ -299,4 +299,9 @@ public class LevelRenderer : IResourceManagerReloadListener, IDisposable
     {
         throw new NotImplementedException();
     }
+
+    public void NeedsUpdate()
+    {
+        Util.LogFoobar();
+    }
 }

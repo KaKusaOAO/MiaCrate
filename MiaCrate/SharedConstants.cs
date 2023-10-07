@@ -26,7 +26,7 @@ public static class SharedConstants
 	public const bool FixTntDupe = false;
 	public const bool FixSandDupe = false;
 	
-	public const bool UseDebugFeatures = false;
+	public const bool UseDebugFeatures = true;
 	public const bool DebugOpenIncompatibleWorlds = UseDebugFeatures && false;
 	public const bool DebugAllowLowSimDistance = UseDebugFeatures && false;
 	public const bool DebugHotkeys = UseDebugFeatures && false;
@@ -55,7 +55,7 @@ public static class SharedConstants
 	public const bool DebugNamedRunnables = UseDebugFeatures && false;
 	public const bool DebugGoalSelector = UseDebugFeatures && false;
 	public const bool DebugVillageSections = UseDebugFeatures && false;
-	public const bool DebugBrain = UseDebugFeatures && false;
+	public const bool DebugBrain = UseDebugFeatures && true;
 	public const bool DebugBees = UseDebugFeatures && false;
 	public const bool DebugRaids = UseDebugFeatures && false;
 	public const bool DebugBlockBreak = UseDebugFeatures && false;

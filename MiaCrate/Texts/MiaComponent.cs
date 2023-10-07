@@ -8,7 +8,7 @@ namespace MiaCrate.Texts;
 public static class MiaComponent
 {
     public static IMutableComponent<Style> Literal(string message) => 
-        Component.Literal(message, Style.Empty);
+        new MutableComponent<Style>(new LiteralContent(message), Style.Empty);
 
     public static IMutableComponent<Style> Translatable(string message, params object[] parameters) =>
         new MutableComponent<Style>(

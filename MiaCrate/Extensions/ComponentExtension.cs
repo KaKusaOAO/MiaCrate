@@ -39,6 +39,14 @@ public static class ComponentExtension
         return component;
     }
     
+    public static IMutableComponent WithFont(this IMutableComponent component, ResourceLocation? font)
+    {
+        component = component.EnsureStyle();
+        var style = component.Style as Style;
+        component.Style = style!.WithFont(font);
+        return component;
+    }
+    
     public static T AppendWith<T>(this T text, params IComponent[] texts) where T : IComponent
     {
         var content = text.Content;
@@ -50,7 +58,10 @@ public static class ComponentExtension
         }
         return text;
     }
+    
+    public static IFormattedText AsFormattedText(this IComponent component) => 
+        IFormattedText.FromComponent(component);
 
     public static FormattedCharSequence GetVisualOrderText(this IComponent component) => 
-        Language.Instance.GetVisualOrder(IFormattedText.FromComponent(component));
+        Language.Instance.GetVisualOrder(component.AsFormattedText());
 }

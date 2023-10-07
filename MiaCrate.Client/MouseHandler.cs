@@ -74,12 +74,12 @@ public class MouseHandler
         var screen = _game.Screen;
         if (screen != null && _game.Overlay == null)
         {
-            var f = (double) _game.Window.GuiScaledWidth / _game.Window.ScreenWidth;
-            var g = (double) _game.Window.GuiScaledHeight / _game.Window.ScreenHeight;
+            var f = x * _game.Window.GuiScaledWidth / _game.Window.ScreenWidth;
+            var g = y * _game.Window.GuiScaledHeight / _game.Window.ScreenHeight;
             Screen.WrapScreenError(() => screen.MouseMoved(f, g), 
                 "mouseMoved event handler", screen.GetType().Name);
 
-            if (_activeButton != MouseButton.Left && _mousePressedTime > 0.0)
+            if (_activeButton != ButtonNotAssigned && _mousePressedTime > 0.0)
             {
                 var h = (x - XPos) * _game.Window.GuiScaledWidth / _game.Window.ScreenWidth;
                 var i = (y - YPos) * _game.Window.GuiScaledHeight / _game.Window.ScreenHeight;

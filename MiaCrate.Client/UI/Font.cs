@@ -18,15 +18,15 @@ public class Font
     
     private readonly Func<ResourceLocation, FontSet> _fonts;
     private readonly bool _filterFishyGlyphs;
-    private readonly StringSplitter _splitter;
     
+    public StringSplitter Splitter { get; }
     public bool IsBidirectional => Language.Instance.IsDefaultRightToLeft;
     
     public Font(Func<ResourceLocation, FontSet> fonts, bool filterFishyGlyphs)
     {
         _fonts = fonts;
         _filterFishyGlyphs = filterFishyGlyphs;
-        _splitter = new StringSplitter((i, style) =>
+        Splitter = new StringSplitter((i, style) =>
             GetFontSet(style.Font).GetGlyphInfo(i, _filterFishyGlyphs).GetAdvance(style.IsBold));
     }
 
@@ -109,13 +109,13 @@ public class Font
         bakedGlyph.Render(italic, x + boldOffset, y, matrix, consumer, red, green, blue, alpha, packedLightCoords);
     }
 
-    public int Width(string str) => (int) Math.Ceiling(_splitter.StringWidth(str));
+    public int Width(string str) => (int) Math.Ceiling(Splitter.StringWidth(str));
     
-    public int Width(IFormattedText text) => (int) Math.Ceiling(_splitter.StringWidth(text));
+    public int Width(IFormattedText text) => (int) Math.Ceiling(Splitter.StringWidth(text));
 
     public int Width(IComponent comp) => Width(IFormattedText.FromComponent(comp));
     
-    public int Width(FormattedCharSequence seq) => (int) Math.Ceiling(_splitter.StringWidth(seq));
+    public int Width(FormattedCharSequence seq) => (int) Math.Ceiling(Splitter.StringWidth(seq));
 
     public enum DisplayMode
     {

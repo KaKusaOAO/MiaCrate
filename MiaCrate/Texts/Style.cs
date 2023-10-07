@@ -177,6 +177,11 @@ public class Style : IStyle<Style>, IColoredStyle<Style>
         Obfuscated = value
     }.ApplyTo(this);
 
+    public Style WithFont(ResourceLocation? font) => new Style
+    {
+        ThisFont = font
+    }.ApplyTo(this);
+
     public Style ApplyLegacyFormat(ChatFormatting formatting)
     {
         var color = Color;
