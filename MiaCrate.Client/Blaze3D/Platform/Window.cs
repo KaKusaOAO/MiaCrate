@@ -438,19 +438,19 @@ public unsafe class Window : IDisposable
             case GraphicsBackend.Vulkan:
                 SDL.SDL_Vulkan_GetDrawableSize(Handle, out width, out height);
                 break;
-            case GraphicsBackend.Direct3D11:
-                SDL.SDL_GetWindowSize(Handle, out width, out height);
-                break;
             case GraphicsBackend.OpenGL:
+            case GraphicsBackend.OpenGLES:
                 SDL.SDL_GL_GetDrawableSize(Handle, out width, out height);
                 break;
             default:
-                throw new NotSupportedException();
+                SDL.SDL_GetWindowSize(Handle, out width, out height);
+                break;
         }
         
         // GLFW.GetFramebufferSize(Handle, out var width, out var height);
         _framebufferWidth = Math.Max(width, 1);
         _framebufferHeight = Math.Max(height, 1);
+        DisplayResized?.Invoke();
     }
 
     public void SetErrorSection(string section)
