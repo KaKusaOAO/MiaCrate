@@ -2,3 +2,4 @@
 VerifyVersionInfo
 VerSetConditionMask
 GetNativeSystemInfo
+GetClientRect

@@ -1,5 +1,9 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 using MiaCrate.Client.Systems;
 using Mochi.Utils;
 using SDL2;
@@ -202,6 +206,7 @@ public unsafe class Window : IDisposable
         GlStateManager.Init(device);
         SetMode();
         RefreshFramebufferSize();
+        DisplayResized?.Invoke();
     }
 
     public void Tick()
@@ -253,24 +258,7 @@ public unsafe class Window : IDisposable
                 OnResize(Handle, ev.data1, ev.data2);
                 GlStateManager.SubmitCommands();
 
-                int width, height;
-                switch (GlStateManager.Device.BackendType)
-                {
-                    case GraphicsBackend.Metal:
-                        SDL.SDL_Metal_GetDrawableSize(Handle, out width, out height);
-                        break;
-                    case GraphicsBackend.Vulkan:
-                        SDL.SDL_Vulkan_GetDrawableSize(Handle, out width, out height);
-                        break;
-                    case GraphicsBackend.OpenGL:
-                    case GraphicsBackend.OpenGLES:
-                        SDL.SDL_GL_GetDrawableSize(Handle, out width, out height);
-                        break;
-                    default:
-                        width = ev.data1;
-                        height = ev.data2;
-                        break;
-                }
+                GetFramebufferSize(out var width, out var height);
                 GlStateManager.Device.ResizeMainWindow((uint) width, (uint) height);
                 WindowOnFramebufferResize(Handle, width, height);
                 break;
@@ -345,6 +333,9 @@ public unsafe class Window : IDisposable
 
     public void SetGuiScale(double d)
     {
+        var scale = (double) _framebufferWidth / _width;
+        d *= scale;
+        
         GuiScale = d;
 
         var i = (int) (_framebufferWidth / d);
@@ -426,9 +417,8 @@ public unsafe class Window : IDisposable
         }
     }
 
-    private void RefreshFramebufferSize()
+    private void GetFramebufferSize(out int width, out int height)
     {
-        int width, height;
         var backend = GlStateManager.Device.BackendType;
         switch (backend)
         {
@@ -438,19 +428,48 @@ public unsafe class Window : IDisposable
             case GraphicsBackend.Vulkan:
                 SDL.SDL_Vulkan_GetDrawableSize(Handle, out width, out height);
                 break;
+            case GraphicsBackend.Direct3D11:
+#pragma warning disable CA1416
+                WinApiGetWindowSizeInPixels(Handle, out width, out height);
+#pragma warning restore CA1416
+                break;
             case GraphicsBackend.OpenGL:
             case GraphicsBackend.OpenGLES:
                 SDL.SDL_GL_GetDrawableSize(Handle, out width, out height);
                 break;
             default:
-                SDL.SDL_GetWindowSize(Handle, out width, out height);
-                break;
+                throw new NotSupportedException();
         }
         
-        // GLFW.GetFramebufferSize(Handle, out var width, out var height);
-        _framebufferWidth = Math.Max(width, 1);
-        _framebufferHeight = Math.Max(height, 1);
-        DisplayResized?.Invoke();
+        width = Math.Max(width, 1);
+        height = Math.Max(height, 1);
+    }
+
+    private void RefreshFramebufferSize()
+    {
+        GetFramebufferSize(out var width, out var height);
+        _framebufferWidth = width;
+        _framebufferHeight = height;
+    }
+
+    [SupportedOSPlatform("windows5.0")]
+    private static void WinApiGetWindowSizeInPixels(IntPtr handle, out int width, out int height)
+    {
+        var sysWmInfo = new SDL.SDL_SysWMinfo();
+        SDL.SDL_GetVersion(out sysWmInfo.version);
+        SDL.SDL_GetWindowWMInfo(handle, ref sysWmInfo);
+        
+        var hwnd = (HWND) sysWmInfo.info.win.window;
+        if (PInvoke.GetClientRect(hwnd, out var rect))
+        {
+            width = rect.right;
+            height = rect.bottom;
+        }
+        else
+        {
+            width = 0;
+            height = 0;
+        }
     }
 
     public void SetErrorSection(string section)
