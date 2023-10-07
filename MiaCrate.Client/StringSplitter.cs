@@ -1,7 +1,6 @@
 ﻿using Mochi.Core;
 using Mochi.Texts;
 using Mochi.Utils;
-using Vortice.Direct3D11;
 using Style = MiaCrate.Texts.Style;
 
 namespace MiaCrate.Client;

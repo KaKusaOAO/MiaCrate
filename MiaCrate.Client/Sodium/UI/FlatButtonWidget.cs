@@ -2,6 +2,7 @@
 using MiaCrate.Client.UI;
 using MiaCrate.Client.Utils;
 using Mochi.Texts;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace MiaCrate.Client.Sodium.UI;
 

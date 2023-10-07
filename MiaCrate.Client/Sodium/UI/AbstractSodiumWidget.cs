@@ -4,7 +4,7 @@ using MiaCrate.Client.Utils;
 using MiaCrate.Texts;
 using Mochi.Texts;
 using Mochi.Utils;
-using Vortice.DXGI;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace MiaCrate.Client.Sodium.UI;
 

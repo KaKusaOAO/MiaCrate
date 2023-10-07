@@ -1,11 +1,9 @@
-﻿using MiaCrate.Client.Platform;
-using MiaCrate.Client.UI;
+﻿using MiaCrate.Client.UI;
 using MiaCrate.Client.Utils;
 using MiaCrate.Extensions;
 using MiaCrate.Localizations;
 using Mochi.Texts;
-using Mochi.Utils;
-using SDL2;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using Style = MiaCrate.Texts.Style;
 
 namespace MiaCrate.Client.Sodium.UI;
@@ -59,8 +57,8 @@ public class ConsoleRenderer
 
     public void Render(GuiGraphics graphics)
     {
-        var currentTime = SDL.SDL_GetTicks() / 1000.0;
-        // var currentTime = GLFW.GetTime();
+        // var currentTime = SDL.SDL_GetTicks() / 1000.0;
+        var currentTime = GLFW.GetTime();
 
         var game = Game.Instance;
         var pose = graphics.Pose;

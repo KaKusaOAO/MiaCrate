@@ -1,16 +1,12 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
-using MiaCrate.Client.Platform;
-using MiaCrate.Client.Shaders;
+﻿using MiaCrate.Client.Shaders;
 using MiaCrate.Client.Sodium.UI;
 using MiaCrate.Client.Systems;
 using MiaCrate.Client.UI;
-using MiaCrate.Data;
-using MiaCrate.Extensions;
 using MiaCrate.Resources;
 using Mochi.Utils;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace MiaCrate.Client.Graphics;
 
@@ -600,8 +596,8 @@ public class GameRenderer : IDisposable
 
         var graphics = new GuiGraphics(_game, _renderBuffers.BufferSource);
 
-        var currentTime = SDL.SDL_GetTicks() / 1000.0;
-        // var currentTime = GLFW.GetTime();
+        // var currentTime = SDL.SDL_GetTicks() / 1000.0;
+        var currentTime = GLFW.GetTime();
         
         SodiumConsoleHook.Render(graphics, currentTime);
         graphics.Flush();
