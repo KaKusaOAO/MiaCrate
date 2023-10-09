@@ -10,6 +10,10 @@
     <ItemGroup>
       <None Remove="1.20.2-pre2.jar" />
       <EmbeddedResource Include="1.20.2-pre2.jar" />
+      <None Remove="iris-mc1.20.2-1.6.9.jar" />
+      <EmbeddedResource Include="iris-mc1.20.2-1.6.9.jar" />
+      <None Remove="sodium-fabric-mc1.20.2-0.5.3.jar" />
+      <EmbeddedResource Include="sodium-fabric-mc1.20.2-0.5.3.jar" />
     </ItemGroup>
 
 </Project>

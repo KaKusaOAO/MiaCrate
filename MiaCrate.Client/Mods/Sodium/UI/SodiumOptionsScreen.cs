@@ -1,4 +1,5 @@
-﻿using MiaCrate.Client.Sodium.UI.Options;
+﻿using MiaCrate.Client.IrisShader.UI;
+using MiaCrate.Client.Sodium.UI.Options;
 using MiaCrate.Client.Sodium.UI.Options.Controls;
 using MiaCrate.Client.UI;
 using MiaCrate.Client.UI.Screens;
@@ -15,6 +16,7 @@ public class SodiumOptionsScreen : Screen
     private readonly List<IControlElement> _controls = new();
     private readonly Screen _lastScreen;
     private OptionPage? _currentPage;
+    private OptionPage? _shaderPacks;
 
     private FlatButtonWidget _applyButton, _closeButton, _undoButton;
     private FlatButtonWidget _donateButton, _hideDonateButton;
@@ -30,10 +32,26 @@ public class SodiumOptionsScreen : Screen
         _lastScreen = lastScreen;
         
         _pages.Add(GameOptionPages.General);
+
+        if (SharedConstants.IncludesIris)
+        {
+            var comp = MiaComponent.Translatable("options.iris.shaderPackSelection");
+            _shaderPacks = new OptionPage(comp, new List<OptionGroup>());
+            _pages.Add(_shaderPacks);
+        }
     }
 
     public void SetPage(OptionPage page)
     {
+        if (SharedConstants.IncludesIris)
+        {
+            if (page == _shaderPacks)
+            {
+                Game!.Screen = new ShaderPackScreen(this);
+                return;
+            }
+        }
+
         _currentPage = page;
         RebuildGui();
     }
@@ -61,7 +79,7 @@ public class SodiumOptionsScreen : Screen
         RebuildGuiOptions();
 
         _undoButton = new FlatButtonWidget(new Dim2I(Width - 211, Height - 30, 65, 20),
-            MiaComponent.Translatable("sodium.options.button.undo"), UndoChanges);
+            MiaComponent.Translatable("sodium.options.buttons.undo"), UndoChanges);
         _applyButton = new FlatButtonWidget(new Dim2I(Width - 142, Height - 30, 65, 20),
             MiaComponent.Translatable("sodium.options.buttons.apply"), ApplyChanges);
         _closeButton = new FlatButtonWidget(new Dim2I(Width - 73, Height - 30, 65, 20),
@@ -74,8 +92,8 @@ public class SodiumOptionsScreen : Screen
         AddRenderableWidget(_undoButton);
         AddRenderableWidget(_applyButton);
         AddRenderableWidget(_closeButton);
-        AddRenderableWidget(_donateButton);
-        AddRenderableWidget(_hideDonateButton);
+        // AddRenderableWidget(_donateButton);
+        // AddRenderableWidget(_hideDonateButton);
     }
 
     private void RebuildGuiPages()

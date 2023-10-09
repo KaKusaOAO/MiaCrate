@@ -201,11 +201,15 @@ public class Font
 
             var m = info.GetAdvance(bl);
             var n = _dropShadow ? 1f : 0;
+            
+            // Make Z offset between text and shadow
+            var o = _dropShadow ? -1 : 1;
+            
             if (style.IsStrikethrough)
-                AddEffect(new BakedGlyph.Effect(X + n - 1, Y + n + 4.5f, X + n + m, Y + n + 4.5f - 1f, EffectDepth, g, h, l, f));
+                AddEffect(new BakedGlyph.Effect(X + n - 1, Y + n + 4.5f, X + n + m, Y + n + 4.5f - 1f, EffectDepth + o, g, h, l, f));
 
             if (style.IsUnderlined)
-                AddEffect(new BakedGlyph.Effect(X + n - 1, Y + n + LineHeight, X + n + m, Y + n + LineHeight - 1f, EffectDepth, g, h, l, f));
+                AddEffect(new BakedGlyph.Effect(X + n - 1, Y + n + LineHeight, X + n + m, Y + n + LineHeight - 1f, EffectDepth + o, g, h, l, f));
 
             X += m;
             return true;

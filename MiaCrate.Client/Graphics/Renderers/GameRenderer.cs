@@ -541,12 +541,13 @@ public class GameRenderer : IDisposable
         }
         
         graphics.Flush();
-        
-#if INCLUDE_SODIUM
-        // Sodium inject
-        RenderSodiumConsole(f, l, bl);
-#endif
-        
+
+        if (SharedConstants.IncludesSodium)
+        {
+            // Sodium inject
+            RenderSodiumConsole(f, l, bl);
+        }
+
         poseStack.PopPose();
         RenderSystem.ApplyModelViewMatrix();
     }
@@ -623,12 +624,14 @@ public class GameRenderer : IDisposable
         _postEffect?.Dispose();
     }
     
-#if INCLUDE_SODIUM
     #region => Sodium - inject console renderer
     private static bool HasRenderedOverlayOnce { get; set; }
     
     private void RenderSodiumConsole(float f, long l, bool bl)
     {
+        if (!SharedConstants.IncludesSodium)
+            throw new InvalidOperationException("Sodium is not included");
+        
         if (Game.Instance.Overlay != null)
         {
             if (!HasRenderedOverlayOnce) return;
@@ -645,5 +648,4 @@ public class GameRenderer : IDisposable
         HasRenderedOverlayOnce = true;
     }
     #endregion
-#endif
 }

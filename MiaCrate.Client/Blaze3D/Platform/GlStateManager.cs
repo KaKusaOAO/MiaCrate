@@ -341,7 +341,10 @@ public static class GlStateManager
         RenderSystem.AssertOnRenderThread();
         BuildPipelineIfDirty();
         CommandList.SetPipeline(_pipeline);
-        CommandList.SetIndexBuffer(_indexBuffer, _indexFormat);
+        
+        if (_indexBuffer != null)
+            CommandList.SetIndexBuffer(_indexBuffer, _indexFormat);
+        
         EnsureFramebufferSet();
     }
     
@@ -480,7 +483,11 @@ public static class GlStateManager
     {
         RenderSystem.AssertOnRenderThreadOrInit();
         EnsureFramebufferSet();
-        CommandList.SetScissorRect(0, (uint) x, (uint) y, (uint) width, (uint) height);
+        
+        // passed: (_fb.Height - (int)height - y)
+        var uy = _framebuffer!.Height - height - y;
+        CommandList.SetScissorRect(0, (uint) x, (uint) uy, (uint) width, (uint) height);
+        SubmitCommands();
     }
 
     public static void DisableScissorTest()

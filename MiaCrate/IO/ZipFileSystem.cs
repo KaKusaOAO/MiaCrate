@@ -42,6 +42,9 @@ public class ZipFileSystem : IFileSystem
             path = ResolvePath(path);
             var entry = Container.GetEntry(path);
             if (entry == null)
+                entry = Container.GetEntry("/" + path);
+            
+            if (entry == null)
             {
                 throw new FileNotFoundException($"Entry {path} not found");
             }
@@ -86,6 +89,7 @@ public class ZipFileSystem : IFileSystem
                 .Where(x => x.Length > splitted.Length + 1)
                 .Where(x => x.Take(splitted.Length).SequenceEqual(splitted))
                 .Select(x => x.Take(splitted.Length + 1).Last())
+                .Where(x => !string.IsNullOrEmpty(x))
                 .ToHashSet()
                 .ToArray();
         }
@@ -111,6 +115,7 @@ public class ZipFileSystem : IFileSystem
                 .Where(x => x.Length > splitted.Length + 1)
                 .Where(x => x.Take(splitted.Length).SequenceEqual(splitted))
                 .Select(x => x.Take(splitted.Length + 1).Last())
+                .Where(x => !string.IsNullOrEmpty(x))
                 .ToHashSet()
                 .ToArray();
         }
@@ -136,6 +141,7 @@ public class ZipFileSystem : IFileSystem
                 .Where(x => x.Length == splitted.Length + 1)
                 .Where(x => x.Take(splitted.Length).SequenceEqual(splitted))
                 .Select(x => x.Take(splitted.Length + 1).Last())
+                .Where(x => !string.IsNullOrEmpty(x))
                 .ToHashSet()
                 .ToArray();
         }
@@ -161,6 +167,7 @@ public class ZipFileSystem : IFileSystem
                 .Where(x => x.Length == splitted.Length + 1)
                 .Where(x => x.Take(splitted.Length).SequenceEqual(splitted))
                 .Select(x => x.Take(splitted.Length + 1).Last())
+                .Where(x => !string.IsNullOrEmpty(x))
                 .ToHashSet()
                 .ToArray();
         }
