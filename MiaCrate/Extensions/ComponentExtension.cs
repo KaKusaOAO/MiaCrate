@@ -71,6 +71,14 @@ public static class ComponentExtension
         return component;
     }
     
+    public static IMutableComponent WithObfuscated(this IMutableComponent component, bool? val)
+    {
+        component = component.EnsureStyle();
+        var style = component.Style as Style;
+        component.Style = style!.WithObfuscated(val);
+        return component;
+    }
+    
     public static IMutableComponent WithFont(this IMutableComponent component, ResourceLocation? font)
     {
         component = component.EnsureStyle();
