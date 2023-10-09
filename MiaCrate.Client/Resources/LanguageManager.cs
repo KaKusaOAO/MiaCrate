@@ -9,7 +9,8 @@ public class LanguageManager : IResourceManagerReloadListener
     {
         var list = new List<string>
         {
-            "en_us"
+            Language.Default,
+            // "zh_tw"
         };
 
         var lang = ClientLanguage.LoadFrom(manager, list, false);

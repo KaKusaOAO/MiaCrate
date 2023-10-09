@@ -186,6 +186,37 @@ public class TextureInstance : IDisposable
         UpdateNames();
     }
 
+    public void Invalidate()
+    {
+        foreach (var textureView in _texViewCache.Values)
+        {
+            textureView.Dispose();
+        }
+        
+        foreach (var texture in _textureCache.Values)
+        {
+            texture.Dispose();
+        }
+        
+        _texViewCache.Clear();
+        _textureCache.Clear();
+        
+        foreach (var sampler in _samplerCache.Values)
+        {
+            sampler.Dispose();
+        }
+        
+        _samplerCache.Clear();
+
+        if (_textureView is {IsDisposed: false}) _textureView.Dispose();
+        if (_texture is {IsDisposed: false}) _texture.Dispose();
+        if (_sampler is {IsDisposed: false}) _sampler.Dispose();
+
+        _texture = null;
+        _sampler = null;
+        _textureView = null;
+    }
+
     public void Dispose()
     {
         _texture?.Dispose();

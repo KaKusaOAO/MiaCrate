@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Systems;
 using Mochi.Extensions;
 using Mochi.Utils;
@@ -513,5 +514,15 @@ public static class GlStateManager
         public static int Y { get; set; }
         public static int Width { get; set; }
         public static int Height { get; set; }
+    }
+
+    public static void Upload(AbstractTexture texture, int i, int x, int y, int width, int height, IntPtr buffer, int sizeInBytes, Action<IntPtr> consumer)
+    {
+        RenderSystem.EnsureOnRenderThreadOrInit(() =>
+        {
+            var tex = texture.Texture!.Texture;
+            Device.UpdateTexture(tex, buffer, (uint) sizeInBytes, (uint) x, (uint) y, 0, (uint) width, (uint) height, 1, (uint) i, 0);
+            consumer(buffer);
+        });
     }
 }
