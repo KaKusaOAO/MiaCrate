@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
+using MiaCrate.Client.Graphics;
 using MiaCrate.Client.Systems;
 using MiaCrate.Extensions;
 using MiaCrate.Texts;
@@ -764,5 +765,18 @@ public static class GlStateManager
         public static int Y { get; set; }
         public static int Width { get; set; }
         public static int Height { get; set; }
+    }
+
+    public static void Upload(int i, int x, int y, int width, int height, NativeImage.FormatInfo format, IntPtr buffer, Action<IntPtr> consumer)
+    {
+        RenderSystem.EnsureOnRenderThreadOrInit(() =>
+        {
+            PixelStore(PixelStoreParameter.UnpackRowLength, width);
+            PixelStore(PixelStoreParameter.UnpackSkipPixels, 0);
+            PixelStore(PixelStoreParameter.UnpackSkipRows, 0);
+            format.SetUnpackPixelStoreState();
+            GL.TexSubImage2D(TextureTarget.Texture2D, i, x, y, width, height, format.Format, PixelType.UnsignedByte, buffer);
+            consumer(buffer);
+        });
     }
 }

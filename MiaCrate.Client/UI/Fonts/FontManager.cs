@@ -21,9 +21,9 @@ public class FontManager : IPreparableReloadListener, IDisposable
     
     private readonly TextureManager _textureManager;
     private readonly Dictionary<ResourceLocation, FontSet> _fontSets = new();
-    private readonly Dictionary<ResourceLocation, ResourceLocation> _renames = new();
     private readonly FontSet _missingFontSet;
     private readonly List<IGlyphProvider> _providersToClose = new(); 
+    private Dictionary<ResourceLocation, ResourceLocation> _renames = new();
 
     public FontManager(TextureManager textureManager)
     {
@@ -40,6 +40,11 @@ public class FontManager : IPreparableReloadListener, IDisposable
 
     private ResourceLocation GetActualId(ResourceLocation location) => 
         _renames.GetValueOrDefault(location, location);
+
+    public void SetRenames(Dictionary<ResourceLocation, ResourceLocation> renames)
+    {
+        _renames = renames;
+    }
 
     public Task ReloadAsync(IPreparableReloadListener.IPreparationBarrier barrier, IResourceManager manager, IProfilerFiller preparationProfiler,
         IProfilerFiller reloadProfiler, IExecutor preparationExecutor, IExecutor reloadExecutor)

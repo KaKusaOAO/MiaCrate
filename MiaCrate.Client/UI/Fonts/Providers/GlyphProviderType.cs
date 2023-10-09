@@ -8,13 +8,16 @@ public sealed class GlyphProviderType : IEnumLike<GlyphProviderType>, IStringRep
 {
     private static readonly Dictionary<int, GlyphProviderType> _values = new();
 
-    public static readonly GlyphProviderType Bitmap = new("bitmap", 
+    public static GlyphProviderType Bitmap { get; } = new("bitmap", 
         BitmapProvider.Definition.Codec.Cast<IGlyphProviderDefinition>());
 
-    public static readonly GlyphProviderType Space = new("space",
+    public static GlyphProviderType Space { get; } = new("space",
         SpaceProvider.Definition.Codec.Cast<IGlyphProviderDefinition>());
 
-    public static readonly GlyphProviderType Reference = new("reference",
+    public static GlyphProviderType Unihex { get; } = new("unihex", 
+        UnihexProvider.Definition.Codec.Cast<IGlyphProviderDefinition>());
+
+    public static GlyphProviderType Reference { get; } = new("reference",
         ProviderReferenceDefinition.Codec.Cast<IGlyphProviderDefinition>());
 
     public static GlyphProviderType[] Values => _values.Values.ToArray();
