@@ -133,6 +133,8 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 	private long _lastTime;
 	private int _frames;
 	public bool NoRender { get; set; }
+	
+	public ImGuiManager ImGuiManager { get; }
 
 	public Screen? Screen
 	{
@@ -257,7 +259,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         }
 
         RenderSystem.InitRenderer(0, false);
-        
+
+        ImGuiManager = new ImGuiManager(this);
+
         // Initialize the main render target
         MainRenderTarget = new MainTarget(Window.Width, Window.Height);
         MainRenderTarget.SetClearColor(0f, 0f, 0f, 0f);
@@ -629,7 +633,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         MainRenderTarget.UnbindWrite();
         MainRenderTarget.BlitToScreen(Window.Width, Window.Height);
         
-        
+        // ImGui render
+        ImGuiManager.Render();
+
         // _profiler.PopPush("updateDisplay");
         Window.UpdateDisplay();
         var k = GetFramerateLimit();

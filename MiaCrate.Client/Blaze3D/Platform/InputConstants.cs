@@ -23,6 +23,13 @@ public static class InputConstants
 	private static GLFWCallbacks.MouseButtonCallback? _mouseButtonCallback;
 	private static GLFWCallbacks.ScrollCallback? _scrollCallback;
 	private static GLFWCallbacks.DropCallback? _dropCallback;
+	
+	public static event GLFWCallbacks.KeyCallback? KeyDown;
+	public static event GLFWCallbacks.CharModsCallback? CharModsDown;
+	public static event GLFWCallbacks.CursorPosCallback? MouseMoved;
+	public static event GLFWCallbacks.MouseButtonCallback? MouseButtonChanged;
+	public static event GLFWCallbacks.ScrollCallback? Scrolled;
+	public static event GLFWCallbacks.DropCallback? DragAndDropped;
 
 	static InputConstants()
 	{
@@ -40,6 +47,9 @@ public static class InputConstants
 			case SDL.SDL_EventType.SDL_MOUSEBUTTONDOWN:
 				HandleMouseButtonEvent(ev.button);
 				break;
+			case SDL.SDL_EventType.SDL_MOUSEWHEEL:
+				HandleMouseWheelEvent(ev.wheel);
+				break;
 			case SDL.SDL_EventType.SDL_DROPFILE:
 				HandleDropEvent(ev.drop);
 				break;
@@ -48,6 +58,13 @@ public static class InputConstants
 				HandleKeyboardButtonEvent(ev.key);
 				break;
 		}
+	}
+
+	private static void HandleMouseWheelEvent(SDL.SDL_MouseWheelEvent ev)
+	{
+		var handle = Game.Instance.Window.Handle;
+		_scrollCallback?.Invoke(handle, ev.x, ev.y);
+		Scrolled?.Invoke(handle, ev.x, ev.y);
 	}
 
 	private static void HandleMouseMotionEvent(SDL.SDL_MouseMotionEvent ev)
@@ -109,10 +126,12 @@ public static class InputConstants
 		if (state == SDL.SDL_PRESSED)
 		{
 			_mouseButtonCallback?.Invoke(handle, (MouseButton) ev.button, InputAction.Press, 0);
+			MouseButtonChanged?.Invoke(handle, (MouseButton) ev.button, InputAction.Press, 0);
 		}
 		else
 		{
 			_mouseButtonCallback?.Invoke(handle, (MouseButton) ev.button, InputAction.Release, 0);
+			MouseButtonChanged?.Invoke(handle, (MouseButton) ev.button, InputAction.Release, 0);
 		}
 
 		_lastState = state;
