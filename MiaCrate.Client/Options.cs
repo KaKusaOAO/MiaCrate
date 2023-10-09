@@ -29,6 +29,16 @@ public class Options
             Game.Instance.LevelRenderer.NeedsUpdate();
         });
     
+    public OptionInstance<int> FramerateLimit { get; } = new(
+        "options.framerateLimit", OptionInstance.NoTooltip<int>(), (label, fps) => fps == 260
+            ? GenericValueLabel(label, MiaComponent.Translatable("options.framerateLimit.max"))
+            : GenericValueLabel(label, MiaComponent.Translatable("options.framerate", fps)), 
+        new OptionInstance.IntRange(10, 260), Codec.IntRange(10, 260), 120,
+        i =>
+        {
+            Game.Instance.LevelRenderer.NeedsUpdate();
+        });
+    
     public OptionInstance<double> Gamma { get; } = new(
         "options.gamma", OptionInstance.NoTooltip<double>(), (label, gamma) =>
         {
