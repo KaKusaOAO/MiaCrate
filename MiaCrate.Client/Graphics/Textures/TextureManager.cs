@@ -103,6 +103,8 @@ public class TextureManager : IPreparableReloadListener, ITickable, IDisposable
         return texture;
     }
 
+    internal Dictionary<ResourceLocation, AbstractTexture> GetAllTextures() => _byPath;
+
     private void SafeDispose(ResourceLocation location, AbstractTexture texture)
     {
         if (texture != MissingTextureAtlasSprite.Texture)

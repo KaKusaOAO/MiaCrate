@@ -44,12 +44,15 @@ public static class GlStateManager
     public static void SubmitCommands()
     {
         FlushBufferCommands();
+        FlushRenderCommands();
+    }
 
+    public static void FlushRenderCommands()
+    {
         if (_beganCommand)
         {
             CommandList.End();
             Device.SubmitCommands(CommandList);
-            Device.WaitForIdle();
         }
 
         _beganCommand = false;
@@ -94,7 +97,6 @@ public static class GlStateManager
         
         BufferCommandList.End();
         Device.SubmitCommands(BufferCommandList);
-        Device.WaitForIdle();
         
         _beganBufferCommand = false;
     }
@@ -313,8 +315,8 @@ public static class GlStateManager
         {
             fixed (byte* ptr = span)
             {
-                EnsureCommandBegan();
-                CommandList.UpdateBuffer(buffer, 0, (IntPtr) ptr, (uint) span.Length);
+                var cl = EnsureCommandBegan();
+                cl.UpdateBuffer(buffer, 0, (IntPtr) ptr, (uint) span.Length);
             }
         }
     }
@@ -341,6 +343,8 @@ public static class GlStateManager
     {
         RenderSystem.AssertOnRenderThread();
         BuildPipelineIfDirty();
+
+        EnsureCommandBegan();
         CommandList.SetPipeline(_pipeline);
         
         if (_indexBuffer != null)

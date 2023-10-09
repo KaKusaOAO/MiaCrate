@@ -14,8 +14,12 @@ public class Uniform : AbstractUniform, IDisposable
     public DeviceBuffer? Location { get; set; }
     private readonly int _count;
     private readonly UniformType _type;
+    
     private int[]? _intValues;
     private float[]? _floatValues;
+    private int[]? _lastUploadedIntValues;
+    private float[]? _lastUploadedFloatValues;
+    
     private bool _dirty;
     
     public uint SizeInBytes { get; }
@@ -39,12 +43,16 @@ public class Uniform : AbstractUniform, IDisposable
         if ((int) type <= 3)
         {
             _intValues = new int[count];
+            _lastUploadedIntValues = new int[count];
             _floatValues = null;
+            _lastUploadedFloatValues = null;
         }
         else
         {
             _intValues = null;
+            _lastUploadedIntValues = null;
             _floatValues = new float[count];
+            _lastUploadedFloatValues = new float[count];
         }
 
         MarkDirty();
@@ -196,8 +204,22 @@ public class Uniform : AbstractUniform, IDisposable
 
     private void UploadAsInteger()
     {
-        var cl = GlStateManager.CommandList;
+        var dirty = false;
+        for (var i = 0; i < _lastUploadedIntValues!.Length; i++)
+        {
+            if (_intValues![i] != _lastUploadedIntValues[i])
+            {
+                dirty = true;
+                GlStateManager.FlushRenderCommands();
+                break;
+            }
+        }
+
+        if (!dirty) return;
+        
+        var cl = GlStateManager.EnsureBufferCommandBegan();
         cl.UpdateBuffer(Location, 0, _intValues);
+        Array.Copy(_intValues!, _lastUploadedIntValues, _intValues!.Length);
 
         // switch (_type)
         // {
@@ -221,8 +243,23 @@ public class Uniform : AbstractUniform, IDisposable
     
     private void UploadAsFloat()
     {
-        var cl = GlStateManager.CommandList;
+        var dirty = false;
+        for (var i = 0; i < _lastUploadedFloatValues!.Length; i++)
+        {
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            if (_floatValues![i] != _lastUploadedFloatValues[i])
+            {
+                dirty = true;
+                GlStateManager.FlushRenderCommands();
+                break;
+            }
+        }
+        
+        if (!dirty) return;
+        
+        var cl = GlStateManager.EnsureBufferCommandBegan();
         cl.UpdateBuffer(Location, 0, _floatValues);
+        Array.Copy(_floatValues!, _lastUploadedFloatValues, _floatValues!.Length);
         
         // switch (_type)
         // {
@@ -246,8 +283,23 @@ public class Uniform : AbstractUniform, IDisposable
     
     private void UploadAsMatrix()
     {
-        var cl = GlStateManager.CommandList;
+        var dirty = false;
+        for (var i = 0; i < _lastUploadedFloatValues!.Length; i++)
+        {
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            if (_floatValues![i] != _lastUploadedFloatValues[i])
+            {
+                dirty = true;
+                GlStateManager.FlushRenderCommands();
+                break;
+            }
+        }
+
+        if (!dirty) return;
+        
+        var cl = GlStateManager.EnsureBufferCommandBegan();
         cl.UpdateBuffer(Location, 0, _floatValues);
+        Array.Copy(_floatValues!, _lastUploadedFloatValues, _floatValues!.Length);
         
         // switch (_type)
         // {

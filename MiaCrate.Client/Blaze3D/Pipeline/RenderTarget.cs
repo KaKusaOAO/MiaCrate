@@ -257,6 +257,7 @@ public abstract class RenderTarget
         builder.Vertex(f, 0, 0).Uv(h, top).Color(255, 255, 255, 255).EndVertex();
         builder.Vertex(0, 0, 0).Uv(0, top).Color(255, 255, 255, 255).EndVertex();
         BufferUploader.Draw(builder.End());
+        GlStateManager.SubmitCommands();
 
         shader.Clear();
         GlStateManager.DepthMask(true);

@@ -627,13 +627,15 @@ public class ShaderInstance : IShader, IDisposable
         ProgramManager.ReleaseProgram(this);
     }
 
+    private static readonly Dictionary<ResourceSetDescription, ResourceSet> _resourceSetCache = new();
+
     public void SetupPipeline(PrimitiveTopology mode)
     {
         GlStateManager.SetPrimitiveTopology(mode);
         GlStateManager.SetPipeline();
 
         var cl = GlStateManager.CommandList;
-        var factory = GlStateManager.DisposableResourceFactory;
+        var factory = GlStateManager.ResourceFactory;
         var shader = this;
         
         foreach (var resource in VTextureResources)
@@ -654,14 +656,19 @@ public class ShaderInstance : IShader, IDisposable
                 throw new InvalidOperationException("Sampler is disposed!");
         }
         
-        var vTexResSet = factory.CreateResourceSet(
-            new ResourceSetDescription(ResourceLayouts[VTextureSamplerResourceSetIndex], VTextureResources));
-        var fTexResSet = factory.CreateResourceSet(
-            new ResourceSetDescription(ResourceLayouts[FTextureSamplerResourceSetIndex], FTextureResources));
-        var vUniformResSet = factory.CreateResourceSet(
-            new ResourceSetDescription(ResourceLayouts[VertexUniformResourceSetIndex], VertexUniformResources));
-        var fUniformResSet = factory.CreateResourceSet(
-            new ResourceSetDescription(ResourceLayouts[FragmentUniformResourceSetIndex], FragmentUniformResources));
+        var vTexResSetDesc = 
+            new ResourceSetDescription(ResourceLayouts[VTextureSamplerResourceSetIndex], VTextureResources);
+        var fTexResSetDesc = 
+            new ResourceSetDescription(ResourceLayouts[FTextureSamplerResourceSetIndex], FTextureResources);
+        var vUniformResSetDesc = 
+            new ResourceSetDescription(ResourceLayouts[VertexUniformResourceSetIndex], VertexUniformResources);
+        var fUniformResSetDesc = 
+            new ResourceSetDescription(ResourceLayouts[FragmentUniformResourceSetIndex], FragmentUniformResources);
+
+        var vTexResSet = _resourceSetCache.ComputeIfAbsent(vTexResSetDesc, d => factory.CreateResourceSet(d));
+        var fTexResSet = _resourceSetCache.ComputeIfAbsent(fTexResSetDesc, d => factory.CreateResourceSet(d));
+        var vUniformResSet = _resourceSetCache.ComputeIfAbsent(vUniformResSetDesc, d => factory.CreateResourceSet(d));
+        var fUniformResSet = _resourceSetCache.ComputeIfAbsent(fUniformResSetDesc, d => factory.CreateResourceSet(d));
 
         cl.SetGraphicsResourceSet(VTextureSamplerResourceSetIndex, vTexResSet);
         cl.SetGraphicsResourceSet(FTextureSamplerResourceSetIndex, fTexResSet);

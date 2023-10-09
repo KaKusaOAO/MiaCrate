@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using ImGuiNET;
 using MiaCrate.Client.Platform;
+using MiaCrate.Client.UI;
 using MiaCrate.Client.Utils;
 using Veldrid;
 using MouseButton = MiaCrate.Client.Utils.MouseButton;
@@ -38,6 +39,8 @@ public class ImGuiManager
 
         _renderer.WindowResized((int) fb.Width, (int) fb.Height);
         _renderer.Update(delta, _snapshot);
+        _snapshot.InvalidateCache();
+        
         RenderContent();
         
         _cl.Begin();
@@ -55,11 +58,13 @@ public class ImGuiManager
         {
             ImGui.EndMainMenuBar();
         }
-        
+
         if (ImGui.Begin($"{MiaCore.ProductName} - Debug Detail"))
         {
             var style = ImGui.GetStyle();
             var indent = style.IndentSpacing;
+            
+            ImGui.Text($"FPS: {ImGui.GetIO().Framerate:F2}");
 
             if (ImGui.CollapsingHeader("Backend Info", ImGuiTreeNodeFlags.DefaultOpen))
             {
@@ -104,6 +109,40 @@ public class ImGuiManager
                 ImGui.Image(image, new Vector2(width, height));
             }
             
+            if (ImGui.CollapsingHeader("Font Texture Debug"))
+            {
+                if (ImGui.BeginTabBar("font_tex_bar"))
+                {
+                    var textures = _game.TextureManager.GetAllTextures()
+                        .Where(e => e.Value is FontTexture)
+                        .ToList();
+
+                    for (var i = 0; i < textures.Count; i++)
+                    {
+                        var tex = textures[i];
+
+                        if (ImGui.BeginTabItem(tex.Key.ToString()))
+                        {
+                            var texture = tex.Value.Texture!;
+                            var image = _renderer.GetOrCreateImGuiBinding(_gd.ResourceFactory, texture.TextureView);
+
+                            var width = texture.Texture.Width;
+                            var height = width / texture.Texture.Width * texture.Texture.Height;
+                        
+                            var list = ImGui.GetWindowDrawList();
+                            var pos = ImGui.GetWindowPos() + ImGui.GetCursorPos() 
+                                      - new Vector2(ImGui.GetScrollX() + 2, ImGui.GetScrollY() + 2);
+                            list.AddRect(pos, pos + new Vector2(width + 3, height + 3), 0xffffffff);
+                            ImGui.Image(image, new Vector2(width, height));
+                            
+                            ImGui.EndTabItem();
+                        }
+                    }
+                    
+                    ImGui.EndTabBar();
+                }
+            }
+            
             ImGui.End();
         }
     }
@@ -113,6 +152,18 @@ public class ImGuiManager
         private readonly Game _game;
         private readonly Dictionary<MouseButton, bool> _buttonStates = new();
         private float _wheelDelta;
+
+        public IReadOnlyList<KeyEvent> KeyEvents => new List<KeyEvent>();
+
+        public IReadOnlyList<MouseEvent> MouseEvents => new List<MouseEvent>();
+
+        public IReadOnlyList<char> KeyCharPresses => new List<char>();
+
+        public Vector2 MousePosition => new(
+            (float) _game.MouseHandler.XPos, 
+            (float) _game.MouseHandler.YPos);
+
+        public float WheelDelta => _wheelDelta;
 
         public InputSnapshotImpl(Game game)
         {
@@ -145,24 +196,9 @@ public class ImGuiManager
         public bool IsMouseDown(Veldrid.MouseButton button) => 
             _buttonStates.GetValueOrDefault(FromVeldridButton(button), false);
 
-        public IReadOnlyList<KeyEvent> KeyEvents => new List<KeyEvent>();
-
-        public IReadOnlyList<MouseEvent> MouseEvents => new List<MouseEvent>();
-
-        public IReadOnlyList<char> KeyCharPresses => new List<char>();
-
-        public Vector2 MousePosition => new(
-            (float) (_game.MouseHandler.XPos), 
-            (float) (_game.MouseHandler.YPos));
-
-        public float WheelDelta
+        public void InvalidateCache()
         {
-            get
-            {
-                var val = _wheelDelta;
-                _wheelDelta = 0;
-                return val;
-            }
+            _wheelDelta = 0;
         }
     }
 }
