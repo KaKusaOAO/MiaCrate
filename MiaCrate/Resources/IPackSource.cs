@@ -8,11 +8,11 @@ public interface IPackSource
 {
     public static readonly Func<IComponent, IComponent> NoDecoration = x => x;
     
-    public static readonly IPackSource Default = Create(NoDecoration, true);
-    public static readonly IPackSource BuiltIn = Create(DecorateWithSource("pack.source.builtin"), true);
-    public static readonly IPackSource Feature = Create(DecorateWithSource("pack.source.feature"), false);
-    public static readonly IPackSource World = Create(DecorateWithSource("pack.source.world"), true);
-    public static readonly IPackSource Server = Create(DecorateWithSource("pack.source.server"), true);
+    public static IPackSource Default { get; } = Create(NoDecoration, true);
+    public static IPackSource BuiltIn { get; } = Create(DecorateWithSource("pack.source.builtin"), true);
+    public static IPackSource Feature { get; } = Create(DecorateWithSource("pack.source.feature"), false);
+    public static IPackSource World { get; } = Create(DecorateWithSource("pack.source.world"), true);
+    public static IPackSource Server { get; } = Create(DecorateWithSource("pack.source.server"), true);
     
     public IComponent Decorate(IComponent component);
     public bool ShouldAddAutomatically { get; }

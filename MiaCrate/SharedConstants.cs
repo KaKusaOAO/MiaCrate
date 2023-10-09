@@ -7,7 +7,12 @@ public static class SharedConstants
 {
 	public const bool UseHighDpi = false;
 	
-    public const bool IsSnapshot = false;
+	// -- Builtin mods support
+	public const bool IncludesMods = true;
+	public const bool IncludesSodium = IncludesMods && true;
+	public const bool IncludesIris = IncludesMods && true;
+
+	public const bool IsSnapshot = false;
     public const int WorldVersion = 3465;
     public const string Series = "main";
     public const string VersionString = "1.20.1";

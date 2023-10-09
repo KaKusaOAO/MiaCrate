@@ -217,4 +217,24 @@ public static class OptionInstance
         int OptionInstance<int>.ISliderableValueSet.FromSliderValue(double sliderValue) => 
             (int) Math.Floor(Util.Map(sliderValue, 0, 1, MinInclusive, MaxInclusive));
     }
+
+    public class UnitDouble : OptionInstance<double>.ISliderableValueSet
+    {
+        public static UnitDouble Instance { get; } = new();
+        
+        private UnitDouble() {}
+
+        public ICodec<double> Codec => Data.Codec.Double;
+        
+        public IOptional<double> ValidateValue(double val)
+        {
+            return val is >= 0 and <= 1 
+                ? Optional.Of(val) 
+                : Optional.Empty<double>();
+        }
+
+        public double ToSliderValue(double val) => val;
+
+        public double FromSliderValue(double sliderValue) => sliderValue;
+    }
 }

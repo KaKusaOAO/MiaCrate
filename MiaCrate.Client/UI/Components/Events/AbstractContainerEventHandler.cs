@@ -18,5 +18,11 @@ public abstract class AbstractContainerEventHandler : IContainerEventHandler
         }
     }
 
+    public virtual bool IsFocused
+    {
+        get => FocusedChild != null;
+        set { }
+    }
+
     public bool IsDragging { get; set; }
 }

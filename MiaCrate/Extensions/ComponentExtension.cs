@@ -8,6 +8,22 @@ namespace MiaCrate.Extensions;
 
 public static class ComponentExtension
 {
+    public static T AddWithParam<T>(this T text, params IComponent[] texts) where T : IComponent
+    {
+        if (text.Content is FormattedContent formatted)
+        {
+            foreach (var t in texts)
+                formatted.AddWith(t);
+        }
+        else if (text.Content is TranslatableContent translatable)
+        {
+            foreach (var t in texts)
+                translatable.AddWith(t);
+        }
+        
+        return text;
+    }
+    
     public static IMutableComponent WithColor(this IMutableComponent component, TextColor color)
     {
         if (component.Style is IColoredStyle colored)
@@ -30,12 +46,28 @@ public static class ComponentExtension
 
         return new MutableComponent<Style>(component.Content, Style.Empty.WithColor(color));
     }
-
-    public static IMutableComponent WithUnderlined(this IMutableComponent component, bool? underlined)
+    
+    public static IMutableComponent WithBold(this IMutableComponent component, bool? val)
     {
         component = component.EnsureStyle();
         var style = component.Style as Style;
-        component.Style = style!.WithUnderlined(underlined);
+        component.Style = style!.WithBold(val);
+        return component;
+    }
+    
+    public static IMutableComponent WithItalic(this IMutableComponent component, bool? val)
+    {
+        component = component.EnsureStyle();
+        var style = component.Style as Style;
+        component.Style = style!.WithItalic(val);
+        return component;
+    }
+
+    public static IMutableComponent WithUnderlined(this IMutableComponent component, bool? val)
+    {
+        component = component.EnsureStyle();
+        var style = component.Style as Style;
+        component.Style = style!.WithUnderlined(val);
         return component;
     }
     

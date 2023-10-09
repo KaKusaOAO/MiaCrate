@@ -35,20 +35,16 @@ public class OptionsScreen : Screen
         var layout = new GridLayout();
         layout.DefaultCellSetting.SetPaddingHorizontal(5).SetPaddingBottom(4).AlignHorizontallyCenter();
 
-        var rowHelper = layout.CreateRowHelper(2);
+        var rowHelper = layout.CreateRowHelper(Columns);
 
         rowHelper.AddChild(_options.Fov.CreateButton(Game!.Options, 0, 0, 150));
         
-        rowHelper.AddChild(SpacerElement.CreateHeight(Button.DefaultHeight + 6), 2);
+        rowHelper.AddChild(SpacerElement.CreateHeight(Button.DefaultHeight + 6), Columns);
         
         rowHelper.AddChild(OpenScreenButton(SkinCustomization, () => _lastScreen));
         rowHelper.AddChild(OpenScreenButton(Sounds, () => _lastScreen));
         rowHelper.AddChild(OpenScreenButton(Video,
-#if INCLUDE_SODIUM
-            () => new SodiumOptionsScreen(this)
-#else
-            () => _lastScreen
-#endif
+            () => SharedConstants.IncludesSodium ? new SodiumOptionsScreen(this) : _lastScreen
             ));
         rowHelper.AddChild(OpenScreenButton(Controls, () => _lastScreen));
         rowHelper.AddChild(OpenScreenButton(Language, () => _lastScreen));
@@ -59,7 +55,7 @@ public class OptionsScreen : Screen
         rowHelper.AddChild(OpenScreenButton(CreditsAndAttribution, () => _lastScreen));
 
         rowHelper.AddChild(Button.CreateBuilder(CommonComponents.GuiDone, _ => Game.Screen = _lastScreen)
-            .Width(200).Build(), 2, rowHelper.NewCellSettings().SetPaddingTop(6));
+            .Width(200).Build(), Columns, rowHelper.NewCellSettings().SetPaddingTop(6));
         
         layout.ArrangeElements();
         FrameLayout.AlignInRectangle(layout, 0, Height / 6 - 12, Width, Height, 0.5f, 0);

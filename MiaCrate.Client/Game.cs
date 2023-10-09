@@ -88,7 +88,7 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
 
 	// private readonly DownloadedPackSource _downloadedPackSource;
 	private readonly PackRepository _resourcePackRepository;
-	// private readonly LanguageManager _languageManager;
+	public LanguageManager LanguageManager { get; }
 	private readonly BlockColors _blockColors;
 	private readonly ItemColors _itemColors;
 	public RenderTarget MainRenderTarget { get; }
@@ -219,7 +219,10 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         _profileProperties = config.User.ProfileProperties;
         
         var clientPackSource = new ClientPackSource(config.Location.ExternalAssetSource);
-        _resourcePackRepository = new PackRepository(clientPackSource);
+        // var repositorySource = new FolderRepositorySource(_resourcePackDirectory, PackType.ClientResources, IPackSource.Default);
+
+        var modPackSource = new ModPackSource();
+        _resourcePackRepository = new PackRepository(clientPackSource, modPackSource);
         VanillaPackResources = clientPackSource.VanillaPack;
         _proxy = config.User.Proxy;
         _authenticationService = new YggdrasilAuthenticationService(_proxy);
@@ -266,6 +269,9 @@ public class Game : ReentrantBlockableEventLoop<IRunnable>
         
 	    // Find all the available packs and apply vanilla pack if not
         _resourcePackRepository.Reload();
+
+        LanguageManager = new LanguageManager();
+        ResourceManager.RegisterReloadListener(LanguageManager);
 
         TextureManager = new TextureManager(ResourceManager);
         ResourceManager.RegisterReloadListener(TextureManager);

@@ -59,15 +59,10 @@ public class ClientLanguage : Language
         }
     }
 
-    public override string GetOrDefault(string key, string defaultValue)
-    {
-        throw new NotImplementedException();
-    }
+    public override string GetOrDefault(string key, string defaultValue) =>
+        _storage.GetValueOrDefault(key, defaultValue);
 
-    public override bool Has(string key)
-    {
-        throw new NotImplementedException();
-    }
+    public override bool Has(string key) => _storage.ContainsKey(key);
 
     public override FormattedCharSequence GetVisualOrder(IFormattedText text)
     {
