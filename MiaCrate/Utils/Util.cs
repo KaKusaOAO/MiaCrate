@@ -10,7 +10,6 @@ using MiaCrate.Extensions;
 using MiaCrate.Texts;
 using Mochi.Texts;
 using Mochi.Utils;
-using TextExtension = Mochi.Texts.TextExtension;
 
 namespace MiaCrate;
 
