@@ -12,9 +12,6 @@ public static class ControlValueFormatters
             ? MiaComponent.Translatable("options.guiScale.auto")
             : MiaComponent.Literal(v + "x");
     });
-
-    public static ControlValueFormatter BackendType { get; } = Create(v =>
-        MiaComponent.Literal("" + GlStateManager.Device.BackendType));
     
     public static ControlValueFormatter Brightness { get; } = Create(v =>
     {

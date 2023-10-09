@@ -53,16 +53,6 @@ public class GameOptionPages
                     .SetBinding((o, v) => { }, o => 0)
                     .Build())
                 .Build());
-            
-            groups.Add(OptionGroup.CreateBuilder()
-                .Add(OptionImpl<int>.CreateBuilder(_vanillaOpts)
-                    .SetName(MiaComponent.Literal("Backend Type"))
-                    .SetTooltip(MiaComponent.Translatable("sodium.options.gui_scale.tooltip"))
-                    .SetControl(o => new SliderControl(o, 0, 1, 1, ControlValueFormatters.BackendType))
-                    .SetBinding((o, v) => { }, o => 0)
-                    .SetEnabled(false)
-                    .Build())
-                .Build());
 
             return new OptionPage(MiaComponent.Translatable("stat.generalButton"), groups);
         }
